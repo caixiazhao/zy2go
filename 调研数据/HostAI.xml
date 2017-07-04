@@ -1,0 +1,1237 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Behavior Version="5">
+  <Node Class="Behaviac.Design.Nodes.Behavior" AgentType="MobaGo::Game::HostAIAgent" Domains="" Enable="true" HasOwnPrefabData="false" Id="-1" PrefabName="" PrefabNodeId="-1">
+    <Comment Background="NoColor" Text="" />
+    <DescriptorRefs value="0:" />
+    <Connector Identifier="GenericChildren">
+      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="411" PrefabName="" PrefabNodeId="-1">
+        <Comment Background="NoColor" Text="" />
+        <Connector Identifier="GenericChildren">
+          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="497" Opl="behaviac::EBTStatus Self.MobaGo::Game::HostAIAgent::p_LowAI" Opr="Self.MobaGo::Game::HostAIAgent::IsLowAI()" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+          </Node>
+          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="516" Opl="uint Self.MobaGo::Game::HostAIAgent::p_helpTargtID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+          </Node>
+          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="20" Opl="uint Self.MobaGo::Game::HostAIAgent::p_selfID" Opr="Self.MobaGo::Game::HostAIAgent::GetMyObjID()" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+          </Node>
+          <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="412" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+            <Connector Identifier="_condition">
+              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="413" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                <Comment Background="NoColor" Text="" />
+              </Node>
+            </Connector>
+            <Connector Identifier="_if">
+              <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="498" PrefabName="" PrefabNodeId="-1">
+                <Comment Background="NoColor" Text="" />
+                <Connector Identifier="_condition">
+                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="500" Operator="Equal" Opl="behaviac::EBTStatus Self.MobaGo::Game::HostAIAgent::p_LowAI" Opr="const behaviac::EBTStatus BT_SUCCESS" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="NoColor" Text="" />
+                  </Node>
+                </Connector>
+                <Connector Identifier="_if">
+                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="506" Opl="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeight" Opr="const int 40" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="NoColor" Text="" />
+                  </Node>
+                </Connector>
+                <Connector Identifier="_else">
+                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="414" Opl="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeight" Opr="const int 180" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="NoColor" Text="" />
+                  </Node>
+                </Connector>
+              </Node>
+            </Connector>
+            <Connector Identifier="_else">
+              <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="415" Opl="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeight" Opr="const int 150" PrefabName="" PrefabNodeId="-1">
+                <Comment Background="NoColor" Text="" />
+              </Node>
+            </Connector>
+          </Node>
+          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="486" Opl="int Self.MobaGo::Game::HostAIAgent::p_srchRange" Opr="Self.MobaGo::Game::HostAIAgent::GetSightScope()" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+          </Node>
+          <Node Class="PluginBehaviac.Nodes.DecoratorLoop" Count="const int -1" DecorateWhenChildEnds="true" DoneWithinFrame="false" Enable="true" HasOwnPrefabData="false" Id="14" PrefabName="" PrefabNodeId="-1">
+            <Comment Background="NoColor" Text="" />
+            <Connector Identifier="GenericChildren">
+              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="69" PrefabName="" PrefabNodeId="-1">
+                <Comment Background="NoColor" Text="" />
+                <Connector Identifier="GenericChildren">
+                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="205" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="Gray" Text="路线选择" />
+                    <Connector Identifier="_condition">
+                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="0" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::HasRoute()" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                    </Connector>
+                    <Connector Identifier="_if">
+                      <Node Class="PluginBehaviac.Nodes.Noop" Enable="true" HasOwnPrefabData="false" Id="1" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                    </Connector>
+                    <Connector Identifier="_else">
+                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="2" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="NoColor" Text="" />
+                        <Connector Identifier="GenericChildren">
+                          <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="502" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="NoColor" Text="" />
+                            <Connector Identifier="GenericChildren">
+                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="756" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="NoColor" Text="" />
+                                <Connector Identifier="GenericChildren">
+                                  <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="682" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="578" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="4" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_MELEE" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="757" Method="Self.MobaGo::Game::HostAIAgent::SelectRouteBySelfCampIndex()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                    <Comment Background="NoColor" Text="" />
+                                  </Node>
+                                </Connector>
+                              </Node>
+                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="584" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="NoColor" Text="" />
+                                <Connector Identifier="GenericChildren">
+                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="596" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_3V3" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                  </Node>
+                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="597" Method="Self.MobaGo::Game::HostAIAgent::SelectNearestRoute()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                    <Comment Background="NoColor" Text="" />
+                                  </Node>
+                                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="3" Opl="int Self.MobaGo::Game::HostAIAgent::p_srchRange" Opr="const int 30000" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                  </Node>
+                                </Connector>
+                              </Node>
+                            </Connector>
+                          </Node>
+                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="5" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_direction" Opr="Self.MobaGo::Game::HostAIAgent::GetCurRouteLastForward()" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="NoColor" Text="" />
+                          </Node>
+                        </Connector>
+                      </Node>
+                    </Connector>
+                  </Node>
+                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="21" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="Gray" Text="学习技能" />
+                    <Connector Identifier="GenericChildren">
+                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="22" Method="Self.MobaGo::Game::HostAIAgent::LearnSkillCommand(SLOT_SKILL_3)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="23" Method="Self.MobaGo::Game::HostAIAgent::LearnSkillCommand(SLOT_SKILL_2)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="24" Method="Self.MobaGo::Game::HostAIAgent::LearnSkillCommand(SLOT_SKILL_1)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                    </Connector>
+                  </Node>
+                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="8" Method="Self.MobaGo::Game::HostAIAgent::RequestBuyEquip()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                    <Comment Background="NoColor" Text="" />
+                  </Node>
+                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="6" PrefabName="" PrefabNodeId="-1">
+                    <Comment Background="NoColor" Text="" />
+                    <Connector Identifier="_condition">
+                      <Node Class="PluginBehaviac.Nodes.And" Enable="true" HasOwnPrefabData="false" Id="76" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="NoColor" Text="" />
+                        <Connector Identifier="Conditions">
+                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="10" Operator="NotEqual" Opl="Self.MobaGo::Game::HostAIAgent::GetCurBehaviorMode()" Opr="const MobaGo::Game::eObjBehavMode State_Dead" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="NoColor" Text="" />
+                          </Node>
+                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="77" Operator="NotEqual" Opl="Self.MobaGo::Game::HostAIAgent::GetCurBehaviorMode()" Opr="const MobaGo::Game::eObjBehavMode UseSkill_4" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="NoColor" Text="" />
+                          </Node>
+                        </Connector>
+                      </Node>
+                    </Connector>
+                    <Connector Identifier="_if">
+                      <Node Class="PluginBehaviac.Nodes.Parallel" ChildFinishPolicy="CHILDFINISH_LOOP" Enable="true" ExitPolicy="EXIT_ABORT_RUNNINGSIBLINGS" FailurePolicy="FAIL_ON_ONE" HasOwnPrefabData="false" Id="184" PrefabName="" PrefabNodeId="-1" SuccessPolicy="SUCCEED_ON_ALL">
+                        <Comment Background="NoColor" Text="" />
+                        <Connector Identifier="GenericChildren">
+                          <Node Class="PluginBehaviac.Nodes.SelectorLoop" Enable="true" HasOwnPrefabData="false" Id="104" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="NoColor" Text="" />
+                            <Connector Identifier="GenericChildren">
+                              <Node Class="PluginBehaviac.Nodes.WithPrecondition" Enable="true" HasOwnPrefabData="false" Id="15" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="Gray" Text="血量不足撤退" />
+                                <Connector Identifier="Precondition">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="347" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="348" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="482" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="147" Operator="Less" Opl="Self.MobaGo::Game::HostAIAgent::GetHPPercent()" Opr="int Self.MobaGo::Game::HostAIAgent::p_healthRate" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="483" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="484" Operator="Less" Opl="Self.MobaGo::Game::HostAIAgent::GetHPPercent()" Opr="const int 2000" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.DecoratorNot" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="106" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="485" Method="Self.MobaGo::Game::HostAIAgent::IsNearbyFriendStrongThanEnemy(int Self.MobaGo::Game::HostAIAgent::p_srchRange,9000)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="764" Opl="uint Self.MobaGo::Game::HostAIAgent::p_targetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="191" Opl="uint Self.MobaGo::Game::HostAIAgent::p_abandonTargetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                                <Connector Identifier="Action">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="148" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="149" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos" Opr="Self.MobaGo::Game::HostAIAgent::GetRestoredHpPos()" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="600" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="_condition">
+                                          <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="652" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="477" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosInRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos,9000)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_if">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="602" Opl="int Self.MobaGo::Game::HostAIAgent::p_healthRate" Opr="const int 8500" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_else">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="151" Opl="int Self.MobaGo::Game::HostAIAgent::p_healthRate" Opr="const int 5000" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="603" Method="Self.MobaGo::Game::HostAIAgent::ResetRouteStartPoint()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="353" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="_condition">
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="355" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosInRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos,700)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_if">
+                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="356" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="358" Method="Self.MobaGo::Game::HostAIAgent::TerminateMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="357" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_else">
+                                          <Node Class="PluginBehaviac.Nodes.DecoratorAlwaysSuccess" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="448" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="496" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="_condition">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="352" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="354" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSummonerSkillType(SLOT_SKILL_6)" Opr="const MobaGo::FlatBuffer::RES_SUMMONERSKILL_TYPE RES_SUMMONERSKILL_RETURNCITY" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.DecoratorNot" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="460" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="465" Method="Self.MobaGo::Game::HostAIAgent::HasEnemyInRange(int Self.MobaGo::Game::HostAIAgent::p_escapeRange)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="607" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosOutRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos,15000)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                                <Connector Identifier="_if">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="476" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="606" Method="Self.MobaGo::Game::HostAIAgent::TerminateMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="1078" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.WaitFrames" Enable="true" Frames="const int 5" HasOwnPrefabData="false" Id="1079" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="501" Method="Self.MobaGo::Game::HostAIAgent::UseGoHomeSkill()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="1076" Opl="int Self.MobaGo::Game::HostAIAgent::p_escapeRange" Opr="const int 8000" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                                <Connector Identifier="_else">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="711" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="774" Method="Self.MobaGo::Game::HostAIAgent::CanMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="776" Method="Self.MobaGo::Game::HostAIAgent::RequestMovePosition(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="1077" Opl="int Self.MobaGo::Game::HostAIAgent::p_escapeRange" Opr="const int 13000" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                              </Node>
+                              <Node Class="PluginBehaviac.Nodes.WithPrecondition" Enable="true" HasOwnPrefabData="false" Id="62" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="Gray" Text="越塔，进入危险区域撤退" />
+                                <Connector Identifier="Precondition">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="417" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="419" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="418" Method="Self.MobaGo::Game::HostAIAgent::IsOverTower()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="190" Opl="uint Self.MobaGo::Game::HostAIAgent::p_abandonTargetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="499" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsUseSkillCompletedOrCanAbort()" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="766" Opl="uint Self.MobaGo::Game::HostAIAgent::p_targetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                                <Connector Identifier="Action">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="420" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="422" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos" Opr="Self.MobaGo::Game::HostAIAgent::GetRestoredHpPos()" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="604" Method="Self.MobaGo::Game::HostAIAgent::ResetRouteStartPoint()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="423" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="_condition">
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="424" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosInRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos,300)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_if">
+                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="425" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="427" Method="Self.MobaGo::Game::HostAIAgent::TerminateMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="426" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.WaitFrames" Enable="true" Frames="const int 1" HasOwnPrefabData="false" Id="428" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_else">
+                                          <Node Class="PluginBehaviac.Nodes.DecoratorAlwaysSuccess" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="470" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="471" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="472" Method="Self.MobaGo::Game::HostAIAgent::CanMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="478" Method="Self.MobaGo::Game::HostAIAgent::RequestMovePosition(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                              </Node>
+                              <Node Class="PluginBehaviac.Nodes.WithPrecondition" Enable="true" HasOwnPrefabData="false" Id="951" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="Gray" Text="危险判定" />
+                                <Connector Identifier="Precondition">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="952" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="189" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="1012" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="1014" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_MELEE" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="953" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="954" Method="Self.MobaGo::Game::HostAIAgent::IsOverTower()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="955" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="956" Method="Self.MobaGo::Game::HostAIAgent::HasEnemyBuildingAndEnemyBuildingWillAttackSelf(8000)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.Compute" Enable="true" HasOwnPrefabData="false" Id="957" Operator="Add" Opl="int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames" Opr1="const int 10" Opr2="Self.MobaGo::Game::HostAIAgent::GetLocalRandomInt(0)" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="958" Method="Self.MobaGo::Game::HostAIAgent::SetInDanger(int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.SelectorProbability" Enable="true" HasOwnPrefabData="false" Id="959" PrefabName="" PrefabNodeId="-1" RandomGenerator="Self.MobaGo::Game::BTBaseAgent::GetLocalRandom()">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="GenericChildren">
+                                              <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="960" PrefabName="" PrefabNodeId="-1" Weight="const int 8">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="961" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="962" Opl="int Self.MobaGo::Game::HostAIAgent::p_friendCount" Opr="Self.MobaGo::Game::HostAIAgent::CountOurCampChar(7000)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="963" Operator="LessEqual" Opl="int Self.MobaGo::Game::HostAIAgent::p_friendCount" Opr="const int 4" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="964" Opl="int Self.MobaGo::Game::HostAIAgent::p_enemyCount" Opr="Self.MobaGo::Game::HostAIAgent::CountEnemyInRange(7000)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="965" Operator="Less" Opl="int Self.MobaGo::Game::HostAIAgent::p_friendCount" Opr="int Self.MobaGo::Game::HostAIAgent::p_enemyCount" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Compute" Enable="true" HasOwnPrefabData="false" Id="966" Operator="Add" Opl="int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames" Opr1="const int 15" Opr2="Self.MobaGo::Game::HostAIAgent::GetLocalRandomInt(30)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="967" Method="Self.MobaGo::Game::HostAIAgent::SetInDanger(int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="968" PrefabName="" PrefabNodeId="-1" Weight="const int 8">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="969" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="970" Operator="Greater" Opl="int Self.MobaGo::Game::HostAIAgent::p_attackRange" Opr="const int 5000" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="971" Opl="int Self.MobaGo::Game::HostAIAgent::p_enemyCount" Opr="Self.MobaGo::Game::HostAIAgent::CountEnemyInRange(5000)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="972" Operator="Less" Opl="Self.MobaGo::Game::HostAIAgent::GetHPPercent()" Opr="const int 8000" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="973" Operator="GreaterEqual" Opl="int Self.MobaGo::Game::HostAIAgent::p_enemyCount" Opr="const int 1" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Compute" Enable="true" HasOwnPrefabData="false" Id="974" Operator="Add" Opl="int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames" Opr1="const int 10" Opr2="Self.MobaGo::Game::HostAIAgent::GetLocalRandomInt(25)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="975" Method="Self.MobaGo::Game::HostAIAgent::SetInDanger(int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="976" PrefabName="" PrefabNodeId="-1" Weight="const int 8">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="977" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="978" Operator="Less" Opl="Self.MobaGo::Game::HostAIAgent::GetHPPercent()" Opr="const int 5000" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.DecoratorNot" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="979" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="980" Method="Self.MobaGo::Game::HostAIAgent::IsNearbyFriendStrongThanEnemy(int Self.MobaGo::Game::HostAIAgent::p_srchRange,9000)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Compute" Enable="true" HasOwnPrefabData="false" Id="981" Operator="Add" Opl="int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames" Opr1="const int 15" Opr2="Self.MobaGo::Game::HostAIAgent::GetLocalRandomInt(25)" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="982" Method="Self.MobaGo::Game::HostAIAgent::SetInDanger(int Self.MobaGo::Game::HostAIAgent::p_waitRandomFrames)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                              <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="983" PrefabName="" PrefabNodeId="-1" Weight="const int 12">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.False" Enable="true" HasOwnPrefabData="false" Id="984" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="985" Opl="uint Self.MobaGo::Game::HostAIAgent::p_abandonTargetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                                <Connector Identifier="Action">
+                                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="987" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="_condition">
+                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="988" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="989" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos" Opr="Self.MobaGo::Game::HostAIAgent::GetRouteCurWaypointPosPre()" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="990" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="_condition">
+                                              <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="991" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="992" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsCurWaypointValid()" Opr="const bool false" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="993" Method="Self.MobaGo::Game::HostAIAgent::IsCurWayPointStartPoint()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                            <Connector Identifier="_if">
+                                              <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="994" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos" Opr="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                            <Connector Identifier="_else">
+                                              <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="995" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos" Opr="Self.MobaGo::Game::HostAIAgent::GetRandomPointNearGivenPoint(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos,3000)" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="996" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosInRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_restorePos,300)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                    </Connector>
+                                    <Connector Identifier="_if">
+                                      <Node Class="PluginBehaviac.Nodes.Noop" Enable="true" HasOwnPrefabData="false" Id="997" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                      </Node>
+                                    </Connector>
+                                    <Connector Identifier="_else">
+                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="998" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="999" Method="Self.MobaGo::Game::HostAIAgent::CanMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="1001" Method="Self.MobaGo::Game::HostAIAgent::RequestMovePosition(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                              </Node>
+                              <Node Class="PluginBehaviac.Nodes.WithPrecondition" Enable="true" HasOwnPrefabData="false" Id="70" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="Gray" Text="进攻" />
+                                <Connector Identifier="Precondition">
+                                  <Node Class="PluginBehaviac.Nodes.True" Enable="true" HasOwnPrefabData="false" Id="9" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                  </Node>
+                                </Connector>
+                                <Connector Identifier="Action">
+                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="12" PrefabName="" PrefabNodeId="-1">
+                                    <Comment Background="NoColor" Text="" />
+                                    <Connector Identifier="GenericChildren">
+                                      <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="507" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="DarkGray" Text="设置heathRate" />
+                                        <Connector Identifier="_condition">
+                                          <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="508" Operator="Equal" Opl="behaviac::EBTStatus Self.MobaGo::Game::HostAIAgent::p_LowAI" Opr="const behaviac::EBTStatus BT_SUCCESS" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_if">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="183" Opl="int Self.MobaGo::Game::HostAIAgent::p_healthRate" Opr="const int 500" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                        <Connector Identifier="_else">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="731" Opl="int Self.MobaGo::Game::HostAIAgent::p_healthRate" Opr="const int 2000" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="13" PrefabName="" PrefabNodeId="-1">
+                                        <Comment Background="NoColor" Text="" />
+                                        <Connector Identifier="GenericChildren">
+                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="16" Opl="uint Self.MobaGo::Game::HostAIAgent::p_targetID" Opr="Self.MobaGo::Game::HostAIAgent::GetNearestEnemy(int Self.MobaGo::Game::HostAIAgent::p_srchRange)" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                          </Node>
+                                          <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="17" PrefabName="" PrefabNodeId="-1">
+                                            <Comment Background="NoColor" Text="" />
+                                            <Connector Identifier="_condition">
+                                              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="109" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsTargetCanBeAttacked(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="NoColor" Text="" />
+                                              </Node>
+                                            </Connector>
+                                            <Connector Identifier="_if">
+                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="18" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="DarkGray" Text="攻击目标" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="188" Opl="uint Self.MobaGo::Game::HostAIAgent::p_abandonTargetID" Opr="const uint 0" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="1066" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="_condition">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="1067" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetActorType(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" Opr="const MobaGo::Game::eCharTypeDef CharType_Hero" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                    <Connector Identifier="_if">
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="1068" Opl="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeightActually" Opr="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeight" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                    <Connector Identifier="_else">
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="1069" Opl="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeightActually" Opr="const int 5" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="19" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.SelectorProbability" Enable="true" HasOwnPrefabData="false" Id="469" PrefabName="" PrefabNodeId="-1" RandomGenerator="Self.MobaGo::Game::BTBaseAgent::GetLocalRandom()">
+                                                        <Comment Background="Gray" Text="技能选择" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="380" PrefabName="" PrefabNodeId="-1" Weight="int Self.MobaGo::Game::HostAIAgent::p_useSkillWeightActually">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="GenericChildren">
+                                                              <Node Class="PluginBehaviac.Nodes.SelectorProbability" Enable="true" HasOwnPrefabData="false" Id="64" PrefabName="" PrefabNodeId="-1" RandomGenerator="Self.MobaGo::Game::BTBaseAgent::GetLocalRandom()">
+                                                                <Comment Background="NoColor" Text="" />
+                                                                <Connector Identifier="GenericChildren">
+                                                                  <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="65" PrefabName="" PrefabNodeId="-1" Weight="const int 1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="153" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="156" Method="Self.MobaGo::Game::HostAIAgent::CanUseSkill(SLOT_SKILL_3)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="159" Opl="int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange" Opr="Self.MobaGo::Game::HostAIAgent::GetSkillAttackRange(SLOT_SKILL_3)" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="160" Opl="MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType" Opr="const MobaGo::Game::eSkillSlotType SLOT_SKILL_3" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="509" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                            <Connector Identifier="GenericChildren">
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="510" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="712" Method="Self.MobaGo::Game::HostAIAgent::CheckSkillFilter(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType,uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="513" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                    <Connector Identifier="GenericChildren">
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="805" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule NearestEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="806" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="807" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule MyDirection" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                    </Connector>
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="629" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="630" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="631" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="635" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpFriendly" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="641" Opl="uint Self.MobaGo::Game::HostAIAgent::p_teamTarget" Opr="Self.MobaGo::Game::HostAIAgent::GetLowHpFriendChar(int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange,5000,MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="646" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_teamTarget,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="650" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_teamTarget)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="651" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="809" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule Myself" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="810" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="811" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_selfID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                            </Connector>
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="66" PrefabName="" PrefabNodeId="-1" Weight="const int 1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="161" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="312" Method="Self.MobaGo::Game::HostAIAgent::CanUseSkill(SLOT_SKILL_2)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="162" Opl="int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange" Opr="Self.MobaGo::Game::HostAIAgent::GetSkillAttackRange(SLOT_SKILL_2)" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="166" Opl="MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType" Opr="const MobaGo::Game::eSkillSlotType SLOT_SKILL_2" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="233" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                            <Connector Identifier="GenericChildren">
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="374" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="713" Method="Self.MobaGo::Game::HostAIAgent::CheckSkillFilter(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType,uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="375" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                    <Connector Identifier="GenericChildren">
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="812" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule NearestEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="813" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="26" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule MyDirection" PrefabName="" PrefabNodeId="-1">
+                                                                                        <Comment Background="NoColor" Text="" />
+                                                                                      </Node>
+                                                                                    </Connector>
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="379" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="25" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="421" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="58" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpFriendly" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="59" Opl="uint Self.MobaGo::Game::HostAIAgent::p_teamTarget" Opr="Self.MobaGo::Game::HostAIAgent::GetLowHpFriendChar(int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange,5000,MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="60" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_teamTarget,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="61" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_teamTarget)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="31" PrefabName="" PrefabNodeId="-1">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                                <Connector Identifier="GenericChildren">
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="814" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule Myself" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="821" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="822" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_selfID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                    <Comment Background="NoColor" Text="" />
+                                                                                  </Node>
+                                                                                </Connector>
+                                                                              </Node>
+                                                                            </Connector>
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.DecoratorWeight" HasOwnPrefabData="false" Id="67" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="67">
+                                                                    <Comment Background="Gray" Text="Prefab[pf_DecoratorWeight]" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="63" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="67" Weight="const int 1">
+                                                                    <Comment Background="Gray" Text="Prefab[pf_DecoratorWeight]" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="true" Id="68" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="167">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="true" Id="71" Method="Self.MobaGo::Game::HostAIAgent::CanUseSkill(SLOT_SKILL_8)" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="343" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="true" Id="73" Opl="int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange" Opr="Self.MobaGo::Game::HostAIAgent::GetSkillAttackRange(SLOT_SKILL_8)" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="168">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="true" Id="75" Opl="MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType" Opr="const MobaGo::Game::eSkillSlotType SLOT_SKILL_8" PrefabName="../Prefabs/pf_DecoratorWeight" PrefabNodeId="172">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.DecoratorWeight" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="473" PrefabName="" PrefabNodeId="-1" Weight="const int 120">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="GenericChildren">
+                                                              <Node Class="PluginBehaviac.Nodes.False" Enable="true" HasOwnPrefabData="false" Id="474" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="173" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="Gray" Text="普攻目标" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="32" Method="Self.MobaGo::Game::HostAIAgent::CanUseSkill(SLOT_SKILL_0)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="33" Opl="int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange" Opr="Self.MobaGo::Game::HostAIAgent::GetSkillAttackRange(SLOT_SKILL_0)" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="34" Opl="MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType" Opr="const MobaGo::Game::eSkillSlotType SLOT_SKILL_0" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="35" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="GenericChildren">
+                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="37" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                                <Connector Identifier="GenericChildren">
+                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="38" Method="Self.MobaGo::Game::HostAIAgent::CheckSkillFilter(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType,uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Selector" Enable="true" HasOwnPrefabData="false" Id="39" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="43" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule NearestEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="44" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpEnermy" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="45" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule MyDirection" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="46" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="48" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="49" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                                <Connector Identifier="GenericChildren">
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="50" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule LowerHpFriendly" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="51" Opl="uint Self.MobaGo::Game::HostAIAgent::p_teamTarget" Opr="Self.MobaGo::Game::HostAIAgent::GetLowHpFriendChar(int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange,5000,SLOT_SKILL_0)" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="52" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_teamTarget,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="53" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="54" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                                <Connector Identifier="GenericChildren">
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="55" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetSkillTargetRule(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" Opr="const MobaGo::FlatBuffer::SkillTargetRule Myself" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="56" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorInRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="57" Method="Self.MobaGo::Game::HostAIAgent::SelectTarget(uint Self.MobaGo::Game::HostAIAgent::p_selfID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="127" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="Gray" Text="移动到目标" />
+                                                        <Connector Identifier="_condition">
+                                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="281" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="GenericChildren">
+                                                              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="429" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToActorOutRange(uint Self.MobaGo::Game::HostAIAgent::p_targetID,int Self.MobaGo::Game::HostAIAgent::p_skillAttackRange)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="430" Method="Self.MobaGo::Game::HostAIAgent::CanMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                        </Connector>
+                                                        <Connector Identifier="_if">
+                                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="431" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="GenericChildren">
+                                                              <Node Class="PluginBehaviac.Nodes.Compute" Enable="true" HasOwnPrefabData="false" Id="575" Operator="Add" Opl="int Self.MobaGo::Game::HostAIAgent::p_pursueFrame" Opr1="int Self.MobaGo::Game::HostAIAgent::p_pursueFrame" Opr2="const int 1" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="432" Method="Self.MobaGo::Game::HostAIAgent::RequestMoveToActor(uint Self.MobaGo::Game::HostAIAgent::p_targetID)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                        </Connector>
+                                                        <Connector Identifier="_else">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="439" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_FAILURE">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="72" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="GenericChildren">
+                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="78" Method="Self.MobaGo::Game::HostAIAgent::RequestUseSkill(MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.WaitFrames" Enable="true" Frames="const int 1" HasOwnPrefabData="false" Id="74" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="576" Opl="int Self.MobaGo::Game::HostAIAgent::p_pursueFrame" Opr="const int 0" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                            <Connector Identifier="_else">
+                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="215" PrefabName="" PrefabNodeId="-1">
+                                                <Comment Background="DarkGray" Text="沿路径移动" />
+                                                <Connector Identifier="GenericChildren">
+                                                  <Node Class="PluginBehaviac.Nodes.Or" Enable="true" HasOwnPrefabData="false" Id="217" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="Conditions">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="216" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FREEDOM" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="346" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_DEFEND" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="224" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_3V3" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="1015" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FIREPIT" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="133" PrefabName="" PrefabNodeId="-1">
+                                                    <Comment Background="NoColor" Text="" />
+                                                    <Connector Identifier="_condition">
+                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="134" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsCurWaypointValid()" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                      </Node>
+                                                    </Connector>
+                                                    <Connector Identifier="_if">
+                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="135" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="462" Method="Self.MobaGo::Game::HostAIAgent::CanMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="false" Id="136" Opl="UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos" Opr="Self.MobaGo::Game::HostAIAgent::GetRouteCurWaypointPos()" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="327" PrefabName="" PrefabNodeId="-1">
+                                                            <Comment Background="NoColor" Text="" />
+                                                            <Connector Identifier="_condition">
+                                                              <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="328" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsCurWaypointEndPoint()" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="NoColor" Text="" />
+                                                              </Node>
+                                                            </Connector>
+                                                            <Connector Identifier="_if">
+                                                              <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="335" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="Gray" Text="判断目标距离" />
+                                                                <Connector Identifier="_condition">
+                                                                  <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="336" Operator="Equal" Opl="Self.MobaGo::Game::HostAIAgent::IsDistanceToPosInRange(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos,600)" Opr="const bool true" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                </Connector>
+                                                                <Connector Identifier="_if">
+                                                                  <Node Class="PluginBehaviac.Nodes.IfElse" Enable="true" HasOwnPrefabData="false" Id="1016" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="Gray" Text="待机" />
+                                                                    <Connector Identifier="_condition">
+                                                                      <Node Class="PluginBehaviac.Nodes.Condition" Enable="true" HasOwnPrefabData="false" Id="1017" Operator="NotEqual" Opl="Self.MobaGo::Game::HostAIAgent::GetMapAIMode()" Opr="const MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE RES_LEVEL_HEROAITYPE_FIREPIT" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                    </Connector>
+                                                                    <Connector Identifier="_if">
+                                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="337" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="338" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="339" Method="Self.MobaGo::Game::HostAIAgent::TerminateMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="452" Method="Self.MobaGo::Game::HostAIAgent::LookAtDirection(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_direction)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.WaitFrames" Enable="true" Frames="const int 5" HasOwnPrefabData="false" Id="445" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                    </Connector>
+                                                                    <Connector Identifier="_else">
+                                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="1018" Method="Self.MobaGo::Game::HostAIAgent::ResetRouteStartPoint()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                </Connector>
+                                                                <Connector Identifier="_else">
+                                                                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="340" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="Gray" Text="移动到目标位置" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="342" Method="Self.MobaGo::Game::HostAIAgent::RequestMovePosition(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                      <Node Class="PluginBehaviac.Nodes.DecoratorAlwaysSuccess" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="540" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="541" PrefabName="" PrefabNodeId="-1">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                            <Connector Identifier="GenericChildren">
+                                                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="548" Method="Self.MobaGo::Game::HostAIAgent::IsControlByHostPlayer()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                              </Node>
+                                                                              <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="543" Method="Self.MobaGo::Game::HostAIAgent::PlayHeroActSound(Run)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                                <Comment Background="NoColor" Text="" />
+                                                                              </Node>
+                                                                            </Connector>
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                      <Node Class="PluginBehaviac.Nodes.WaitFrames" Enable="true" Frames="const int 2" HasOwnPrefabData="false" Id="446" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                            </Connector>
+                                                            <Connector Identifier="_else">
+                                                              <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="329" PrefabName="" PrefabNodeId="-1">
+                                                                <Comment Background="Gray" Text="继续移动" />
+                                                                <Connector Identifier="GenericChildren">
+                                                                  <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="138" Method="Self.MobaGo::Game::HostAIAgent::RequestMovePosition(UnityEngine::Vector3 Self.MobaGo::Game::HostAIAgent::p_attackPathCurTargetPos)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                  </Node>
+                                                                  <Node Class="PluginBehaviac.Nodes.DecoratorAlwaysSuccess" DecorateWhenChildEnds="false" Enable="true" HasOwnPrefabData="false" Id="539" PrefabName="" PrefabNodeId="-1">
+                                                                    <Comment Background="NoColor" Text="" />
+                                                                    <Connector Identifier="GenericChildren">
+                                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="525" PrefabName="" PrefabNodeId="-1">
+                                                                        <Comment Background="NoColor" Text="" />
+                                                                        <Connector Identifier="GenericChildren">
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="542" Method="Self.MobaGo::Game::HostAIAgent::IsControlByHostPlayer()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="528" Method="Self.MobaGo::Game::HostAIAgent::PlayHeroActSound(Run)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                                            <Comment Background="NoColor" Text="" />
+                                                                          </Node>
+                                                                        </Connector>
+                                                                      </Node>
+                                                                    </Connector>
+                                                                  </Node>
+                                                                </Connector>
+                                                              </Node>
+                                                            </Connector>
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                    </Connector>
+                                                    <Connector Identifier="_else">
+                                                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="false" Id="139" PrefabName="" PrefabNodeId="-1">
+                                                        <Comment Background="NoColor" Text="" />
+                                                        <Connector Identifier="GenericChildren">
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="141" Method="Self.MobaGo::Game::HostAIAgent::PlayAnimation(&quot;idle&quot;,0.15,0,true)" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                          <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="false" Id="140" Method="Self.MobaGo::Game::HostAIAgent::TerminateMove()" PrefabName="" PrefabNodeId="-1" ResultFunctor="&quot;&quot;" ResultOption="BT_SUCCESS">
+                                                            <Comment Background="NoColor" Text="" />
+                                                          </Node>
+                                                        </Connector>
+                                                      </Node>
+                                                    </Connector>
+                                                  </Node>
+                                                </Connector>
+                                              </Node>
+                                            </Connector>
+                                          </Node>
+                                        </Connector>
+                                      </Node>
+                                    </Connector>
+                                  </Node>
+                                </Connector>
+                              </Node>
+                              <Node Class="PluginBehaviac.Nodes.WithPrecondition" Enable="false" HasOwnPrefabData="false" Id="911" PrefabName="" PrefabNodeId="-1">
+                                <Comment Background="Gray" Text="回城守基地" />
+                              </Node>
+                            </Connector>
+                          </Node>
+                          <Node Class="PluginBehaviac.Nodes.Noop" Enable="false" HasOwnPrefabData="false" Id="7" PrefabName="" PrefabNodeId="-1">
+                            <Comment Background="Gray" Text="使用恢复技能" />
+                          </Node>
+                        </Connector>
+                      </Node>
+                    </Connector>
+                    <Connector Identifier="_else">
+                      <Node Class="PluginBehaviac.Nodes.Noop" Enable="true" HasOwnPrefabData="false" Id="11" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                    </Connector>
+                  </Node>
+                  <Node Class="PluginBehaviac.Nodes.Sequence" Enable="true" HasOwnPrefabData="true" Id="79" PrefabName="../Prefabs/pf_Sequence" PrefabNodeId="167">
+                    <Comment Background="Gray" Text="Prefab[pf_Sequence]" />
+                    <Connector Identifier="GenericChildren">
+                      <Node Class="PluginBehaviac.Nodes.Action" Enable="true" HasOwnPrefabData="true" Id="80" Method="Self.MobaGo::Game::HostAIAgent::CanUseSkill(SLOT_SKILL_8)" PrefabName="../Prefabs/pf_Sequence" PrefabNodeId="343" ResultFunctor="&quot;&quot;" ResultOption="BT_INVALID">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                      <Node Class="PluginBehaviac.Nodes.Assignment" CastRight="false" Enable="true" HasOwnPrefabData="true" Id="82" Opl="MobaGo::Game::eSkillSlotType Self.MobaGo::Game::HostAIAgent::p_curSlotType" Opr="const MobaGo::Game::eSkillSlotType SLOT_SKILL_8" PrefabName="../Prefabs/pf_Sequence" PrefabNodeId="172">
+                        <Comment Background="NoColor" Text="" />
+                      </Node>
+                      <Node Class="PluginBehaviac.Nodes.Sequence" Enable="false" HasOwnPrefabData="false" Id="83" PrefabName="" PrefabNodeId="-1">
+                        <Comment Background="Gray" Text="Prefab[a_01]" />
+                      </Node>
+                    </Connector>
+                  </Node>
+                </Connector>
+              </Node>
+            </Connector>
+          </Node>
+        </Connector>
+      </Node>
+    </Connector>
+  </Node>
+</Behavior>

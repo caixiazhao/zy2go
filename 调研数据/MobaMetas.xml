@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--EXPORTED BY TOOL, DON'T MODIFY IT!-->
+<metas version="5" language="cs">
+  <types>
+    <enumtype Type="behaviac::EBTStatus" DisplayName="" Desc="">
+      <enum NativeValue="behaviac::BT_INVALID" Value="BT_INVALID" DisplayName="BT_INVALID" Desc="BT_INVALID" />
+      <enum NativeValue="behaviac::BT_SUCCESS" Value="BT_SUCCESS" DisplayName="BT_SUCCESS" Desc="BT_SUCCESS" />
+      <enum NativeValue="behaviac::BT_FAILURE" Value="BT_FAILURE" DisplayName="BT_FAILURE" Desc="BT_FAILURE" />
+      <enum NativeValue="behaviac::BT_RUNNING" Value="BT_RUNNING" DisplayName="BT_RUNNING" Desc="BT_RUNNING" />
+    </enumtype>
+    <enumtype Type="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE" DisplayName="RES_LEVEL_HEROAITYPE" Desc="RES_LEVEL_HEROAITYPE">
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_NULL" Value="RES_LEVEL_HEROAITYPE_NULL" DisplayName="RES_LEVEL_HEROAITYPE_NULL" Desc="RES_LEVEL_HEROAITYPE_NULL" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_CAPTAIN" Value="RES_LEVEL_HEROAITYPE_CAPTAIN" DisplayName="RES_LEVEL_HEROAITYPE_CAPTAIN" Desc="RES_LEVEL_HEROAITYPE_CAPTAIN" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_FREEDOM" Value="RES_LEVEL_HEROAITYPE_FREEDOM" DisplayName="RES_LEVEL_HEROAITYPE_FREEDOM" Desc="RES_LEVEL_HEROAITYPE_FREEDOM" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_DEFEND" Value="RES_LEVEL_HEROAITYPE_DEFEND" DisplayName="RES_LEVEL_HEROAITYPE_DEFEND" Desc="RES_LEVEL_HEROAITYPE_DEFEND" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_3V3" Value="RES_LEVEL_HEROAITYPE_3V3" DisplayName="RES_LEVEL_HEROAITYPE_3V3" Desc="RES_LEVEL_HEROAITYPE_3V3" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_MELEE" Value="RES_LEVEL_HEROAITYPE_MELEE" DisplayName="RES_LEVEL_HEROAITYPE_MELEE" Desc="RES_LEVEL_HEROAITYPE_MELEE" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE_FIREPIT" Value="RES_LEVEL_HEROAITYPE_FIREPIT" DisplayName="RES_LEVEL_HEROAITYPE_FIREPIT" Desc="RES_LEVEL_HEROAITYPE_FIREPIT" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eObjBehavMode" DisplayName="eObjBehavMode" Desc="eObjBehavMode">
+      <enum NativeValue="MobaGo::Game::State_Idle" Value="State_Idle" DisplayName="State_Idle" Desc="State_Idle" />
+      <enum NativeValue="MobaGo::Game::State_Dead" Value="State_Dead" DisplayName="State_Dead" Desc="State_Dead" />
+      <enum NativeValue="MobaGo::Game::Direction_Move" Value="Direction_Move" DisplayName="Direction_Move" Desc="Direction_Move" />
+      <enum NativeValue="MobaGo::Game::Destination_Move" Value="Destination_Move" DisplayName="Destination_Move" Desc="Destination_Move" />
+      <enum NativeValue="MobaGo::Game::Normal_Attack" Value="Normal_Attack" DisplayName="Normal_Attack" Desc="Normal_Attack" />
+      <enum NativeValue="MobaGo::Game::Attack_Move" Value="Attack_Move" DisplayName="Attack_Move" Desc="Attack_Move" />
+      <enum NativeValue="MobaGo::Game::Attack_Path" Value="Attack_Path" DisplayName="Attack_Path" Desc="Attack_Path" />
+      <enum NativeValue="MobaGo::Game::Attack_Lock" Value="Attack_Lock" DisplayName="Attack_Lock" Desc="Attack_Lock" />
+      <enum NativeValue="MobaGo::Game::UseSkill_0" Value="UseSkill_0" DisplayName="UseSkill_0" Desc="UseSkill_0" />
+      <enum NativeValue="MobaGo::Game::UseSkill_1" Value="UseSkill_1" DisplayName="UseSkill_1" Desc="UseSkill_1" />
+      <enum NativeValue="MobaGo::Game::UseSkill_2" Value="UseSkill_2" DisplayName="UseSkill_2" Desc="UseSkill_2" />
+      <enum NativeValue="MobaGo::Game::UseSkill_3" Value="UseSkill_3" DisplayName="UseSkill_3" Desc="UseSkill_3" />
+      <enum NativeValue="MobaGo::Game::UseSkill_4" Value="UseSkill_4" DisplayName="UseSkill_4" Desc="UseSkill_4" />
+      <enum NativeValue="MobaGo::Game::UseSkill_5" Value="UseSkill_5" DisplayName="UseSkill_5" Desc="UseSkill_5" />
+      <enum NativeValue="MobaGo::Game::UseSkill_6" Value="UseSkill_6" DisplayName="UseSkill_6" Desc="UseSkill_6" />
+      <enum NativeValue="MobaGo::Game::UseSkill_7" Value="UseSkill_7" DisplayName="UseSkill_7" Desc="UseSkill_7" />
+      <enum NativeValue="MobaGo::Game::UseSkill_8" Value="UseSkill_8" DisplayName="UseSkill_8" Desc="UseSkill_8" />
+      <enum NativeValue="MobaGo::Game::UseSkill_9" Value="UseSkill_9" DisplayName="UseSkill_9" Desc="UseSkill_9" />
+      <enum NativeValue="MobaGo::Game::State_AutoAI" Value="State_AutoAI" DisplayName="State_AutoAI" Desc="State_AutoAI" />
+      <enum NativeValue="MobaGo::Game::State_GameOver" Value="State_GameOver" DisplayName="State_GameOver" Desc="State_GameOver" />
+      <enum NativeValue="MobaGo::Game::State_OutOfControl" Value="State_OutOfControl" DisplayName="State_OutOfControl" Desc="State_OutOfControl" />
+      <enum NativeValue="MobaGo::Game::State_Born" Value="State_Born" DisplayName="State_Born" Desc="State_Born" />
+      <enum NativeValue="MobaGo::Game::State_Revive" Value="State_Revive" DisplayName="State_Revive" Desc="State_Revive" />
+      <enum NativeValue="MobaGo::Game::State_Null" Value="State_Null" DisplayName="State_Null" Desc="State_Null" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eSkillSlotType" DisplayName="eSkillSlotType" Desc="eSkillSlotType">
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_0" Value="SLOT_SKILL_0" DisplayName="SLOT_SKILL_0" Desc="SLOT_SKILL_0" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_1" Value="SLOT_SKILL_1" DisplayName="SLOT_SKILL_1" Desc="SLOT_SKILL_1" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_2" Value="SLOT_SKILL_2" DisplayName="SLOT_SKILL_2" Desc="SLOT_SKILL_2" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_3" Value="SLOT_SKILL_3" DisplayName="SLOT_SKILL_3" Desc="SLOT_SKILL_3" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_4" Value="SLOT_SKILL_4" DisplayName="SLOT_SKILL_4" Desc="SLOT_SKILL_4" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_5" Value="SLOT_SKILL_5" DisplayName="SLOT_SKILL_5" Desc="SLOT_SKILL_5" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_6" Value="SLOT_SKILL_6" DisplayName="SLOT_SKILL_6" Desc="SLOT_SKILL_6" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_7" Value="SLOT_SKILL_7" DisplayName="SLOT_SKILL_7" Desc="SLOT_SKILL_7" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_8" Value="SLOT_SKILL_8" DisplayName="SLOT_SKILL_8" Desc="SLOT_SKILL_8" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_9" Value="SLOT_SKILL_9" DisplayName="SLOT_SKILL_9" Desc="SLOT_SKILL_9" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_COUNT" Value="SLOT_SKILL_COUNT" DisplayName="SLOT_SKILL_COUNT" Desc="SLOT_SKILL_COUNT" />
+      <enum NativeValue="MobaGo::Game::SLOT_EQUIP_SKILL" Value="SLOT_EQUIP_SKILL" DisplayName="SLOT_EQUIP_SKILL" Desc="SLOT_EQUIP_SKILL" />
+      <enum NativeValue="MobaGo::Game::SLOT_SKILL_VALID" Value="SLOT_SKILL_VALID" DisplayName="SLOT_SKILL_VALID" Desc="SLOT_SKILL_VALID" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eActType" DisplayName="eActType" Desc="eActType">
+      <enum NativeValue="MobaGo::Game::Run" Value="Run" DisplayName="Run" Desc="Run" />
+      <enum NativeValue="MobaGo::Game::Idle" Value="Idle" DisplayName="Idle" Desc="Idle" />
+      <enum NativeValue="MobaGo::Game::Skill3" Value="Skill3" DisplayName="Skill3" Desc="Skill3" />
+      <enum NativeValue="MobaGo::Game::Skill3_1" Value="Skill3_1" DisplayName="Skill3_1" Desc="Skill3_1" />
+      <enum NativeValue="MobaGo::Game::Death" Value="Death" DisplayName="Death" Desc="Death" />
+      <enum NativeValue="MobaGo::Game::BuySpecialWeapon" Value="BuySpecialWeapon" DisplayName="BuySpecialWeapon" Desc="BuySpecialWeapon" />
+      <enum NativeValue="MobaGo::Game::KillHero" Value="KillHero" DisplayName="KillHero" Desc="KillHero" />
+      <enum NativeValue="MobaGo::Game::Max" Value="Max" DisplayName="Max" Desc="Max" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eCharTypeDef" DisplayName="eCharTypeDef" Desc="eCharTypeDef">
+      <enum NativeValue="MobaGo::Game::CharType_Hero" Value="CharType_Hero" DisplayName="CharType_Hero" Desc="CharType_Hero" />
+      <enum NativeValue="MobaGo::Game::CharType_Monster" Value="CharType_Monster" DisplayName="CharType_Monster" Desc="CharType_Monster" />
+      <enum NativeValue="MobaGo::Game::CharType_Organ" Value="CharType_Organ" DisplayName="CharType_Organ" Desc="CharType_Organ" />
+      <enum NativeValue="MobaGo::Game::CharType_EYE" Value="CharType_EYE" DisplayName="CharType_EYE" Desc="CharType_EYE" />
+      <enum NativeValue="MobaGo::Game::CharType_Bullet" Value="CharType_Bullet" DisplayName="CharType_Bullet" Desc="CharType_Bullet" />
+      <enum NativeValue="MobaGo::Game::Count" Value="Count" DisplayName="Count" Desc="Count" />
+      <enum NativeValue="MobaGo::Game::All" Value="All" DisplayName="All" Desc="All" />
+      <enum NativeValue="MobaGo::Game::Invalid" Value="Invalid" DisplayName="Invalid" Desc="Invalid" />
+    </enumtype>
+    <enumtype Type="MobaGo::FlatBuffer::SkillTargetRule" DisplayName="SkillTargetRule" Desc="SkillTargetRule">
+      <enum NativeValue="MobaGo::FlatBuffer::NearestEnermy" Value="NearestEnermy" DisplayName="NearestEnermy" Desc="NearestEnermy" />
+      <enum NativeValue="MobaGo::FlatBuffer::LowerHpEnermy" Value="LowerHpEnermy" DisplayName="LowerHpEnermy" Desc="LowerHpEnermy" />
+      <enum NativeValue="MobaGo::FlatBuffer::Myself" Value="Myself" DisplayName="Myself" Desc="Myself" />
+      <enum NativeValue="MobaGo::FlatBuffer::MyDirection" Value="MyDirection" DisplayName="MyDirection" Desc="MyDirection" />
+      <enum NativeValue="MobaGo::FlatBuffer::LowerHpFriendly" Value="LowerHpFriendly" DisplayName="LowerHpFriendly" Desc="LowerHpFriendly" />
+      <enum NativeValue="MobaGo::FlatBuffer::MyTelePortTarget" Value="MyTelePortTarget" DisplayName="MyTelePortTarget" Desc="MyTelePortTarget" />
+    </enumtype>
+    <enumtype Type="MobaGo::FlatBuffer::RES_SUMMONERSKILL_TYPE" DisplayName="RES_SUMMONERSKILL_TYPE" Desc="RES_SUMMONERSKILL_TYPE">
+      <enum NativeValue="MobaGo::FlatBuffer::RES_SUMMONERSKILL_RETURNCITY" Value="RES_SUMMONERSKILL_RETURNCITY" DisplayName="RES_SUMMONERSKILL_RETURNCITY" Desc="RES_SUMMONERSKILL_RETURNCITY" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_SUMMONERSKILL_HITMONSTER" Value="RES_SUMMONERSKILL_HITMONSTER" DisplayName="RES_SUMMONERSKILL_HITMONSTER" Desc="RES_SUMMONERSKILL_HITMONSTER" />
+      <enum NativeValue="MobaGo::FlatBuffer::RES_SUMMONERSKILL_ADDHP" Value="RES_SUMMONERSKILL_ADDHP" DisplayName="RES_SUMMONERSKILL_ADDHP" Desc="RES_SUMMONERSKILL_ADDHP" />
+    </enumtype>
+    <enumtype Type="OutOfControlType" DisplayName="OutOfControlType" Desc="OutOfControlType">
+      <enum NativeValue="Taunt" Value="Taunt" DisplayName="Taunt" Desc="Taunt" />
+      <enum NativeValue="Chaos" Value="Chaos" DisplayName="Chaos" Desc="Chaos" />
+      <enum NativeValue="Terror" Value="Terror" DisplayName="Terror" Desc="Terror" />
+      <enum NativeValue="Null" Value="Null" DisplayName="Null" Desc="Null" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eCharCamp" DisplayName="eCharCamp" Desc="eCharCamp">
+      <enum NativeValue="MobaGo::Game::eCharCampMID" Value="eCharCampMID" DisplayName="eCharCampMID" Desc="eCharCampMID" />
+      <enum NativeValue="MobaGo::Game::eCharCamp1" Value="eCharCamp1" DisplayName="eCharCamp1" Desc="eCharCamp1" />
+      <enum NativeValue="MobaGo::Game::eCharCamp2" Value="eCharCamp2" DisplayName="eCharCamp2" Desc="eCharCamp2" />
+      <enum NativeValue="MobaGo::Game::eCharCampCOUNT" Value="eCharCampCOUNT" DisplayName="eCharCampCOUNT" Desc="eCharCampCOUNT" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::eSkillAbortType" DisplayName="eSkillAbortType" Desc="eSkillAbortType">
+      <enum NativeValue="MobaGo::Game::TYPE_SKILL_0" Value="TYPE_SKILL_0" DisplayName="TYPE_SKILL_0" Desc="TYPE_SKILL_0" />
+      <enum NativeValue="MobaGo::Game::TYPE_SKILL_1" Value="TYPE_SKILL_1" DisplayName="TYPE_SKILL_1" Desc="TYPE_SKILL_1" />
+      <enum NativeValue="MobaGo::Game::TYPE_SKILL_2" Value="TYPE_SKILL_2" DisplayName="TYPE_SKILL_2" Desc="TYPE_SKILL_2" />
+      <enum NativeValue="MobaGo::Game::TYPE_SKILL_3" Value="TYPE_SKILL_3" DisplayName="TYPE_SKILL_3" Desc="TYPE_SKILL_3" />
+      <enum NativeValue="MobaGo::Game::TYPE_SKILL_4" Value="TYPE_SKILL_4" DisplayName="TYPE_SKILL_4" Desc="TYPE_SKILL_4" />
+      <enum NativeValue="MobaGo::Game::TYPE_MOVE" Value="TYPE_MOVE" DisplayName="TYPE_MOVE" Desc="TYPE_MOVE" />
+      <enum NativeValue="MobaGo::Game::TYPE_DAMAGE" Value="TYPE_DAMAGE" DisplayName="TYPE_DAMAGE" Desc="TYPE_DAMAGE" />
+      <enum NativeValue="MobaGo::Game::TYPE_MAX" Value="TYPE_MAX" DisplayName="TYPE_MAX" Desc="TYPE_MAX" />
+    </enumtype>
+    <enumtype Type="MobaGo::Game::TargetPriority" DisplayName="TargetPriority" Desc="TargetPriority">
+      <enum NativeValue="MobaGo::Game::TargetPriority_Hero" Value="TargetPriority_Hero" DisplayName="TargetPriority_Hero" Desc="TargetPriority_Hero" />
+      <enum NativeValue="MobaGo::Game::TargetPriority_Monster" Value="TargetPriority_Monster" DisplayName="TargetPriority_Monster" Desc="TargetPriority_Monster" />
+      <enum NativeValue="MobaGo::Game::TargetPriority_Organ" Value="TargetPriority_Organ" DisplayName="TargetPriority_Organ" Desc="TargetPriority_Organ" />
+    </enumtype>
+    <struct Type="System::Object" DisplayName="Object" Desc="Object" IsRefType="true" />
+    <struct Type="UnityEngine::Vector3" DisplayName="Vector3" Desc="Vector3" IsRefType="false">
+      <Member Name="kEpsilon" DisplayName="kEpsilon" Desc="kEpsilon" Type="float" Class="UnityEngine::Vector3" Readonly="true" Static="true" Public="true" />
+      <Member Name="x" DisplayName="x" Desc="x" Type="float" Class="UnityEngine::Vector3" Public="true" />
+      <Member Name="y" DisplayName="y" Desc="y" Type="float" Class="UnityEngine::Vector3" Public="true" />
+      <Member Name="z" DisplayName="z" Desc="z" Type="float" Class="UnityEngine::Vector3" Public="true" />
+    </struct>
+  </types>
+  <agents>
+    <agent classfullname="behaviac::Agent" DisplayName="behaviac.Agent" Desc="behaviac.Agent" IsRefType="true" Namespace="behaviac">
+      <Method Name="LogMessage" DisplayName="" Desc="" ReturnType="void" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="message" Desc="message" Type="string" />
+      </Method>
+      <Method Name="VectorLength" DisplayName="" Desc="" ReturnType="int" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="vector" Desc="vector" Type="System.Collections.IList" />
+      </Method>
+      <Method Name="VectorAdd" DisplayName="" Desc="" ReturnType="void" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="vector" Desc="vector" Type="System.Collections.IList" />
+        <Param DisplayName="element" Desc="element" Type="System::Object*" />
+      </Method>
+      <Method Name="VectorRemove" DisplayName="" Desc="" ReturnType="void" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="vector" Desc="vector" Type="System.Collections.IList" />
+        <Param DisplayName="element" Desc="element" Type="System::Object*" />
+      </Method>
+      <Method Name="VectorContains" DisplayName="" Desc="" ReturnType="bool" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="vector" Desc="vector" Type="System.Collections.IList" />
+        <Param DisplayName="element" Desc="element" Type="System::Object*" />
+      </Method>
+      <Method Name="VectorClear" DisplayName="" Desc="" ReturnType="void" Class="behaviac::Agent" Static="true" Public="true">
+        <Param DisplayName="vector" Desc="vector" Type="System.Collections.IList" />
+      </Method>
+    </agent>
+    <agent classfullname="MobaGo::Game::BTBaseAgent" base="behaviac::Agent" DisplayName="BaseAgent" Desc="游戏使用的一切行为树代理从该类继承" IsRefType="true" Namespace="MobaGo::Game">
+      <Method Name="FireAIEvent" DisplayName="" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="eventName" Desc="eventName" Type="string" />
+      </Method>
+      <Method Name="HasAIEventFired" DisplayName="" Desc="" ReturnType="bool" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="eventName" Desc="eventName" Type="string" />
+      </Method>
+      <Method Name="SelfDestroy" DisplayName="" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="bDestroyGameObject" Desc="bDestroyGameObject" Type="bool" />
+      </Method>
+      <Method Name="GetFrameSinceStartup" DisplayName="获取当前帧" Desc="" ReturnType="int" Class="MobaGo::Game::BTBaseAgent" Public="true" />
+      <Method Name="GetRandomInt" DisplayName="获取一个随机整数" Desc="获取一个随机整数" ReturnType="int" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="maxNum" Desc="maxNum" Type="uint" />
+      </Method>
+      <Method Name="GetRandomRangeInt" DisplayName="获取一个范围随机整数" Desc="获取一个随机整数" ReturnType="int" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="minNum" Desc="minNum" Type="int" />
+        <Param DisplayName="maxNum" Desc="maxNum" Type="int" />
+      </Method>
+      <Method Name="GetVector3Y" DisplayName="获取Vector3的y值" Desc="获取Vector3的y值" ReturnType="float" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="par" Desc="par" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="GetMod" DisplayName="取模" Desc="取模" ReturnType="int" Class="MobaGo::Game::BTBaseAgent" Public="true">
+        <Param DisplayName="numA" Desc="numA" Type="uint" />
+        <Param DisplayName="numB" Desc="numB" Type="int" />
+      </Method>
+      <Method Name="GetLocalRandom" DisplayName="获取本地随机数" Desc="本地随机数不影响帧同步随机种子" ReturnType="float" Class="MobaGo::Game::BTBaseAgent" Public="true" />
+      <Method Name="inActiveBT" DisplayName="是否停止更新BT" Desc="是否停止更新BT" ReturnType="void" Class="MobaGo::Game::BTBaseAgent" Public="true" />
+    </agent>
+    <agent classfullname="MobaGo::Game::HostAIAgent" base="MobaGo::Game::BTBaseAgent" DisplayName="HostAIAgent" Desc="具有Host能力的代理" IsRefType="true" Namespace="MobaGo::Game">
+      <Method Name="GetMyObjID" DisplayName="获取自己的ID" Desc="" ReturnType="uint" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsBloodWarState" DisplayName="判断自己是否在血战状态" Desc="" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="PlayAnimation" DisplayName="播放Animation" Desc="" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="animationName" Desc="animationName" Type="string" />
+        <Param DisplayName="blendTime" Desc="blendTime" Type="float" />
+        <Param DisplayName="layer" Desc="layer" Type="int" />
+        <Param DisplayName="loop" Desc="loop" Type="bool" />
+      </Method>
+      <Method Name="IsLowAI" DisplayName="是否低智商AI" Desc="是否低智商AI,条件是个人人机对战，个人的等级在5级以下的敌方电脑AI" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetMapAIMode" DisplayName="地图AI模式" Desc="地图AI模式" ReturnType="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetCurBehaviorMode" DisplayName="获取Host当前的行为" Desc="" ReturnType="MobaGo::Game::eObjBehavMode" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetSightScope" DisplayName="获取视野范围" Desc="" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="ResetRouteStartPoint" DisplayName="重置寻路路径" Desc="设置寻路路点从第一个开始" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="SelectRouteBySelfCampIndex" DisplayName="根据在阵营中的位置选择一条兵线" Desc="根据在阵营中的位置选择一条兵线" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="SelectNearestRoute" DisplayName="选择离自己最近的一条兵线" Desc="选择离自己最近的一条兵线" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="SelectRoute" DisplayName="选择一条兵线做路径" Desc="随机选择一条兵线" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetCurRouteLastForward" DisplayName="获取当前路径最后的方向" Desc="获取当前路径最后的方向" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="HasRoute" DisplayName="是否已有路径" Desc="是否有路径" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetRouteCurWaypointPos" DisplayName="获取路径点中的当前点的位置" Desc="前提是已设定好路径" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="GetRouteCurWaypointPosPre" DisplayName="获取路径点中的当前点的位置,用于沿路径点返回" Desc="前提是已设定好路径" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsCurWayPointStartPoint" DisplayName="当前路径点是不是起始点" Desc="当前路径点是不是起始点" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsCurWaypointValid" DisplayName="路径点中的当前点是否有效" Desc="前提是已设定好路径" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsCurWaypointEndPoint" DisplayName="当前路径点是不是最后一个路径点" Desc="前提是已设定好路径" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="RequestUseSkill" DisplayName="使用技能Cmd" Desc="RequestUseSkill" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="slotType" Desc="slotType" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="CanMove" DisplayName="是否可以移动" Desc="是否可以移动" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="HasMemberHpLessThan" DisplayName="是否有队友的血量小于指定的比率值" Desc="是否有队友的血量小于指定的比率值" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="hpRate" Desc="hpRate" Type="int" />
+      </Method>
+      <Method Name="RequestMovePosition" DisplayName="移动向目标点CMD" Desc="RequestMovePosition" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="IsDistanceToPosOutRange" DisplayName="自己同指定位置目标的距离是否大于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsDistanceToPosInRange" DisplayName="自己同指定位置目标的距离是否小于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="TerminateMove" DisplayName="终止当前的移动" Desc="仅仅停止移动组件,不走了" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="LookAtDirection" DisplayName="设定自己的朝向" Desc="设定自己的朝向" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="IsControlByHostPlayer" DisplayName="是否被当前持有者操控" Desc="是否被当前持有者操控" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="PlayHeroActSound" DisplayName="播放英雄动作声音" Desc="播放英雄动作声音" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="actType" Desc="actType" Type="MobaGo::Game::eActType" />
+      </Method>
+      <Method Name="GetNearestEnemy" DisplayName="选择范围内的敌人" Desc="选择范围内的敌人" ReturnType="uint" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="IsTargetCanBeAttacked" DisplayName="判断目标是否可被攻击" Desc="判断目标是否可被攻击,可被攻击的前提是活的,不是无敌的,不是一个阵营的" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetActorType" DisplayName="获取角色的类型" Desc="英雄，怪物，还是建筑" ReturnType="MobaGo::Game::eCharTypeDef" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="SetSkill" DisplayName="设定技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="CanUseSkill" DisplayName="是否能使用技能" Desc="是否能使用指定的技能" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="GetSkillAttackRange" DisplayName="获取指定技能的攻击范围" Desc="获取指定技能的攻击范围" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="CheckSkillFilter" DisplayName="检查技能是否能对该目标类型释放" Desc="检查技能是否能对该目标类型释放" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetSkillTargetRule" DisplayName="获取技能目标规则" Desc="获取技能目标规则" ReturnType="MobaGo::FlatBuffer::SkillTargetRule" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="IsDistanceToActorOutRange" DisplayName="自己同指定Actor目标的距离是否大于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsDistanceToActorInRange" DisplayName="自己同指定Actor目标的距离是否小于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="SelectTarget" DisplayName="设定目标" Desc="" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetLowHpFriendChar" DisplayName="获取低血量的队友" Desc="HPRate是比例,10000表示1; InSlot技能槽位,用于过滤" ReturnType="uint" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="HPRate" Desc="HPRate" Type="int" />
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="RequestMoveToActor" DisplayName="移动到Actor目标点CMD" Desc="移动到Actor目标点" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="LearnSkillCommand" DisplayName="学习技能" Desc="" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="slot" Desc="slot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="GetHPPercent" DisplayName="获取当前生命值比率" Desc="10000表示满血" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsNearbyFriendStrongThanEnemy" DisplayName="是否在一定范围内己方强于敌人" Desc="是否在一定范围内己方强于敌人 strengthRate代表了对方强弱的比率,如0.8,表示是否强于对方血量的0.8" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="strengthRate" Desc="strengthRate" Type="int" />
+      </Method>
+      <Method Name="GetRestoredHpPos" DisplayName="获取最近的回血点位置" Desc="" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="HasEnemyInRange" DisplayName="是否有敌人在范围内" Desc="是否有敌人在范围内" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="GetSummonerSkillType" DisplayName="获取召唤师技能类型" Desc="获取召唤师技能类型" ReturnType="MobaGo::FlatBuffer::RES_SUMMONERSKILL_TYPE" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="UseGoHomeSkill" DisplayName="使用回城" Desc="使用回城" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsOverTower" DisplayName="是否进入极危险区域" Desc="是否越塔等" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="IsUseSkillCompletedOrCanAbort" DisplayName="当前技能是否能被打断" Desc="前技能是否能被打断" ReturnType="bool" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="HasEnemyBuildingAndEnemyBuildingWillAttackSelf" DisplayName="是否有塔在范围内，且塔下没有自己的小兵" Desc="是否有塔在范围内，且塔下没有自己的小兵" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="SetInDanger" DisplayName="设置自己进入危险状态" Desc="设置自己进入危险状态" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="frame" Desc="frame" Type="int" />
+      </Method>
+      <Method Name="CountEnemyInRange" DisplayName="获取范围内的敌人数量" Desc="获取范围内的敌人数量" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="CountEnemyHeroInRange" DisplayName="获取范围内的敌人英雄数量" Desc="获取范围内的敌人英雄数量" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="CountOurCampChar" DisplayName="获取范围内的友军数量,包含自己" Desc="获取范围内的友军数量,包含自己" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="GetRandomPointNearGivenPoint" DisplayName="获取指定点周围的随机点" Desc="获取指定点周围的随机点" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="GetLocalRandomInt" DisplayName="获取一个本地随机整数" Desc="获取一个随机整数" ReturnType="int" Class="MobaGo::Game::HostAIAgent" Public="true">
+        <Param DisplayName="maxNum" Desc="maxNum" Type="uint" />
+      </Method>
+      <Method Name="RequestBuyEquip" DisplayName="购买装备Cmd" Desc="" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true" />
+      <Method Name="RandomRecommendEquips" DisplayName="随机推荐装" Desc="" ReturnType="void" Class="MobaGo::Game::HostAIAgent" Public="true" />
+    </agent>
+    <agent classfullname="MobaGo::Game::ObjAgent" base="MobaGo::Game::BTBaseAgent" DisplayName="ObjWrapperAgent" Desc="具有BaseCharLogic能力的代理" IsRefType="true" Namespace="MobaGo::Game">
+      <Method Name="GetCurPos" DisplayName="获取自己当前的位置" Desc="" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetForward" DisplayName="获取自己当前的朝向" Desc="" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetObjID" DisplayName="获取自己的ID" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetBornIndex" DisplayName="获取出生点Index" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetHPPercent" DisplayName="获取当前生命值比率" Desc="10000表示满血" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAutoAI" DisplayName="是否是自动AI" Desc="是否是自动AI" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsOffline" DisplayName="是否是掉线玩家" Desc="是否是掉线玩家" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsFollowOtherPlayer" DisplayName="是否跟随其他玩家" Desc="掉线后，有玩家选择跟随玩家时，这里返回成功" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetAutoAI" DisplayName="设置是否走纯AI" Desc="设置AI模式" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="isAuto" Desc="isAuto" Type="bool" />
+      </Method>
+      <Method Name="IsControlByHuman" DisplayName="是否被人控制(是否是队长)" Desc="是否被人控制,被人控制的就是队长" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsControlByHostPlayer" DisplayName="是否被当前持有者操控" Desc="是否被当前持有者操控" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsLowAI" DisplayName="是否低智商AI" Desc="是否低智商AI,条件是个人人机对战，个人的等级在5级以下的敌方电脑AI" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetCurBehaviorMode" DisplayName="当前的行为" Desc="用于决定AI走哪个分支" ReturnType="MobaGo::Game::eObjBehavMode" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetCurBehaviorMode" DisplayName="设置当前的行为" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="behaviMode" Desc="behaviMode" Type="MobaGo::Game::eObjBehavMode" />
+      </Method>
+      <Method Name="SwitchToNextBehaviorMode" DisplayName="切换到下一个行为" Desc="切换到下一个行为,如果有的话" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetSearchRange" DisplayName="获取搜索的范围" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetSightArea" DisplayName="获取视野范围" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetPursuitRange" DisplayName="获取追击范围" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetAttackRange" DisplayName="获取攻击的范围" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="HasMoveCommand" DisplayName="移动命令未完成" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsImmAttack" DisplayName="普攻立即释放" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="ClearMoveCommand" DisplayName="清除移动指令" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCommonAttackAbortCurSkill" DisplayName="后续普攻是否打断当前技能" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsContinueCommonAttack" DisplayName="技能使用完成是否继续普攻" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="InCommonAttackCMD" DisplayName="普攻命令未完成" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetTargetID" DisplayName="自己攻击目标的ID" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAttackedByEnemyHero" DisplayName="是否被敌方英雄攻击" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetIsAttackByEnemyHero" DisplayName="设置是否被敌方英雄攻击" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="yesOrNot" Desc="yesOrNot" Type="bool" />
+      </Method>
+      <Method Name="GetHeroWhoAttackMe" DisplayName="获取攻击自己的敌方英雄" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetHeroWhoAttackMeInFrame" DisplayName="获取攻击自己的敌方英雄 且在多少帧之内有效" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="frame" Desc="frame" Type="ulong" />
+      </Method>
+      <Method Name="IsAttackByEnemy" DisplayName="是否被敌方攻击" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetIsAttackByEnemy" DisplayName="设置是否被敌方攻击" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="yesOrNot" Desc="yesOrNot" Type="bool" />
+      </Method>
+      <Method Name="CanMove" DisplayName="是否可以移动" Desc="是否可以移动" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsInBattle" DisplayName="是否在战斗中" Desc="是否在战斗中" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetInDanger" DisplayName="设置自己进入危险状态" Desc="设置自己进入危险状态" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="frame" Desc="frame" Type="int" />
+      </Method>
+      <Method Name="IsNearTower" DisplayName="是否进入极危险区域" Desc="是否越塔等" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAttackingBuildingAndHeroOrSoldierAttackMe" DisplayName="是否在攻击建筑时被其他英雄和小兵攻击" Desc="是否在攻击建筑时被其他英雄和小兵攻击" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsNeedPlayBornAction" DisplayName="是否需要播出生动画" Desc="是否需要播出生动画" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetRestorePos" DisplayName="获取最近的回血点位置" Desc="" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetControlChar" DisplayName="获取队长" Desc="获取队长" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetHostControlChar" DisplayName="获取当前持有者玩的队长" Desc="注意,这只能用在只有一个玩家,其他都是电脑的情况下" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetLeader" DisplayName="获取领导者" Desc="由后台下发" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetMaster" DisplayName="获取主人" Desc="召唤的怪物才有这个功能" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAlive" DisplayName="判断角色是否活的" Desc="是否活的" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetOutOfControlType" DisplayName="获取失控的类型" Desc="获取失控的类型" ReturnType="OutOfControlType" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetTerrorMeActor" DisplayName="获取恐惧自己的敌人" Desc="获取恐惧自己的敌人" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetTauntMeActor" DisplayName="获取嘲讽自己的敌人" Desc="获取嘲讽自己的敌人" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetTeamMemberTarget" DisplayName="获取队友攻击目标" Desc="获取队友攻击目标" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetActorTarget" DisplayName="获取指定角色的攻击目标" Desc="获取指定角色的攻击目标" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="HasMemberHpLowerThan" DisplayName="是否有队友的血量小于指定的比率值" Desc="是否有队友的血量小于指定的比率值" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="hpRate" Desc="hpRate" Type="int" />
+      </Method>
+      <Method Name="GetNearestMember" DisplayName="获取最近的队友" Desc="获取最近的队友" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetNearestNoCaptainMember" DisplayName="获取最近的非队长队友" Desc="获取最近的非队长队友" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetMapAIMode" DisplayName="地图AI模式" Desc="地图AI模式" ReturnType="MobaGo::FlatBuffer::RES_LEVEL_HEROAITYPE" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsActorInBattle" DisplayName="对象是否处于攻击模式" Desc="处在被人打和打人的模式" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsJungleMonster" DisplayName="对象是否是野区怪物" Desc="不是兵线上的就是野区的小怪物" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetActorType" DisplayName="获取角色的类型" Desc="英雄，怪物，还是建筑" ReturnType="MobaGo::Game::eCharTypeDef" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsBase" DisplayName="是否是基地" Desc="是否是基地" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsAroundFriendStrongThanEnemy" DisplayName="是否在一定范围内己方强于敌人" Desc="是否在一定范围内己方强于敌人 strengthRate代表了对方强弱的比率,如0.8,表示是否强于对方血量的0.8" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="strengthRate" Desc="strengthRate" Type="int" />
+      </Method>
+      <Method Name="IsCampCharInScope" DisplayName="是否有指定的阵营的人在范围内" Desc="是否有指定的阵营的人在范围内" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="camp" Desc="camp" Type="MobaGo::Game::eCharCamp" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="HasEnemyInScope" DisplayName="是否有敌人在范围内" Desc="是否有敌人在范围内" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="CountEnemyInScope" DisplayName="获取范围内的敌人数量" Desc="获取范围内的敌人数量" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="CountEnemyHeroInScope" DisplayName="获取范围内的敌人英雄数量" Desc="获取范围内的敌人英雄数量" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="CountOurCampChar" DisplayName="获取范围内的友军数量,包含自己" Desc="获取范围内的友军数量,包含自己" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="IsDragonAlive" DisplayName="小龙是否活着" Desc="就是小龙是否被刷怪点刷出来了" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetDragonId" DisplayName="获取小龙的ID" Desc="获取小龙的ID" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetBaronDeadTimes" DisplayName="获取男爵死亡次数" Desc="获取男爵死亡次数" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="HasTowerAndWillAttackMe" DisplayName="是否有塔在范围内，且塔下没有自己的小兵" Desc="是否有塔在范围内，且塔下没有自己的小兵" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="PlayAction" DisplayName="播放一段ageAction" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="actionName" Desc="actionName" Type="string" />
+      </Method>
+      <Method Name="PlayBornAction" DisplayName="播放一段出生ageAction" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="PlayReviveAction" DisplayName="播放一段复活ageAction" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="PlayDeadAction" DisplayName="播放一段死亡剧情ageAction" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="PlayDeadMoveToPositionAction" DisplayName="播放死亡后移动到指定点ageAction" Desc="专为" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="PlayHelperAction" DisplayName="播放一段AgeHelper的action" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="actionName" Desc="actionName" Type="string" />
+      </Method>
+      <Method Name="StopCurAction" DisplayName="停止当前播放的AgeAction" Desc="停止当前播放的AgeAction" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="NotifyFriendSelfBeAttacked" DisplayName="通知友军自己被攻击" Desc="通知友军自己被攻击,range是半径" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="NotifyFriendByTypeSelfBeAttacked" DisplayName="通知指定类型友军自己被攻击" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+        <Param DisplayName="ActorType" Desc="ActorType" Type="MobaGo::Game::eCharTypeDef" />
+      </Method>
+      <Method Name="NotifyFriendWillAttack" DisplayName="通知友军自己要主动攻击谁" Desc="通知友军自己要主动攻击,range是半径" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="PlayAnimation" DisplayName="播放Animation" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="animationName" Desc="animationName" Type="string" />
+        <Param DisplayName="blendTime" Desc="blendTime" Type="float" />
+        <Param DisplayName="layer" Desc="layer" Type="int" />
+        <Param DisplayName="loop" Desc="loop" Type="bool" />
+      </Method>
+      <Method Name="IsPlayingAnimation" DisplayName="是否在播放动画" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAnimPlaying" DisplayName="是否在播放改动画" Desc="动画名" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="animname" Desc="animname" Type="string" />
+      </Method>
+      <Method Name="MoveToPosition" DisplayName="移动到目标点" Desc="移动到目标点" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="LookAt" DisplayName="设定自己的朝向" Desc="设定自己的朝向" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="MoveToActor" DisplayName="移动到Actor目标点" Desc="移动到Actor目标点" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="MoveToActorLeft" DisplayName="移动到Actor目标点左边" Desc="移动到Actor目标点左边" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="unit" Desc="unit" Type="int" />
+      </Method>
+      <Method Name="MoveToActorRight" DisplayName="移动到Actor目标点右边" Desc="移动到Actor目标点右边" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="unit" Desc="unit" Type="int" />
+      </Method>
+      <Method Name="IsActorLeftValid" DisplayName="是否能移动到Actor目标点左边" Desc="是否能移动到Actor目标点左边" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="unit" Desc="unit" Type="int" />
+      </Method>
+      <Method Name="IsActorRightValid" DisplayName="是否能移动到Actor目标点右边" Desc="是否能移动到Actor目标点右边" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="unit" Desc="unit" Type="int" />
+      </Method>
+      <Method Name="MovePositionByID" DisplayName="移动到目标点带ID" Desc="移动到目标点带ID" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+        <Param DisplayName="id" Desc="id" Type="uint" />
+      </Method>
+      <Method Name="MoveDirection" DisplayName="朝某个方向移动" Desc="朝某个方向移动" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="MoveDirectionByID" DisplayName="朝某个方向移动带ID" Desc="朝某个方向移动带ID" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+        <Param DisplayName="id" Desc="id" Type="uint" />
+      </Method>
+      <Method Name="LeavePosition" DisplayName="远离指定的点" Desc="远离指定的点" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="dest" Desc="dest" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="LeaveActor" DisplayName="远离指定的Actor" Desc="远离指定的Actor" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetRandomLeavePos" DisplayName="获取远离指定的Actor的随机点" Desc="获取远离指定的Actor的随机点" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetCmdDestPos" DisplayName="获取当前命令的目的地" Desc="获取当前命令的目的地" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetMoveCmdID" DisplayName="获取移动命令的ID" Desc="获取移动命令的ID" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsMoveCMDFinished" DisplayName="移动命令是否完成" Desc="移动是否完成,这个是指大的移动命令是否完成" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCurMoveFinished" DisplayName="当前移动是否完成" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="StopMove" DisplayName="停止移动并清空移动命令" Desc="停止移动,清除移动命令,停止移动组件" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="TerminateMove" DisplayName="终止当前的移动" Desc="仅仅停止移动组件,不走了" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="ExMoveCmd" DisplayName="执行当前命令移动" Desc="执行命令的移动" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="MoveToTarget" DisplayName="向目标移动" Desc="前提是已设定目标" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsToPosFarThan" DisplayName="自己同指定位置目标的距离是否大于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsToPosNearThan" DisplayName="自己同指定位置目标的距离是否小于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsToActorFarThan" DisplayName="自己同指定Actor目标的距离是否大于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsToToActorNearThan" DisplayName="自己同指定Actor目标的距离是否小于指定值" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="GetRouteCurWaypoint" DisplayName="获取路径点中的当前点的位置" Desc="前提是已设定好路径" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetRoutePreWaypointPos" DisplayName="获取路径点中的当前点的位置,用于沿路径点返回" Desc="前提是已设定好路径" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCurWayPointFirstPoint" DisplayName="当前路径点是不是起始点" Desc="当前路径点是不是起始点" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCurWaypointValid" DisplayName="路径点中的当前点是否有效" Desc="前提是已设定好路径" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCurWaypointLast" DisplayName="当前路径点是不是最后一个路径点" Desc="前提是已设定好路径" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SelectRoute" DisplayName="选择一条兵线做路径" Desc="随机选择一条兵线" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SelectRouteByIdx" DisplayName="根据在队伍中的位置选择一条兵线" Desc="随机选择一条兵线" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SelectRouteByCampIdx" DisplayName="根据在阵营中的位置选择一条兵线" Desc="根据在阵营中的位置选择一条兵线" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SelectNearestRoute" DisplayName="选择离自己最近的一条兵线" Desc="选择离自己最近的一条兵线" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="HasRoute" DisplayName="是否已有路径" Desc="是否有路径" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="ResetRoute" DisplayName="重置寻路路径" Desc="设置寻路路点从第一个开始" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetCurRouteLastDir" DisplayName="获取当前路径最后的方向" Desc="获取当前路径最后的方向" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetRandomPosAroundPoint" DisplayName="获取指定点周围的随机点" Desc="获取指定点周围的随机点" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="GetRandomPosByPoint" DisplayName="获取指定点朝向随机点" Desc="获取指定点朝向随机点" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+        <Param DisplayName="distance" Desc="distance" Type="int" />
+      </Method>
+      <Method Name="GetRandomPosByPointAndRange" DisplayName="获取指定点朝向随机点,指定最小随机" Desc="获取指定点朝向随机点,指定最小随机" ReturnType="UnityEngine::Vector3" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="maxRange" Desc="maxRange" Type="int" />
+        <Param DisplayName="minRange" Desc="minRange" Type="int" />
+        <Param DisplayName="distance" Desc="distance" Type="int" />
+      </Method>
+      <Method Name="UseSkill" DisplayName="使用技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="GetSkillTargetRule" DisplayName="获取技能目标规则" Desc="获取技能目标规则" ReturnType="MobaGo::FlatBuffer::SkillTargetRule" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="GetPlayerSkillType" DisplayName="获取召唤师技能类型" Desc="获取召唤师技能类型" ReturnType="MobaGo::FlatBuffer::RES_SUMMONERSKILL_TYPE" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="AbortCurSkillByType" DisplayName="用其他技能中断当前正在施放的技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="abortType" Desc="abortType" Type="MobaGo::Game::eSkillAbortType" />
+      </Method>
+      <Method Name="CheckSkillFilter" DisplayName="检查技能是否能对该目标类型释放" Desc="检查技能是否能对该目标类型释放" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="CanUseSkill" DisplayName="是否能使用技能" Desc="是否能使用指定的技能" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="IsUseSkillCompleted" DisplayName="技能使用是否完成" Desc="技能使用是否完成" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAbortCommonAttack" DisplayName="是否打断普攻" Desc="是否打断普攻" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCurSkillFinishedOrCanAbort" DisplayName="当前技能是否能被打断" Desc="前技能是否能被打断" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAbortCurSkill" DisplayName="是否打断当前技能" Desc="是否打断当前技能" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="UseCommonAttackCache" DisplayName="使用普攻缓存" Desc="使用普攻缓存" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsUseAdvanceCommonAttack" DisplayName="是否高级模式普攻" Desc="是否高级模式普攻" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="DisableSpecialCommonAttack" DisplayName="高级模式下关闭普攻空放" Desc="高级模式下关闭普攻空放" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsUseSpecialCommonAttack" DisplayName="高级模式下是否执行普攻空放" Desc="高级模式下是否执行普攻空放" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="CancelCommonAttackMode" DisplayName="高级模式下取消普攻模式" Desc="高级模式下取消普攻模式" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetCurSkillSlotType" DisplayName="获取当前技能Type" Desc="获取当前分支对应的技能Type" ReturnType="MobaGo::Game::eSkillSlotType" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetSkillSearchRange" DisplayName="获取指定技能的搜索范围" Desc="获取指定技能的搜索范围" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="GetSkillAttackRange" DisplayName="获取指定技能的攻击范围" Desc="获取指定技能的攻击范围" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="CheckUseSkillPosition" DisplayName="检测技能释放位置" Desc="检测技能释放位置" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsSkillMoveToTarget" DisplayName="是否需要朝技能目标点移动" Desc="是否需要朝技能目标点移动" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="MoveToSkillTarget" DisplayName="朝技能目标点移动" Desc="朝技能目标点移动,前提是当前技能已经设置" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsAttackMoveToTarget" DisplayName="是否需要朝普攻目标移动" Desc="攻击距离不够的情况下需要移动" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="CanAttackCurTarget" DisplayName="是否可以攻击这个目标" Desc="攻击距离不够的情况下不触发移动攻击" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="CanCommonAttackCurTarget" DisplayName="当前目标是否可被普攻攻击" Desc="当前目标是否可被普攻攻击" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="MoveToCommonAttackTargetInRange" DisplayName="高级模式下普通攻击寻敌" Desc="高级模式下普通攻击寻敌" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="MoveToSkillTargetInRange" DisplayName="朝技能目标点移动,大于指定的范围则丢失目标" Desc="朝技能目标点移动,大于指定的范围则丢失目标,前提是当前技能已经设置" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="UseHpRecoverSkillToSelf" DisplayName="对自己使用回血技能" Desc="对自己使用技能,会自动判断该技能是否准备好" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="UseGoHomeSkill" DisplayName="使用回城" Desc="使用回城" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="AdvanceCommonAttackSearchEnemy" DisplayName="高级模式下普攻搜索敌人" Desc="高级模式下普攻搜索敌人" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="CommonAttackSearchEnemy" DisplayName="普攻选择范围内的敌人" Desc="普攻选择范围内的敌人" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="GetNearestEnemy" DisplayName="选择范围内的敌人" Desc="选择范围内的敌人" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+      </Method>
+      <Method Name="GetNearestEnemyByTargetPriority" DisplayName="选择范围内最近的敌人" Desc="TargetPriority表示敌人的类型" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="priotity" Desc="priotity" Type="MobaGo::Game::TargetPriority" />
+        <Param DisplayName="filter" Desc="filter" Type="uint" />
+      </Method>
+      <Method Name="GetNearestEnemyByPriorityExcludeIdleMonsterAndActor" DisplayName="按优先级选择范围内的敌人，不包含指定Actor和待机状态的野怪," Desc="按优先级选择范围内的敌人，不包含指定Actor和待机状态的野怪" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="priotity" Desc="priotity" Type="MobaGo::Game::TargetPriority" />
+        <Param DisplayName="withOutActor" Desc="withOutActor" Type="uint" />
+      </Method>
+      <Method Name="GetNearestEnemyExcludeIdleMonsterAndActor" DisplayName="选择范围内的敌人，不包含指定Actor和待机状态的野怪" Desc="选择范围内的敌人，不包含指定Actor和待机状态的野怪" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="filter" Desc="filter" Type="uint" />
+        <Param DisplayName="withOutActor" Desc="withOutActor" Type="uint" />
+      </Method>
+      <Method Name="GetLowHpFriendChar" DisplayName="获取低血量的队友" Desc="HPRate是比例,10000表示1; InSlot技能槽位,用于过滤" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="HPRate" Desc="HPRate" Type="int" />
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="ClearTarget" DisplayName="清空选择的目标" Desc="即没有目标" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SelectTarget" DisplayName="设定目标" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="SetSkill" DisplayName="设定技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="SetSkillSpecial" DisplayName="设定技能特殊释放" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="IsSkillCDReady" DisplayName="指定技能是否准备好" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="IsSearchCommonAttackTarget" DisplayName="是否找到普攻目标" Desc="是否找到普攻目标" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsTargetCanBeAttacked" DisplayName="判断目标是否可被攻击" Desc="判断目标是否可被攻击,可被攻击的前提是活的,不是无敌的,不是一个阵营的" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsVisible" DisplayName="判断目标是否可见" Desc="判断目标是否可见" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsTargetCanBeAttackedIgnoreVisible" DisplayName="判断目标是否可被攻击,忽略是否可见" Desc="判断目标是否可被攻击,可被攻击的前提是活的,不是无敌的,不是一个阵营的" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsNeedToHelpOther" DisplayName="是否需要帮助他人攻击" Desc="是否需要帮助他人攻击" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetNeedHelpTarget" DisplayName="获取需要帮助的角色ID" Desc="获取需要帮助的角色ID" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="ClearHelpOther" DisplayName="清除需要帮助他人的标记" Desc="清除需要帮助他人的标记" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="HelpToAttack" DisplayName="帮助他人攻击" Desc="切换由他人传过的攻击目标" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetHelpToAttackTargetID" DisplayName="获取帮助他人攻击目标的ID" Desc="获取帮助他人攻击目标的ID" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="SetTauntMeActorAsTarget" DisplayName="切换目标为嘲讽自己的敌人" Desc="切换目标为嘲讽自己的敌人" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="PlayHeroActSound" DisplayName="播放英雄动作声音" Desc="播放英雄动作声音" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="actType" Desc="actType" Type="MobaGo::Game::eActType" />
+      </Method>
+      <Method Name="IsPlayOnNetwork" DisplayName="是不是网络对战" Desc="是不是网络对战" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetPvPLevelMaxHeroNum" DisplayName="获取该关卡最大英雄个数" Desc="是不是网络对战" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsValid" DisplayName="BT是否处于有效行为" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="MoveToRouteCurWaypoint" DisplayName="BT沿路径移动" Desc="已设定好路径前点的位置" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="MoveToRouteCurWayLooppoint" DisplayName="BT沿路径移动" Desc="已设定好路径前点的位置 路点可循环" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsCanMove" DisplayName="BT是否可以移动" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="CanMoveAndSkillCompleted" DisplayName="BT是否可以在当前行为下移动" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsMoveCompleted" DisplayName="BT是否正在移动" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsSeek" DisplayName="BT正在移动" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsSkillFinish" DisplayName="BT正在使用技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsUseSkill" DisplayName="BT正在使用指定的技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="SetUseSkill" DisplayName="BT设定使用指定的技能" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="CheckSkillFilterToMyTarget" DisplayName="BT检查技能是否能对当前目标类型释放" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="InSlot" Desc="InSlot" Type="MobaGo::Game::eSkillSlotType" />
+      </Method>
+      <Method Name="NotifySelfCampSelfToAttack" DisplayName="BT通知range半径的友军要主动攻击id" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="GetObjAgentByID" DisplayName="BT获取ObjAgent" Desc="" ReturnType="MobaGo::Game::ObjAgent*" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="SetMyTargetByID" DisplayName="BT用ID设定目标" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetTauntMeActorID" DisplayName="BT获得嘲讽自己的敌人ID" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetMyLastAtkerID" DisplayName="BT获取攻击自己的敌人ID" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetDistanceToActor" DisplayName="BT获得自己到目标的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="IsDistanceToPos" DisplayName="BT自己到指定位置的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="aimPos" Desc="aimPos" Type="UnityEngine::Vector3" />
+      </Method>
+      <Method Name="CompareTotalLengthToPos" DisplayName="BT比较range同自己到Position的路径长度" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="pos" Desc="pos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="CompareDistanceToPos" DisplayName="BT比较range同自己到Position的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="pos" Desc="pos" Type="UnityEngine::Vector3" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="CompareDistanceToActor" DisplayName="BT比较range同自己指定Actor目标的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="CompareDistanceToMyTarget" DisplayName="BT比较range同自己当前目标的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="CompareDistanceToCurWaypoint" DisplayName="BT比较range同自己当前路径的距离" Desc="" ReturnType="long" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="range" Desc="range" Type="int" />
+      </Method>
+      <Method Name="IsTargetValid" DisplayName="BT判断目标是否可被攻击" Desc="可被攻击的前提是活的,不是无敌的,不是一个阵营的" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="GetCurMyTargetID" DisplayName="BT获得当前目标的ID" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="IsMyTargetValid" DisplayName="BT判断当前目标是否有效" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetMyRadius" DisplayName="BT获取自己的半径" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="LookAtActor" DisplayName="BT设定自己朝向Actor" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+      </Method>
+      <Method Name="LookAtMyTarget" DisplayName="BT设定自己朝向当前目标" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="RealMoveToMyTarget" DisplayName="BT移动到当前目标" Desc="移动到Actor目标点" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="AddBuff" DisplayName="BT自己加Buff" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="updateUniqueId" Desc="updateUniqueId" Type="int" />
+      </Method>
+      <Method Name="RemoveBuff" DisplayName="BT移除自己Buff" Desc="" ReturnType="bool" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="updateUniqueId" Desc="updateUniqueId" Type="int" />
+      </Method>
+      <Method Name="GetMyTargetType" DisplayName="BT获取当前目标的类型" Desc="英雄，怪物，还是建筑" ReturnType="MobaGo::Game::eCharTypeDef" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetNearestCOMEnemy" DisplayName="BT优先选择范围内敌对阵营的目标" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="filter" Desc="filter" Type="uint" />
+        <Param DisplayName="withOutActor" Desc="withOutActor" Type="uint" />
+      </Method>
+      <Method Name="GetWrapperType" DisplayName="BT获得Wrapper类型" Desc="" ReturnType="int" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetHelpAttackEnemy" DisplayName="BT获得范围内己方类型正在被敌对类型攻击" Desc="" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="pretR" Desc="pretR" Type="int" />
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="helpActor" Desc="helpActor" Type="MobaGo::Game::eCharTypeDef" />
+        <Param DisplayName="attackActor" Desc="attackActor" Type="MobaGo::Game::eCharTypeDef" />
+      </Method>
+      <Method Name="SelectNestestWaypoint" DisplayName="BT重新选择离自己最近的路点" Desc="" ReturnType="void" Class="MobaGo::Game::ObjAgent" Public="true" />
+      <Method Name="GetTargetPriority" DisplayName="BT得到指定ID的优先级" Desc="(近程兵 远程兵 炮兵 超级兵 英雄 塔 其他)" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="Level0_6" Desc="Level0_6" Type="uint" />
+      </Method>
+      <Method Name="CompareTargetPriorityToActor" DisplayName="BT比较ID同自己目标的优先级" Desc="(近程兵 远程兵 炮兵 超级兵 英雄 塔 其他)" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="objID" Desc="objID" Type="uint" />
+        <Param DisplayName="Level0_6" Desc="Level0_6" Type="uint" />
+      </Method>
+      <Method Name="GetNearestEnemyByPriority" DisplayName="BT选择范围内的敌人使用优先级" Desc="(近程兵 远程兵 炮兵 超级兵 英雄 塔 其他)" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="Level0_6" Desc="Level0_6" Type="uint" />
+      </Method>
+      <Method Name="GetFarthestEnemyByPriority" DisplayName="BT选择范围内最远的敌人使用优先级" Desc="(近程兵 远程兵 炮兵 超级兵 英雄 塔 其他)" ReturnType="uint" Class="MobaGo::Game::ObjAgent" Public="true">
+        <Param DisplayName="srchR" Desc="srchR" Type="int" />
+        <Param DisplayName="Level0_6" Desc="Level0_6" Type="uint" />
+      </Method>
+      <Method Name="IsBloodWarState" DisplayName="BT是否进入血战" Desc="" ReturnType="behaviac::EBTStatus" Class="MobaGo::Game::ObjAgent" Public="true" />
+    </agent>
+  </agents>
+</metas>
