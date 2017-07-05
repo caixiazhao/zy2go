@@ -1,0 +1,1 @@
+python -u httpserver.py &> httpserver.log &
