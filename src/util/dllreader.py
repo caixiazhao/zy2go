@@ -17,6 +17,7 @@ import MobaGo.FlatBuffer
 import Pathfinding
 import System
 
+
 SWF = clr.AddReference("System.Windows.Forms")
 print (SWF.Location)
 
@@ -25,9 +26,9 @@ GaeaAI.ExportInterface.InitialData("/Users/sky4star/Github/zy2go/lib/GaeaAI")
 
 GaeaAI.ExportInterface.InitialScene(GaeaAI.ExportInterface.eBattleScene.eBattleScene_5v5)
 
-# start = GaeaAI.VecInt3(-46000, 0, 0)
-# end = GaeaAI.VecInt3(46000, 0, 0)
-# path = GaeaAI.ExportInterface.SearchPath(start, end)
+start = clr.VecInt3(-46000, 0, 0)
+end = clr.VecInt3(46000, 0, 0)
+path = GaeaAI.ExportInterface.SearchPath(start, end)
 
 
 heroinfo = ExportInterface.GetHeroCfgInfo(101)
