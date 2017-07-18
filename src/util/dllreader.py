@@ -22,17 +22,28 @@ SWF = clr.AddReference("System.Windows.Forms")
 print (SWF.Location)
 
 
-GaeaAI.ExportInterface.InitialData("/Users/sky4star/Github/zy2go/lib/GaeaAI")
+GaeaAI.ExportInterface.InitialData("/Users/sky4star/Github/zy2go/lib/GaeaAI/")
 
 GaeaAI.ExportInterface.InitialScene(GaeaAI.ExportInterface.eBattleScene.eBattleScene_5v5)
 
-start = clr.VecInt3(-46000, 0, 0)
-end = clr.VecInt3(46000, 0, 0)
+start = clr.VecInt3(-4600, 0, 0)
+end = clr.VecInt3(4600, 0, 0)
 path = GaeaAI.ExportInterface.SearchPath(start, end)
 
 
 heroinfo = ExportInterface.GetHeroCfgInfo(101)
 herolvinfo = ExportInterface.GetHeroLvUpInfo(923)
 monster = ExportInterface.GetMonsterDataCfgInfo(902)
+mapinfo = ExportInterface.GetMapSize()
+skillinfo = ExportInterface.GetSkillCfgInfo(11402)
 print heroinfo
 print herolvinfo
+
+ExportInterface.GetSkillCfgInfo(923)
+ExportInterface.GetObeliskCfgInfo(923);
+            # ExportInterface.GetSkillCombineInfo(923);
+            # ExportInterface.GetHeroLvUpInfo(923);
+            # ExportInterface.GetLevelCfgInfo(923);
+            # ExportInterface.GetSkillMarkInfo(923);
+            # ExportInterface.GetMonsterObeliskLevelDynamicInfo(923);
+            # ExportInterface.GetEquipInBattleInfo(923);
