@@ -13,15 +13,17 @@ Send a POST request::
 """
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import logging
-from logging.handlers import RotatingFileHandler
 from time import gmtime, strftime
+
+from cloghandler import ConcurrentRotatingFileHandler
 
 
 class S(BaseHTTPRequestHandler):
     def __init__(self, *args):
+
         self.logger = logging.getLogger("httpd")
-        fh = RotatingFileHandler("httpd.log", mode='wa',
-                                 maxBytes=1 << 20, backupCount=2)
+        fh = ConcurrentRotatingFileHandler("httpd.log", mode='a',
+                                 maxBytes=10*1024*1024, backupCount=200)
         self.logger.addHandler(fh)
         self.logger.setLevel(logging.INFO)
         BaseHTTPRequestHandler.__init__(self, *args)
@@ -34,7 +36,6 @@ class S(BaseHTTPRequestHandler):
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
-        print get_data
         self.logger.info(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data)
         self._set_headers()
         self.wfile.write("copy that!")
@@ -46,7 +47,6 @@ class S(BaseHTTPRequestHandler):
         # Doesn't do anything with posted data
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
-        print post_data  # <-- Print post data
         self.logger.info(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + post_data)
         self._set_headers()
         self.wfile.write("copy that! " + post_data)
