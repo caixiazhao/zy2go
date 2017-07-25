@@ -31,11 +31,20 @@ end = clr.VecInt3(4600, 0, 0)
 path = GaeaAI.ExportInterface.SearchPath(start, end)
 
 
-heroinfo = ExportInterface.GetHeroCfgInfo(101)
-herolvinfo = ExportInterface.GetHeroLvUpInfo(923)
-monster = ExportInterface.GetMonsterDataCfgInfo(902)
+heroinfo = ExportInterface.GetHeroCfgInfo(112)
+herolvinfo = ExportInterface.GetHeroLvUpInfo(112)
+monster = ExportInterface.GetMonsterDataCfgInfo(9721)
+obelisk = ExportInterface.GetObeliskCfgInfo(9721)
 mapinfo = ExportInterface.GetMapSize()
-skillinfo = ExportInterface.GetSkillCfgInfo(11402)
+skillinfo = ExportInterface.GetSkillCfgInfo(12210)
+skillinfo2 = ExportInterface.GetSkillCfgInfo(90200)
+skillinfo3 = ExportInterface.GetSkillCfgInfo(11401)
+skillinfo4 = ExportInterface.GetSkillCfgInfo(64101)
+equipinfo = ExportInterface.GetEquipInBattleInfo(11101)
+print skillinfo.szSkillDesc
+print skillinfo2.szSkillDesc
+print skillinfo3.szSkillDesc
+print skillinfo4.szSkillDesc
 print heroinfo
 print herolvinfo
 
@@ -46,4 +55,4 @@ ExportInterface.GetObeliskCfgInfo(923);
             # ExportInterface.GetLevelCfgInfo(923);
             # ExportInterface.GetSkillMarkInfo(923);
             # ExportInterface.GetMonsterObeliskLevelDynamicInfo(923);
-            # ExportInterface.GetEquipInBattleInfo(923);
+            # ExportInterface.GetEquipInBattleInfo(11101);

@@ -12,20 +12,11 @@ Send a POST request::
     curl -l -H "Content-type: application/json" -X POST -d '{"phone":"13521389587","password":"test"}' http://123.59.149.39:8780
 """
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import logging
 from time import gmtime, strftime
-
-from cloghandler import ConcurrentRotatingFileHandler
 
 
 class S(BaseHTTPRequestHandler):
     def __init__(self, *args):
-
-        self.logger = logging.getLogger("httpd")
-        fh = ConcurrentRotatingFileHandler("httpd.log", mode='a',
-                                 maxBytes=10*1024*1024, backupCount=200)
-        self.logger.addHandler(fh)
-        self.logger.setLevel(logging.INFO)
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def _set_headers(self):
@@ -36,7 +27,7 @@ class S(BaseHTTPRequestHandler):
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
-        self.logger.info(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data)
+        self.log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data + "\n")
         self._set_headers()
         self.wfile.write("copy that!")
 
@@ -47,10 +38,14 @@ class S(BaseHTTPRequestHandler):
         # Doesn't do anything with posted data
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
-        self.logger.info(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + post_data)
+        self.log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + post_data + "\n")
         self._set_headers()
         self.wfile.write("copy that! " + post_data)
 
+    log_file = open('httpd.log', 'a')
+
+    def log_message(self, format, *args):
+        return
 
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)

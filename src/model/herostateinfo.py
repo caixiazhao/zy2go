@@ -5,7 +5,39 @@ from skillstateinfo import SkillStateInfo
 from posstateinfo import PosStateInfo
 
 
+
 class HeroStateInfo:
+    def merge_skills(self, skills):
+        merged_skills = []
+        for skill in skills:
+            found = False
+            for prev_skill in self.skills:
+                if prev_skill.skill_name == skill.skill_name:
+                    merged = prev_skill.merge(skill)
+                    merged_skills.append(merged)
+                    found = True
+            if not found:
+                merged_skills.append(skill)
+        return merged_skills
+
+    def merge(self, delta):
+        self.hero_name = delta.hero_name if delta.hero_name is not None else self.hero_name
+        self.speed = delta.speed if delta.speed is not None else self.speed
+        self.equips = delta.equips if delta.equips is not None else self.equips
+        self.buffs = delta.buffs if delta.buffs is not None else self.buffs
+        self.state = delta.state if delta.state is not None else self.state
+        self.cfg_id = delta.cfg_id if delta.cfg_id is not None else self.cfg_id
+        self.pos = delta.pos if delta.pos is not None else self.pos
+        self.fwd = delta.fwd if delta.fwd is not None else self.fwd
+        self.att = delta.att if delta.att is not None else self.att
+        self.hp = delta.hp if delta.hp is not None else self.hp
+        self.maxhp = delta.maxhp if delta.maxhp is not None else self.maxhp
+        self.mp = delta.mp if delta.mp is not None else self.mp
+        self.maxmp = delta.maxmp if delta.maxmp is not None else self.maxmp
+        self.gold = delta.gold if delta.gold is not None else self.gold
+        self.hprec = delta.hprec if delta.hprec is not None else self.hprec
+        self.skills = self.merge_skills(delta.skills)
+
     def __init__(self, hero_name, state, cfg_id, pos, fwd, hp, maxhp, mp, maxmp, speed, att, gold, hprec, equips, buffs, skills):
         self.hero_name = hero_name
         self.speed = speed
