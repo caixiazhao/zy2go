@@ -37,14 +37,30 @@ monster = ExportInterface.GetMonsterDataCfgInfo(9721)
 obelisk = ExportInterface.GetObeliskCfgInfo(9721)
 mapinfo = ExportInterface.GetMapSize()
 skillinfo = ExportInterface.GetSkillCfgInfo(12210)
-skillinfo2 = ExportInterface.GetSkillCfgInfo(90200)
-skillinfo3 = ExportInterface.GetSkillCfgInfo(11401)
-skillinfo4 = ExportInterface.GetSkillCfgInfo(64101)
+skillinfo2 = ExportInterface.GetSkillCfgInfo(12211)
+skillinfo3 = ExportInterface.GetSkillCfgInfo(12212)
+skillinfo4 = ExportInterface.GetSkillCfgInfo(10200)
+skillinfo5 = ExportInterface.GetSkillCfgInfo(10201)
+skillinfo6 = ExportInterface.GetSkillCfgInfo(10202)
+skillinfo7 = ExportInterface.GetSkillCfgInfo(11601)
+skillinfo8 = ExportInterface.GetSkillCfgInfo(12910)
+skillinfo9 = ExportInterface.GetSkillCfgInfo(12610)
+skillinfo10 = ExportInterface.GetSkillCfgInfo(90100)
+skillinfo11 = ExportInterface.GetSkillCfgInfo(12801)
+skillinfo12 = ExportInterface.GetSkillCfgInfo(11403)
 equipinfo = ExportInterface.GetEquipInBattleInfo(11101)
 print skillinfo.szSkillDesc
 print skillinfo2.szSkillDesc
 print skillinfo3.szSkillDesc
 print skillinfo4.szSkillDesc
+print skillinfo5.szSkillDesc
+print skillinfo6.szSkillDesc
+print skillinfo7.szSkillDesc
+print skillinfo8.szSkillDesc
+print skillinfo9.szSkillDesc
+print skillinfo10.szSkillDesc
+print skillinfo11.szSkillDesc
+print skillinfo12.szSkillDesc
 print heroinfo
 print herolvinfo
 

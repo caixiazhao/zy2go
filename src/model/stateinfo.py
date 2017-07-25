@@ -9,32 +9,67 @@ from unitstateinfo import UnitStateInfo
 # units是需要跟之前的信息进行累加的
 # heros信息，其中一部分属性也是需要累加的
 class StateInfo:
+    def get_hero_attack_info(self, hero_name):
+        for att in self.attack_infos:
+            if att.atker == hero_name:
+                return att
+        return None
+
+    def get_unit(self, unit_name):
+        for unit in self.units:
+            if unit.unit_name == unit_name:
+                return unit
+        return None
+
+    def get_hero(self, hero_name):
+        for hero in self.heros:
+            if hero.name == hero_name:
+                return hero
+        return None
+
     def merge(self, delta):
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
             found = False
             for prev_hero in self.heros:
-                if delta.skill_name == prev_hero.skill_name:
+                if delta.hero_name == prev_hero.hero_name:
                     merged = prev_hero.merge(hero)
                     merged_heros.append(merged)
                     found = True
             if not found:
                 merged_heros.append(hero)
+        for prev in self.heroes:
+            found = False
+            for merged in merged_heros:
+                if prev.hero_name == merged.hero_name:
+                    found = True
+            if not found:
+                merged_heros.append(prev)
 
         # 合并单位信息
         merged_units = []
         for unit in delta.units:
-            # 如果状态为out则表示这个单位已经被销毁，不再加入列表中
-            if unit.state != 'out':
+
                 found = False
                 for prev_unit in self.units:
                     if unit.unit_name == prev_unit.unit_name:
                         merged = prev_unit.merge(unit)
                         merged_units.append(merged)
+                        self.units
                         found = True
                 if not found:
                     merged_units.append(unit)
+        for prev in self.units:
+            # 如果状态为out则表示这个单位已经被销毁，不再加入列表中
+            if prev.state != 'out':
+                found = False
+                for merged in merged_units:
+                    if prev.unit_name == merged.unit_name:
+                        found = True
+                if not found:
+                    merged_units.append(prev)
+
 
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units)
 

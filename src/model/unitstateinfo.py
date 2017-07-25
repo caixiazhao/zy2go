@@ -17,17 +17,18 @@ class UnitStateInfo(object):
         self.att = att
 
     def merge(self, delta):
-        self.unit_name = delta.unit_name if delta.unit_name is not None else self.unit_name
-        self.state = delta.state if delta.state is not None else self.state
-        self.cfg_id = delta.cfg_id if delta.cfg_id is not None else self.cfg_id
-        self.pos = delta.pos if delta.pos is not None else self.pos
-        self.fwd = delta.fwd if delta.fwd is not None else self.fwd
-        self.hp = delta.hp if delta.hp is not None else self.hp
-        self.maxhp = delta.maxhp if delta.maxhp is not None else self.maxhp
-        self.speed = delta.speed if delta.speed is not None else self.speed
-        self.moving = delta.moving if delta.moving is not None else self.moving
-        self.chrtype = delta.chrtype if delta.chrtype is not None else self.chrtype
-        self.att = delta.att if delta.att is not None else self.att
+        unit_name = delta.unit_name if delta.unit_name is not None else self.unit_name
+        state = delta.state if delta.state is not None else self.state
+        cfg_id = delta.cfg_id if delta.cfg_id is not None else self.cfg_id
+        pos = delta.pos if delta.pos is not None else self.pos
+        fwd = delta.fwd if delta.fwd is not None else self.fwd
+        hp = delta.hp if delta.hp is not None else self.hp
+        maxhp = delta.maxhp if delta.maxhp is not None else self.maxhp
+        speed = delta.speed if delta.speed is not None else self.speed
+        moving = delta.moving if delta.moving is not None else self.moving
+        chrtype = delta.chrtype if delta.chrtype is not None else self.chrtype
+        att = delta.att if delta.att is not None else self.att
+        return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att)
 
     @staticmethod
     def decode(obj, unit_name):
