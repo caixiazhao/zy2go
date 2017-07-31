@@ -33,12 +33,13 @@ class StateInfo:
         for hero in delta.heros:
             found = False
             for prev_hero in self.heros:
-                if delta.hero_name == prev_hero.hero_name:
+                if hero.hero_name == prev_hero.hero_name:
                     merged = prev_hero.merge(hero)
                     merged_heros.append(merged)
                     found = True
             if not found:
                 merged_heros.append(hero)
+                #会在这返回，很奇怪
         for prev in self.heroes:
             found = False
             for merged in merged_heros:
@@ -73,6 +74,9 @@ class StateInfo:
 
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units)
 
+    #def get_hero_pos(self,hero_id):
+
+
     def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos):
         self.battleid = battleid
         self.tick = tick
@@ -106,7 +110,7 @@ class StateInfo:
                 if key < 27 or key > 36:
                   units.append(UnitStateInfo.decode(obj[key], key))
             else:
-                print key
+                print(key)
 
         attack_infos = []
         if 'attackinfos' in obj:
