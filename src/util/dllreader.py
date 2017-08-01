@@ -34,7 +34,7 @@ path = GaeaAI.ExportInterface.SearchPath(start, end)
 heroinfo = ExportInterface.GetHeroCfgInfo(112)
 herolvinfo = ExportInterface.GetHeroLvUpInfo(112)
 monster = ExportInterface.GetMonsterDataCfgInfo(9721)
-obelisk = ExportInterface.GetObeliskCfgInfo(9721)
+obelisk = ExportInterface.GetObeliskCfgInfo(975)
 mapinfo = ExportInterface.GetMapSize()
 skillinfo = ExportInterface.GetSkillCfgInfo(12210)
 skillinfo2 = ExportInterface.GetSkillCfgInfo(12211)
@@ -65,10 +65,4 @@ print heroinfo
 print herolvinfo
 
 ExportInterface.GetSkillCfgInfo(923)
-ExportInterface.GetObeliskCfgInfo(923);
-            # ExportInterface.GetSkillCombineInfo(923);
-            # ExportInterface.GetHeroLvUpInfo(923);
-            # ExportInterface.GetLevelCfgInfo(923);
-            # ExportInterface.GetSkillMarkInfo(923);
-            # ExportInterface.GetMonsterObeliskLevelDynamicInfo(923);
-            # ExportInterface.GetEquipInBattleInfo(11101);
+tower = ExportInterface.GetObeliskCfgInfo(900)

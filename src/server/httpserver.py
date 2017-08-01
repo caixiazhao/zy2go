@@ -17,7 +17,14 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 import json as JSON
 
+from model.herostateinfo import HeroStateInfo
+from model.stateinfo import StateInfo
+
+
 class S(BaseHTTPRequestHandler):
+    # static variable
+    prev_stat = None
+
     def __init__(self, *args):
         BaseHTTPRequestHandler.__init__(self, *args)
 
@@ -26,27 +33,39 @@ class S(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
+    def build_action_command(self, hero_id, action, parameters):
+        if action == 'MOVE' and 'pos' in parameters:
+            return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
+        if action == 'AUTO':
+            return {"hero_id": hero_id, "action": action}
+        raise ValueError('unexpected action type ' + action)
+
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
         self.log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data + "\n")
+        self.log_file.flush()
 
         # 简单解析
         obj = JSON.loads(get_data)
-        battleid = obj['wldstatic']['ID']
-        tick = obj['wldruntime']['tick']
-        rsp_obj = {"ID":battleid, "tick": tick, "cmd":
-            [{"hero_id": "27", "action": "AUTO"},
-             {"hero_id": "28", "action": "AUTO"},
-             {"hero_id": "29", "action": "AUTO"},
-             {"hero_id": "30", "action": "AUTO"},
-             {"hero_id": "31", "action": "AUTO"},
-             {"hero_id": "32", "action": "AUTO"},
-             {"hero_id": "33", "action": "AUTO"},
-             {"hero_id": "34", "action": "AUTO"},
-             {"hero_id": "35", "action": "AUTO"},
-             {"hero_id": "36", "action": "AUTO"}]}
+        state_info = StateInfo.decode(obj)
+        S.prev_stat = state_info
+        battleid = state_info.battleid
+        tick = state_info.tick
+
+        # 构造反馈结果
+        action_strs = []
+        for hero in state_info.heros:
+            # 测试代码：在前1分钟，命令英雄到达指定地点
+            if 528*2*60 > int(tick) > 528:
+                action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos':'( 0, -80, 0)'})
+            else:
+                action_str = self.build_action_command(hero.hero_name, 'AUTO', {})
+            action_strs.append(action_str)
+
+        rsp_obj = {"ID":battleid, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
+        print rsp_str
         self._set_headers()
         self.wfile.write(rsp_str)
 

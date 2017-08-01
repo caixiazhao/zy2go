@@ -3,3 +3,7 @@
 
 ZY2GoEnv
 *.pyc
+
+battle_logs
+
+*.log

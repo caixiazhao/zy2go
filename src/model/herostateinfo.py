@@ -66,8 +66,13 @@ class HeroStateInfo:
         self.vis3 = vis3
 
     @staticmethod
+    def decode_add_skill(obj, skill_id, skills):
+        if skill_id in obj:
+            skills.append(SkillStateInfo.decode(obj[skill_id], skill_id))
+        return None
+
+    @staticmethod
     def decode(obj, hero_name):
-        print hero_name
         hero_name = hero_name
         state = obj['state'] if 'state' in obj else None
         cfg_id = obj['cfgID'] if 'cfgID' in obj else None
@@ -110,15 +115,15 @@ class HeroStateInfo:
         buffs = obj['buff'] if 'buff' in obj else []
 
         skills = []
-        skills.append(SkillStateInfo.decode(obj['Skill0'], 'Skill0'))
-        skills.append(SkillStateInfo.decode(obj['Skill1'], 'Skill1'))
-        skills.append(SkillStateInfo.decode(obj['Skill2'], 'Skill2'))
-        skills.append(SkillStateInfo.decode(obj['Skill3'], 'Skill3'))
-        skills.append(SkillStateInfo.decode(obj['Skill4'], 'Skill4'))
-        skills.append(SkillStateInfo.decode(obj['Skill5'], 'Skill5'))
-        skills.append(SkillStateInfo.decode(obj['Skill6'], 'Skill6'))
-        skills.append(SkillStateInfo.decode(obj['Skill7'], 'Skill7'))
-        skills.append(SkillStateInfo.decode(obj['Skill8'], 'Skill8'))
+        HeroStateInfo.decode_add_skill(obj, 'Skill0', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill1', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill2', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill3', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill4', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill5', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill6', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill7', skills)
+        HeroStateInfo.decode_add_skill(obj, 'Skill8', skills)
 
         return HeroStateInfo(hero_name, state, cfg_id, pos, fwd, hp, maxhp, mp, maxmp, speed, att, gold, hprec, equips,
                              buffs, skills, vis1, vis2, vis3)

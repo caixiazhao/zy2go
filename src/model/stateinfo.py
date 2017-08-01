@@ -15,6 +15,13 @@ class StateInfo:
                 return att
         return None
 
+    def get_hero_be_attacked_info(self, hero_name):
+        hitted = []
+        for hit in self.hit_infos:
+            if hit.tgt == hero_name:
+                hitted.append(hit.atker)
+        return hitted
+
     def get_unit(self, unit_name):
         for unit in self.units:
             if unit.unit_name == unit_name:
@@ -86,31 +93,37 @@ class StateInfo:
         self.hit_infos = hit_infos
 
     @staticmethod
+    def decode_hero(obj, hero_id):
+        hero_str = str(hero_id)
+        if hero_str in obj:
+            # 解析之后做基本的检查，判断是否具有技能信息（不够鲁棒）。
+            hero_info = HeroStateInfo.decode(obj[hero_str], hero_str)
+            if len(hero_info.skills) > 0:
+                return hero_info
+        return None
+
+    @staticmethod
     def decode(obj):
         battleid = obj['wldstatic']['ID']
         tick = obj['wldruntime']['tick']
 
         # 貌似从27-36是英雄
         heros = []
-        heros.append(HeroStateInfo.decode(obj['27'], '27'))
-        heros.append(HeroStateInfo.decode(obj['28'], '28'))
-        heros.append(HeroStateInfo.decode(obj['29'], '29'))
-        heros.append(HeroStateInfo.decode(obj['30'], '30'))
-        heros.append(HeroStateInfo.decode(obj['31'], '31'))
-        heros.append(HeroStateInfo.decode(obj['32'], '32'))
-        heros.append(HeroStateInfo.decode(obj['33'], '33'))
-        heros.append(HeroStateInfo.decode(obj['34'], '34'))
-        heros.append(HeroStateInfo.decode(obj['35'], '35'))
-        heros.append(HeroStateInfo.decode(obj['36'], '36'))
+        hero_id = 27
+        while True:
+            hero_info = StateInfo.decode_hero(obj, hero_id)
+            if hero_info is not None:
+                heros.append(hero_info)
+                hero_id += 1
+            else:
+                break
 
         # 其它单位
         units = []
         for key in obj.keys():
             if key.isdigit():
-                if key < 27 or key > 36:
+                if key < 27 or key > hero_id:
                   units.append(UnitStateInfo.decode(obj[key], key))
-            else:
-                print(key)
 
         attack_infos = []
         if 'attackinfos' in obj:
