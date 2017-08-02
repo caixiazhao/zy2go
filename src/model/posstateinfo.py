@@ -9,7 +9,7 @@ class PosStateInfo:
         # need parse str
         position = str(obj)
         str_pieces = position.replace("(", "").replace(")", "").replace(" ", "").split(",")
-        x = str_pieces[0]
-        y = str_pieces[2]
-        z = str_pieces[1]
+        x = int(str_pieces[0])
+        y = int(str_pieces[2])
+        z = int(str_pieces[1])
         return PosStateInfo(x, y, z)
