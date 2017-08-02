@@ -35,8 +35,10 @@ class linemodel:
         #battle_map=Input(shape=())
         #TODO:for multi-input model, we may use a map as input
         battle_information=Input(shape=())
-        #to store the information of buildings, monsters, creeps and heroes.
-        #TODO:input shape need check
+        #to store the information of buildings,creeps and heroes.
+        #现在英雄信息包含2*21个属性，技能2*3*15，塔9~11，小兵16*（9~11），输入应为一个固定长度向量
+        #预测长度应该在300左右
+        #TODO:input shape need check,
         dense_1=Dense(512,activation='relu')(battle_information)
         dropped_1=Dropout(0.15)(dense_1)
         dense_2=Dense(256,activation='relu')(dropped_1)
@@ -47,9 +49,17 @@ class linemodel:
         dropped_3 = Dropout(0.15)(dense_3)
 
         predictions = Dense(self.action_size, activation='softmax')(dropped_3)
+        #输出为一个q-value的向量，代表各个行为的概率，预计长为59
         model = Model(inputs=battle_information, outputs=predictions)
         model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
         return model
+
+    def remember(self, state_info):
+        self.memory.append(state_info)
+
+    def replay(self,batch_size):
+        batch_size = min(batch_size, len(self.memory))
+        #todo: to be continue
 
     def select_actions(self, acts, stateinformation):
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
@@ -67,7 +77,7 @@ class linemodel:
                 skillid = 64141
                 hero_pos=stateinformation.get_hero_pos(self.hero_name)
                 tgtpos = list(np.array(fwd) + np.array(hero_pos))
-                # need to get the hero_pos
+                #todo：判断该技能是否可用，可用返回，不可用跳过，选可能性排在这个技能之后的选择
                 return action, skillid, tgtpos
             elif selected ==16:   #放草，烧，加速，三个不用管目标的技能
                 action = "CAST"
@@ -80,15 +90,27 @@ class linemodel:
                 action="CAST"
                 skillid=61141
                 tgtpos=stateinformation.get_hero_pos(self.hero_name)
-                #GET CURRENT HERO POS
+                #todo：判断该技能是否可用，可用返回，不可用跳过，选可能性排在这个技能之后的选择
                 return action,skillid,tgtpos
             elif selected==19:
                 action="CAST"
                 skillid=64142
                 tgtpos=stateinformation.get_hero_pos(self.hero_name)
-                #get pos
+                #todo: if can use, return, if not ,continue to the next loop
                 return action,skillid,tgtpos
-            elif selected==
+            elif selected==20:  #对敌英雄使用变形#
+                action="CAST"
+                skillid=611041
+                # 现在是中线1v1，使用不涉及选择对方某一个英雄，只有一个非己方的英雄作为目标，
+                # 后期可能要加上信息来选择当前作为对手的目标英雄，或者对于对线模型使用对线stateinfo取代全局stateinfo，
+                # 舍弃掉部分信息在保存在模型中
+                for hero in stateinformation.heros:
+                    if hero.hero_name!= self.hero_name:
+                        tgtid=hero.id
+                        #todo:这里的id应该是指 27~36， name是指101,102这种，但是现在的heroinfo当中并没有看到保存id
+                # todo: if can use, return, if not ,continue to the next loop
+                return action, skillid, tgtid
+            elif selected== #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
 
 
                 #TODO ...
@@ -104,7 +126,7 @@ class linemodel:
         prev_state = state_infos[state_idx]
         for i in range(1, 10):
             cur_state = state_infos[state_idx + i]
-            prev_hero = state
+            prev_hero =(state)
 
 
 
