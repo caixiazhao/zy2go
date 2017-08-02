@@ -14,6 +14,7 @@
 # 第一条信息貌似和后续信息有所不同
 import json as JSON
 import math
+from random import randint
 
 from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
@@ -23,9 +24,16 @@ from src.model.stateinfo import StateInfo
 
 
 class Replayer:
-    staticmethod
-    def get_heros_in_team(self, if_team_a):
-        for
+    NEARBY_TOWER_RADIUS = 7
+    NEARBY_RADIUS = 15
+
+    @staticmethod
+    def get_heros_in_team(state_info, team_id):
+        return [hero for hero in state_info.heros if hero.team == team_id]
+
+    @staticmethod
+    def get_units_in_team(state_info, team_id):
+        return [unit for unit in state_info.units if unit.team == team_id]
 
     @staticmethod
     def parse_state_log(json_str):
@@ -46,10 +54,38 @@ class Replayer:
         return new_state
 
     @staticmethod
+    def get_nearby_enemy_heros(state_info, hero_id):
+        hero = state_info.get_hero(hero_id)
+        enemy_hero_team = 1 - hero.team
+        enemy_heros = Replayer.get_heros_in_team(state_info, enemy_hero_team)
+
+        nearby_enemies = []
+        for enemy in enemy_heros:
+            # 首先需要确定敌方英雄可见
+            if enemy.is_enemy_visible():
+                distance = Replayer.cal_distance(hero.pos, enemy.pos)
+                if distance < Replayer.NEARBY_RADIUS:
+                    nearby_enemies.append(enemy)
+        return nearby_enemies
+
+    @staticmethod
+    def get_nearby_enemy_units(state_info, hero_id):
+        hero = state_info.get_hero(hero_id)
+        enemy_unit_team = 1 - hero.team
+        enemy_units = Replayer.get_units_in_team(state_info, enemy_unit_team)
+
+        nearby_enemy_units = []
+        for unit in enemy_units:
+            distance = Replayer.cal_distance(hero.pos, unit.pos)
+            if distance < Replayer.NEARBY_RADIUS:
+                nearby_enemy_units.append(unit)
+        return nearby_enemy_units
+
+    @staticmethod
     def if_near_tower(state_info, hero_state):
         for unit in state_info:
             if int(unit.unit_name) <= 26:
-                if Replayer.cal_distance(unit.pos, hero_state.pos) < 7: #根据配置得来
+                if Replayer.cal_distance(unit.pos, hero_state.pos) < 7:     #根据配置得来
                     return unit
         return None
 
@@ -65,7 +101,7 @@ class Replayer:
     @staticmethod
     def cal_distance(pos1, pos2):
         # 忽略y值
-        distance = math.sqrt((pos1.x -pos2.x)*(pos1.x - pos2.x) + (pos1.y - pos2.y)*(pos1.y - pos2.y))
+        distance = math.sqrt((pos1.x -pos2.x)*(pos1.x - pos2.x) + (pos1.y - pos2.y)*(pos1.y - pos2.y))/1000
         return distance
 
     @staticmethod
@@ -167,7 +203,7 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    path = "/Users/sky4star/Github/zy2go/battle_logs/6442537685409333250.log"
+    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"
     file = open(path, "r")
     lines = file.readlines()
 
@@ -184,4 +220,15 @@ if __name__ == "__main__":
         state_logs.append(merged_state)
         prev_state = merged_state
 
-    print state_logs.count()
+        for hero in merged_state.heros:
+            nearby_enemy_heros = Replayer.get_nearby_enemy_heros(merged_state, hero.hero_name)
+            nearby_enemy_units = Replayer.get_nearby_enemy_units(merged_state, hero.hero_name)
+            total_len = len(nearby_enemy_heros) + len(nearby_enemy_units)
+            if total_len > 0:
+                ran_pick = randint(0, total_len - 1)
+                tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
+                    else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
+                print 'hero %s, tgtid %s' % (hero.hero_name, tgtid)
+
+
+    print len(state_logs)

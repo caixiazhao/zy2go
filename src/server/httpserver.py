@@ -15,14 +15,16 @@ Send a POST request::
 """
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
+from random import randint
 import json as JSON
 
 from model.herostateinfo import HeroStateInfo
 from model.stateinfo import StateInfo
+from util.replayer import Replayer
 
 
 class S(BaseHTTPRequestHandler):
-    # static variable
+    # static variable，目前只支持同一时间处理一场比赛
     prev_stat = None
 
     def __init__(self, *args):
@@ -36,7 +38,11 @@ class S(BaseHTTPRequestHandler):
     def build_action_command(self, hero_id, action, parameters):
         if action == 'MOVE' and 'pos' in parameters:
             return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
+        if action == 'ATTACK' and 'tgtid' in parameters:
+            return {"hero_id": hero_id, "action": action, "tgtid": parameters['tgtid']}
         if action == 'AUTO':
+            return {"hero_id": hero_id, "action": action}
+        if action == 'HOLD':
             return {"hero_id": hero_id, "action": action}
         raise ValueError('unexpected action type ' + action)
 
@@ -49,21 +55,38 @@ class S(BaseHTTPRequestHandler):
         # 简单解析
         obj = JSON.loads(get_data)
         state_info = StateInfo.decode(obj)
+
+        # 合并并且缓存
+        state_info = Replayer.update_state_log(S.prev_stat, state_info)
         S.prev_stat = state_info
-        battleid = state_info.battleid
+        battle_id = state_info.battleid
         tick = state_info.tick
 
         # 构造反馈结果
         action_strs = []
         for hero in state_info.heros:
-            # 测试代码：在前1分钟，命令英雄到达指定地点
-            if 528*2*60 > int(tick) > 528:
-                action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos':'( 0, -80, 0)'})
+            # 测试代码：
+            # 得到周围的英雄和敌人单位信息
+            nearby_enemy_heros = Replayer.get_nearby_enemy_heros(state_info, hero.hero_name)
+            nearby_enemy_units = Replayer.get_nearby_enemy_units(state_info, hero.hero_name)
+            total_len = len(nearby_enemy_heros) + len(nearby_enemy_units)
+            if total_len > 0:
+                ran_pick = randint(0, total_len - 1)
+                tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
+                    else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
+                action_str = self.build_action_command(hero.hero_name, 'ATTACK', {'tgtid': tgtid})
+            # 在前1分钟，命令英雄到达指定地点
+            elif 528 * 2 * 40 > int(tick) > 528:
+                if hero.team == 0:
+                    action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos': '( -5000, -80, 0)'})
+                else:
+                    action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
             else:
-                action_str = self.build_action_command(hero.hero_name, 'AUTO', {})
+                action_str = self.build_action_command(hero.hero_name, 'HOLD', {})
+
             action_strs.append(action_str)
 
-        rsp_obj = {"ID":battleid, "tick": tick, "cmd": action_strs}
+        rsp_obj = {"ID":battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         print rsp_str
         self._set_headers()

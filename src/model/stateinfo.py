@@ -30,29 +30,22 @@ class StateInfo:
 
     def get_hero(self, hero_name):
         for hero in self.heros:
-            if hero.name == hero_name:
+            if hero.hero_name == hero_name:
                 return hero
         return None
 
     def merge(self, delta):
+        print delta.tick
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
-            found = False
-            for prev_hero in self.heros:
-                if hero.hero_name == prev_hero.hero_name:
-                    merged = prev_hero.merge(hero)
-                    merged_heros.append(merged)
-                    found = True
-            if not found:
-                merged_heros.append(hero)
-                #会在这返回，很奇怪
-        for prev in self.heroes:
-            found = False
-            for merged in merged_heros:
-                if prev.hero_name == merged.hero_name:
-                    found = True
-            if not found:
+            found = self.get_hero(hero.hero_name)
+            merged = found.merge(hero)
+            merged_heros.append(merged)
+            #会在这返回，很奇怪
+        for prev in self.heros:
+            found = delta.get_hero(prev.hero_name)
+            if found is None:
                 merged_heros.append(prev)
 
         # 合并单位信息
@@ -79,7 +72,7 @@ class StateInfo:
                     merged_units.append(prev)
 
 
-        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units)
+        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units, delta.attack_infos, delta.hit_infos)
 
     #def get_hero_pos(self,hero_id):
 
@@ -106,6 +99,8 @@ class StateInfo:
     def decode(obj):
         battleid = obj['wldstatic']['ID']
         tick = obj['wldruntime']['tick']
+
+        # 忽略了第一帧中的兵线信息
 
         # 貌似从27-36是英雄
         heros = []
