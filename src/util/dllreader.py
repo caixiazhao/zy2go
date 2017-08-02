@@ -33,7 +33,7 @@ path = GaeaAI.ExportInterface.SearchPath(start, end)
 
 heroinfo = ExportInterface.GetHeroCfgInfo(112)
 herolvinfo = ExportInterface.GetHeroLvUpInfo(112)
-monster = ExportInterface.GetMonsterDataCfgInfo(965)
+monster = ExportInterface.GetMonsterDataCfgInfo(611)
 print monster.szName
 obelisk = ExportInterface.GetObeliskCfgInfo(975)
 mapinfo = ExportInterface.GetMapSize()

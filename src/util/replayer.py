@@ -25,8 +25,8 @@ from src.model.stateinfo import StateInfo
 
 class Replayer:
     NEARBY_TOWER_RADIUS = 7
-    ATTACK_HERO_RADIUS = 13
-    ATTACK_UNIT_RADIUS = 9
+    ATTACK_HERO_RADIUS = 13 #13.5
+    ATTACK_UNIT_RADIUS = 9 #10
 
     @staticmethod
     def if_unit_monster(unit_info):
@@ -94,7 +94,7 @@ class Replayer:
 
     @staticmethod
     def get_nearby_monsters(state_info, hero_id):
-        #TODO 考虑是否可见vis1表示阵营A（上家）是否可见
+        #TODO 考虑是否可见vis1表示下路阵营是否可见
         return None
 
     @staticmethod
@@ -231,6 +231,9 @@ if __name__ == "__main__":
     prev_state = None
     replayer = Replayer()
     for line in lines:
+        if prev_state is not None and int(prev_state.tick) > 21050:
+            i = 1
+
         cur_state = replayer.parse_state_log(line)
         merged_state = replayer.update_state_log(prev_state, cur_state)
         state_logs.append(merged_state)

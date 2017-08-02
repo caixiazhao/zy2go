@@ -50,10 +50,9 @@ class HeroStateInfo:
         magpenrate = delta.magpenrate if delta.magpenrate is not None else self.magpenrate
         movelock = delta.movelock if delta.movelock is not None else self.movelock
 
-        #TODO 可见信息不需要合并? 需要确认到底哪些信息需要合并
-        vis1 = delta.vis1
-        vis2 = delta.vis2
-        vis3 = delta.vis3
+        vis1 = delta.vis1 if delta.vis1 is not None else self.vis1
+        vis2 = delta.vis2 if delta.vis2 is not None else self.vis2
+        vis3 = delta.vis3 if delta.vis3 is not None else self.vis3
 
         # team 的合并根据之前的结果来，不由delta决定
         team = self.team if self.team is not None else delta.team
@@ -94,9 +93,9 @@ class HeroStateInfo:
 
     def is_enemy_visible(self):
         if self.team == 0:
-            return self.vis2
-        else:
             return self.vis1
+        else:
+            return self.vis2
 
     @staticmethod
     def decode_add_skill(obj, skill_id):
@@ -122,7 +121,7 @@ class HeroStateInfo:
         gold = obj['gold'] if 'gold' in obj else None
         hprec = obj['Hprec'] if 'Hprec' in obj else None
 
-        # 是否可见信息(第一阵营，第二阵营，中立生物是否可见）
+        # 是否可见信息(下路阵营，上路阵营，中立生物是否可见）
         vis1 = obj['vis1'] if 'vis1' in obj else None
         vis2 = obj['vis2'] if 'vis2' in obj else None
         vis3 = obj['vis3'] if 'vis3' in obj else None

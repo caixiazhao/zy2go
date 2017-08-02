@@ -5,7 +5,7 @@ from posstateinfo import PosStateInfo
 
 class UnitStateInfo(object):
     def __init__(self, unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att, attspeed,
-                 mag, attpen, magpen, attpenrate, magpenrate, movelock, team):
+                 mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team):
         self.unit_name = unit_name
         self.state = state
         self.cfg_id = cfg_id
@@ -24,6 +24,9 @@ class UnitStateInfo(object):
         self.attpenrate = attpenrate
         self.magpenrate = magpenrate
         self.movelock = movelock
+        self.vis1 = vis1
+        self.vis2 = vis2
+        self.vis3 = vis3
         self.team = team
 
     def merge(self, delta):
@@ -45,9 +48,12 @@ class UnitStateInfo(object):
         attpenrate = delta.attpenrate if delta.attpenrate is not None else self.attpenrate
         magpenrate = delta.magpenrate if delta.magpenrate is not None else self.magpenrate
         movelock = delta.movelock if delta.movelock is not None else self.movelock
+        vis1 = delta.vis1 if delta.vis1 is not None else self.vis1
+        vis2 = delta.vis2 if delta.vis2 is not None else self.vis2
+        vis3 = delta.vis3 if delta.vis3 is not None else self.vis3
         team = self.team if self.team is not None else self.team    # team信息的合并和其它的不同，会根据prev来决定，而不是根据delta
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
-                             attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, team)
+                             attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
 
     @staticmethod
     def decode(obj, unit_name):
@@ -69,6 +75,9 @@ class UnitStateInfo(object):
         attpenrate = obj['attpenrate'] if 'attpenrate' in obj else None
         magpenrate = obj['magpenrate'] if 'magpenrate' in obj else None
         movelock = obj['movelock'] if 'movelock' in obj else None
+        vis1 = obj['vis1'] if 'vis1' in obj else None
+        vis2 = obj['vis2'] if 'vis2' in obj else None
+        vis3 = obj['vis3'] if 'vis3' in obj else None
         team = None if pos is None else 0 if pos.x < 0 else 1
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
-                             attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, team)
+                             attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
