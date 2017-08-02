@@ -34,6 +34,12 @@ class StateInfo:
                 return hero
         return None
 
+    def get_hero_pos(self, name):
+        for hero in self.heros:
+            if hero.hero_name == name:
+                return hero.pos
+        return None
+
     def merge(self, delta):
         # 合并英雄信息
         merged_heros = []
