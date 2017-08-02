@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 from herostateinfo import HeroStateInfo
 from model.attackstateinfo import AttackStateInfo
+from model.dmgstateinfo import DmgStateInfo
 from model.hitstateinfo import HitStateInfo
 from unitstateinfo import UnitStateInfo
 
@@ -78,18 +79,16 @@ class StateInfo:
                     merged_units.append(prev)
 
 
-        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units, delta.attack_infos, delta.hit_infos)
+        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units, delta.attack_infos, delta.hit_infos, delta.dmg_infos)
 
-    #def get_hero_pos(self,hero_id):
-
-
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
         self.units = units
         self.attack_infos = attack_infos
         self.hit_infos = hit_infos
+        self.dmg_infos = dmg_infos
 
     @staticmethod
     def decode_hero(obj, hero_id):
@@ -136,4 +135,9 @@ class StateInfo:
             for hi in obj['hitinfos']:
                 hit_infos.append(HitStateInfo.decode(hi))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos)
+        dmg_infos = []
+        if 'dmginfos' in obj:
+            for di in obj['dmginfos']:
+                dmg_infos.append(DmgStateInfo.decode(di))
+
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos)

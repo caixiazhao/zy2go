@@ -25,7 +25,15 @@ from src.model.stateinfo import StateInfo
 
 class Replayer:
     NEARBY_TOWER_RADIUS = 7
-    NEARBY_RADIUS = 15
+    ATTACK_HERO_RADIUS = 13
+    ATTACK_UNIT_RADIUS = 9
+
+    @staticmethod
+    def if_unit_monster(unit_info):
+        #TODO 需要两个boss的id
+        if unit_info.cfg_id == 612 or unit_info.cfg_id == 6410 or unit_info.cfg_id == 611:
+            return True
+        return False
 
     @staticmethod
     def get_heros_in_team(state_info, team_id):
@@ -64,7 +72,7 @@ class Replayer:
             # 首先需要确定敌方英雄可见
             if enemy.is_enemy_visible():
                 distance = Replayer.cal_distance(hero.pos, enemy.pos)
-                if distance < Replayer.NEARBY_RADIUS:
+                if distance < Replayer.ATTACK_HERO_RADIUS:
                     nearby_enemies.append(enemy)
         return nearby_enemies
 
@@ -76,10 +84,18 @@ class Replayer:
 
         nearby_enemy_units = []
         for unit in enemy_units:
-            distance = Replayer.cal_distance(hero.pos, unit.pos)
-            if distance < Replayer.NEARBY_RADIUS:
-                nearby_enemy_units.append(unit)
+            # 排除掉塔
+            # 排除掉野怪
+            if int(unit.unit_name) > 26 and not Replayer.if_unit_monster(unit):
+                distance = Replayer.cal_distance(hero.pos, unit.pos)
+                if distance < Replayer.ATTACK_UNIT_RADIUS:
+                    nearby_enemy_units.append(unit)
         return nearby_enemy_units
+
+    @staticmethod
+    def get_nearby_monsters(state_info, hero_id):
+        #TODO 考虑是否可见vis1表示阵营A（上家）是否可见
+        return None
 
     @staticmethod
     def if_near_tower(state_info, hero_state):

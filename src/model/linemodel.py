@@ -95,6 +95,19 @@ class linemodel:
 
         return selected
 
+    # 计算对线情况下每次行动的效果反馈
+    # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值
+    # 其中每一帧的效果评估方式为：我方获得金币数量x(我方血量变化比率+我方附近塔血量变化比率) A 和 对方获得金币x(对方血量变化比率+对方附近塔血量变化比率) B 的比例关系
+    # A/(A + B)
+    @staticmethod
+    def cal_target_4_line(state_infos, state_idx, hero_name):
+        prev_state = state_infos[state_idx]
+        for i in range(1, 10):
+            cur_state = state_infos[state_idx + i]
+            prev_hero = state
+
+
+
     def mov(self, direction):
         if direction == 0:
             return [1000, 0, 0]
@@ -116,7 +129,5 @@ class linemodel:
         # the input is 0~8 and the output will be a vector that indicate the direction
         return direction
 
-
-
-    def attack_cast(self, skill)
+    def attack_cast(self, skill):
         return skill
