@@ -69,7 +69,10 @@ class linemodel:
         for i in range(batch_size):
             sample_index = minibatch[i]
             stateInformation = self.memory[sample_index]
-            line_input = Line_input(stateInformation)
+            for hero in stateInformation.heros:
+                if hero.hero_name==self.hero_name:
+                    team=hero.team
+            line_input = Line_input(stateInformation,team)
             state=line_input.gen_input()#todo:待完成
             #todo:replay 的更新target这里需要继续写
 
@@ -195,12 +198,12 @@ class linemodel:
                 return [action,skillid,tgtid]
             elif selected<38: #skill2
                 action = "CAST"
-                skillid = 1
+                skillid = 2
                 tgtid = self.choose_skill_target(selected - 28)
                 return [action, skillid, tgtid]
             else:
                 action = "CAST"
-                skillid = 1
+                skillid = 3
                 tgtid = self.choose_skill_target(selected - 38)
                 return [action, skillid, tgtid]
         return ["HOLD"]
