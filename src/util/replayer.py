@@ -20,13 +20,24 @@ from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from model.posstateinfo import PosStateInfo
 from src.model.stateinfo import StateInfo
 
 
 class Replayer:
     NEARBY_TOWER_RADIUS = 7
+    NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 13 #13.5
     ATTACK_UNIT_RADIUS = 9 #10
+
+    @staticmethod
+    def if_hero_at_basement(hero_info):
+        basement = PosStateInfo(75140, -80, 0) if hero_info.team == 0 else PosStateInfo(-75680, -80, 0)
+        distance = Replayer.cal_distance(hero_info.pos, basement)
+        if distance < Replayer.NEARBY_BASEMENT_RADIUS:
+            return True
+        else:
+            return False
 
     @staticmethod
     def if_unit_monster(unit_info):
@@ -247,7 +258,7 @@ if __name__ == "__main__":
                 ran_pick = randint(0, total_len - 1)
                 tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
                     else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
-                print 'hero %s, tgtid %s' % (hero.hero_name, tgtid)
+                print('hero %s, tgtid %s' % (hero.hero_name, tgtid))
 
 
-    print len(state_logs)
+    print(len(state_logs))

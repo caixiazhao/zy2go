@@ -15,6 +15,8 @@ from src.model.herostateinfo import HeroStateInfo
 
 
 class linemodel:
+    REWARD_GAMMA = 0.9
+
     def __init__(self, statesize, actionsize, hero_name):
         self.state_size = statesize
         #TODO:need to be settled
@@ -100,13 +102,44 @@ class linemodel:
     # 其中每一帧的效果评估方式为：我方获得金币数量x(我方血量变化比率+我方附近塔血量变化比率) A 和 对方获得金币x(对方血量变化比率+对方附近塔血量变化比率) B 的比例关系
     # A/(A + B)
     @staticmethod
-    def cal_target_4_line(state_infos, state_idx, hero_name):
+    def cal_target_4_line(state_infos, state_idx, hero_names, if_team_a):
         prev_state = state_infos[state_idx]
+
+        reward_per_states = []
         for i in range(1, 10):
             cur_state = state_infos[state_idx + i]
-            prev_hero = state
 
+            # 将传入的英雄分为两个阵容，计算两个阵营之间的奖励比率，根据if_team_a决定返回哪个阵营的比例
+            gain_team_a = 0
+            gain_team_b = 0
+            for hero_name in hero_names:
+                prev_hero = prev_state.get_hero(hero_name)
+                cur_hero = cur_state.get_hero(hero_name)
 
+                # 这里考虑血量变化，如果血量提高则会有奖励（所以回城也会有奖励系数)
+                # 逻辑上忽略升级带来的一点点变化
+                hp_delta = (int(cur_hero.hp) - int(prev_hero.hp)) / float(cur_hero.maxhp)
+
+                # 得到金币变化，如果是消灭了对方小兵，或者英雄，金币上会有个显著的变化
+                # 对于死亡，相应的对方会有个金币的提升，暂时不考虑击杀被击杀的额外惩罚了吧
+                #TODO 这里需要考虑装备情况
+                gold_delta = int(cur_hero.gold) - int(prev_hero.gold)
+
+                gain = gold_delta * (1 + hp_delta)
+                if cur_hero.team == 0:
+                    gain_team_a += gain
+                else:
+                    gain_team_b += gain
+
+            reward = gain_team_a / float(gain_team_a + gain_team_b) if if_team_a else gain_team_b / float(gain_team_a + gain_team_b)
+            reward_per_states.append(reward)
+
+        # 根据衰减系数来得到总的奖励值
+        total_reward = 0
+        for reward in reversed(reward_per_states):
+            total_reward = total_reward * linemodel.REWARD_GAMMA + reward
+
+        return total_reward
 
     def mov(self, direction):
         if direction == 0:

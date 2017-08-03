@@ -13,7 +13,9 @@ Send a POST request::
     curl -l -H "Content-type: application/json" -X POST -d '{"phone":"13521389587","password":"test"}' http://123.59.149.39:8780
     curl -l -H "Content-type: application/json" -X GET -d '{"wldstatic":{"ID":6442537685409333250},"wldruntime":{"State":1,"tick":66.0}}' http://localhost:8780
 """
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+#from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+#BaseHTTPServer is for python2, http.server is for python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 from random import randint
 import json as JSON
@@ -88,7 +90,7 @@ class S(BaseHTTPRequestHandler):
 
         rsp_obj = {"ID":battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
-        print rsp_str
+        print(rsp_str)
         self._set_headers()
         self.wfile.write(rsp_str)
 
@@ -111,7 +113,7 @@ class S(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    print 'Starting httpd...'
+    print('Starting httpd...')
     httpd.serve_forever()
 
 
