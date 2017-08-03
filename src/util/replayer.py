@@ -244,7 +244,7 @@ if __name__ == "__main__":
                 ran_pick = randint(0, total_len - 1)
                 tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
                     else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
-                print 'hero %s, tgtid %s' % (hero.hero_name, tgtid)
+                print('hero %s, tgtid %s' % (hero.hero_name, tgtid))
 
 
-    print len(state_logs)
+    print(len(state_logs))
