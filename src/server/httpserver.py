@@ -13,9 +13,7 @@ Send a POST request::
     curl -l -H "Content-type: application/json" -X POST -d '{"phone":"13521389587","password":"test"}' http://123.59.149.39:8780
     curl -l -H "Content-type: application/json" -X GET -d '{"wldstatic":{"ID":6442537685409333250},"wldruntime":{"State":1,"tick":66.0}}' http://localhost:8780
 """
-#from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-#BaseHTTPServer is for python2, http.server is for python3
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 from random import randint
 import json as JSON
@@ -37,17 +35,6 @@ class S(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-    def build_action_command(self, hero_id, action, parameters):
-        if action == 'MOVE' and 'pos' in parameters:
-            return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
-        if action == 'ATTACK' and 'tgtid' in parameters:
-            return {"hero_id": hero_id, "action": action, "tgtid": parameters['tgtid']}
-        if action == 'AUTO':
-            return {"hero_id": hero_id, "action": action}
-        if action == 'HOLD':
-            return {"hero_id": hero_id, "action": action}
-        raise ValueError('unexpected action type ' + action)
-
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
@@ -61,40 +48,20 @@ class S(BaseHTTPRequestHandler):
         state_info = StateInfo.decode(obj)
 
         # 合并并且缓存
+        # 检查是否是一场新游戏的开始
+        if state_info.tick <= Replayer.TICK_PER_STATE:
+            print "clear"
+            S.prev_stat = None
+        elif S.prev_stat is not None and S.prev_stat.tick >= state_info.tick:
+            print "clear %s %s" % (S.prev_stat.tick, state_info.tick)
+            S.prev_stat = None
         state_info = Replayer.update_state_log(S.prev_stat, state_info)
         S.prev_stat = state_info
-        battle_id = state_info.battleid
-        tick = state_info.tick
 
         # 构造反馈结果
-        action_strs = []
-        for hero in state_info.heros:
-            # 测试代码：
-            # 得到周围的英雄和敌人单位信息
-            nearby_enemy_heros = Replayer.get_nearby_enemy_heros(state_info, hero.hero_name)
-            nearby_enemy_units = Replayer.get_nearby_enemy_units(state_info, hero.hero_name)
-            total_len = len(nearby_enemy_heros) + len(nearby_enemy_units)
-            if total_len > 0:
-                ran_pick = randint(0, total_len - 1)
-                tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
-                    else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
-                action_str = self.build_action_command(hero.hero_name, 'ATTACK', {'tgtid': tgtid})
-            # 在前1分钟，命令英雄到达指定地点
-            elif 528 * 2 * 40 > int(tick) > 528:
-                if hero.team == 0:
-                    action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos': '( -5000, -80, 0)'})
-                else:
-                    action_str = self.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
-            else:
-                action_str = self.build_action_command(hero.hero_name, 'HOLD', {})
-
-            action_strs.append(action_str)
-
-        rsp_obj = {"ID":battle_id, "tick": tick, "cmd": action_strs}
-        rsp_str = JSON.dumps(rsp_obj)
-        rsp_str = rsp_str.encode(encoding="utf-8")
-        # for python3 version
+        rsp_str = Replayer.build_action_response(state_info)
         print(rsp_str)
+
         self._set_headers()
         self.wfile.write(rsp_str)
 

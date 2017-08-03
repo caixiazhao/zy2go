@@ -31,37 +31,22 @@ end = clr.VecInt3(4600, 0, 0)
 path = GaeaAI.ExportInterface.SearchPath(start, end)
 
 
-heroinfo = ExportInterface.GetHeroCfgInfo(112)
+heroinfo = ExportInterface.GetHeroCfgInfo(101)
 herolvinfo = ExportInterface.GetHeroLvUpInfo(112)
-monster = ExportInterface.GetMonsterDataCfgInfo(611)
+monster = ExportInterface.GetMonsterDataCfgInfo(911)
 print monster.szName
-obelisk = ExportInterface.GetObeliskCfgInfo(975)
+obelisk = ExportInterface.GetObeliskCfgInfo(964)
 mapinfo = ExportInterface.GetMapSize()
-skillinfo = ExportInterface.GetSkillCfgInfo(12210)
-skillinfo2 = ExportInterface.GetSkillCfgInfo(12211)
-skillinfo3 = ExportInterface.GetSkillCfgInfo(12212)
-skillinfo4 = ExportInterface.GetSkillCfgInfo(10200)
-skillinfo5 = ExportInterface.GetSkillCfgInfo(10201)
-skillinfo6 = ExportInterface.GetSkillCfgInfo(10202)
-skillinfo7 = ExportInterface.GetSkillCfgInfo(11601)
-skillinfo8 = ExportInterface.GetSkillCfgInfo(12910)
-skillinfo9 = ExportInterface.GetSkillCfgInfo(12610)
-skillinfo10 = ExportInterface.GetSkillCfgInfo(90100)
-skillinfo11 = ExportInterface.GetSkillCfgInfo(12801)
-skillinfo12 = ExportInterface.GetSkillCfgInfo(11403)
+skillinfo = ExportInterface.GetSkillCfgInfo(10200)
+skillinfo2 = ExportInterface.GetSkillCfgInfo(10210)
+skillinfo3 = ExportInterface.GetSkillCfgInfo(10220)
+skillinfo4 = ExportInterface.GetSkillCfgInfo(10230)
 equipinfo = ExportInterface.GetEquipInBattleInfo(11101)
-print skillinfo.szSkillDesc
-print skillinfo2.szSkillDesc
-print skillinfo3.szSkillDesc
-print skillinfo4.szSkillDesc
-print skillinfo5.szSkillDesc
-print skillinfo6.szSkillDesc
-print skillinfo7.szSkillDesc
-print skillinfo8.szSkillDesc
-print skillinfo9.szSkillDesc
-print skillinfo10.szSkillDesc
-print skillinfo11.szSkillDesc
-print skillinfo12.szSkillDesc
+print '%s %s %s' % (skillinfo.szSkillDesc, skillinfo.iMaxAttackDistance, skillinfo.dwRangeAppointType)
+print '%s %s %s' % (skillinfo2.szSkillDesc, skillinfo2.iMaxAttackDistance, skillinfo2.dwRangeAppointType)
+print '%s %s %s' % (skillinfo3.szSkillDesc, skillinfo3.iMaxAttackDistance, skillinfo3.dwRangeAppointType)
+print '%s %s %s' % (skillinfo4.szSkillDesc, skillinfo4.iMaxAttackDistance, skillinfo4.dwRangeAppointType)
+
 print heroinfo
 print herolvinfo
 

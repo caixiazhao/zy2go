@@ -25,10 +25,28 @@ from src.model.stateinfo import StateInfo
 
 
 class Replayer:
+    # 注：游戏并不会严格的每528返回一个值，这个只是PC情况，而且中间这个值也可能缩短
+    TICK_PER_STATE = 528
     NEARBY_TOWER_RADIUS = 7
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 13 #13.5
     ATTACK_UNIT_RADIUS = 9 #10
+
+    ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10120": 6000, "10130":3500,
+                           "10200": 2000, "10210": 8000, "10220": 5000, "10230":6000}
+
+    @staticmethod
+    def can_attack_hero(hero_info, defer_hero_info, skill_id):
+        return None
+
+    @staticmethod
+    def get_skills_can_upgrade(hero_info):
+        skills = []
+        for i in range(1, 4):
+            skill_info = hero_info.skills[i]
+            if skill_info.up:
+                skills.append(i)
+        return skills
 
     @staticmethod
     def if_hero_at_basement(hero_info):
@@ -225,12 +243,80 @@ class Replayer:
 
             prev_state = state_info
 
+    @staticmethod
+    def build_action_command(hero_id, action, parameters):
+        if action == 'MOVE' and 'pos' in parameters:
+            return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
+        if action == 'ATTACK' and 'tgtid' in parameters:
+            return {"hero_id": hero_id, "action": action, "tgtid": parameters['tgtid']}
+        if action == 'CAST' and 'skillid' in parameters:
+            command = {"hero_id": hero_id, "action": action, "skillid": parameters['skillid']}
+            if 'tgtid' in parameters:
+                command['tgtid'] = parameters['tgtid']
+            if 'tgtpos' in parameters:
+                command['tgtpos'] = parameters['tgtpos']
+            if 'fwd' in parameters:
+                command['fwd'] = parameters['fwd']
+            return command
+        if action == 'UPDATE' and 'skillid' in parameters:
+            return {"hero_id": hero_id, "action": action, "skillid": parameters['skillid']}
+        if action == 'AUTO':
+            return {"hero_id": hero_id, "action": action}
+        if action == 'HOLD':
+            return {"hero_id": hero_id, "action": action}
+        raise ValueError('unexpected action type ' + action)
 
+    @staticmethod
+    def build_action_response(state_info):
+        battle_id = state_info.battleid
+        tick = state_info.tick
 
+        action_strs = []
+        for hero in state_info.heros:
+            # 测试代码：
+            # 如果有可以升级的技能，直接选择第一个升级
+            skills = Replayer.get_skills_can_upgrade(hero)
+            if len(skills) > 0:
+                update_str = Replayer.build_action_command(hero.hero_name, 'UPDATE', {'skillid': str(skills[0])})
+                action_strs.append(update_str)
 
+            # 得到周围的英雄和敌人单位信息
+            action_str = None
+            nearby_enemy_heros = Replayer.get_nearby_enemy_heros(state_info, hero.hero_name)
+            nearby_enemy_units = Replayer.get_nearby_enemy_units(state_info, hero.hero_name)
+            total_len = len(nearby_enemy_heros) + len(nearby_enemy_units)
+            if total_len > 0:
+                ran_pick = randint(0, total_len - 1)
+                tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
+                    else nearby_enemy_units[ran_pick - len(nearby_enemy_heros)].unit_name
+                tgtpos = nearby_enemy_heros[ran_pick].pos if ran_pick < len(nearby_enemy_heros) \
+                    else nearby_enemy_units[ran_pick - len(nearby_enemy_heros)].pos
+                fwd = tgtpos.fwd(hero.pos)
 
+                # 优先使用技能
+                # 其实技能需要根据种类不同来返回朝向，目标，或者目标地点，甚至什么都不传
+                for skillid in range(1, 4):
+                    if hero.skills[skillid].canuse:
+                        action_str = Replayer.build_action_command(hero.hero_name, 'CAST',
+                                                                   {'skillid': str(skillid), 'tgtid': tgtid,
+                                                                    'tgtpos': tgtpos.to_string(), 'fwd': fwd.to_string()})
+                        break
+                if action_str is None:
+                    action_str = Replayer.build_action_command(hero.hero_name, 'ATTACK', {'tgtid': tgtid})
+            # 在前1分钟，命令英雄到达指定地点
+            elif Replayer.TICK_PER_STATE * 2 * 40 > int(tick) > 528:
+                if hero.team == 0:
+                    action_str = Replayer.build_action_command(hero.hero_name, 'MOVE', {'pos': '( -5000, -80, 0)'})
+                else:
+                    action_str = Replayer.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
+            else:
+                action_str = Replayer.build_action_command(hero.hero_name, 'HOLD', {})
 
+            action_strs.append(action_str)
 
+        rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
+        rsp_str = JSON.dumps(rsp_obj)
+        return rsp_str
 
 if __name__ == "__main__":
     path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/tempbattlelog.log"
@@ -245,23 +331,23 @@ if __name__ == "__main__":
     prev_state = None
     replayer = Replayer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 21050:
+        if prev_state is not None and int(prev_state.tick) > 21510:
             i = 1
 
         cur_state = replayer.parse_state_log(line)
-        merged_state = replayer.update_state_log(prev_state, cur_state)
-        state_logs.append(merged_state)
-        prev_state = merged_state
 
-        for hero in merged_state.heros:
-            nearby_enemy_heros = Replayer.get_nearby_enemy_heros(merged_state, hero.hero_name)
-            nearby_enemy_units = Replayer.get_nearby_enemy_units(merged_state, hero.hero_name)
-            total_len = len(nearby_enemy_heros) + len(nearby_enemy_units)
-            if total_len > 0:
-                ran_pick = randint(0, total_len - 1)
-                tgtid = nearby_enemy_heros[ran_pick].hero_name if ran_pick < len(nearby_enemy_heros) \
-                    else nearby_enemy_units[ran_pick-len(nearby_enemy_heros)].unit_name
-                print('hero %s, tgtid %s' % (hero.hero_name, tgtid))
+        if cur_state.tick == Replayer.TICK_PER_STATE:
+            print "clear"
+            prev_stat = None
+        elif prev_stat is not None and prev_stat.tick + Replayer.TICK_PER_STATE > cur_state.tick:
+            print "clear"
+            prev_stat = None
 
+        state_info = replayer.update_state_log(prev_state, cur_state)
+        state_logs.append(state_info)
+        prev_state = state_info
+
+        rsp_str = Replayer.build_action_response(state_info)
+        print(rsp_str)
 
     print(len(state_logs))

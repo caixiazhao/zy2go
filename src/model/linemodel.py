@@ -259,7 +259,7 @@ class linemodel:
         prev_state = state_infos[state_idx]
 
         reward_per_states = []
-        for i in range(1, 10):
+        for i in range(1, 11):
             cur_state = state_infos[state_idx + i]
 
             # 将传入的英雄分为两个阵容，计算两个阵营之间的奖励比率，根据if_team_a决定返回哪个阵营的比例
