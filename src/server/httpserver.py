@@ -14,6 +14,8 @@ Send a POST request::
     curl -l -H "Content-type: application/json" -X GET -d '{"wldstatic":{"ID":6442537685409333250},"wldruntime":{"State":1,"tick":66.0}}' http://localhost:8780
 """
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+#todo: BaseHTTPServer is for python2, http.server is for python3
+#from http.server import BaseHTTPRequestHandler, HTTPServer
 from time import gmtime, strftime
 from random import randint
 import json as JSON
@@ -38,8 +40,8 @@ class S(BaseHTTPRequestHandler):
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
-        get_data = get_data.decode()
-        #decode for python3 version
+        #get_data = get_data.decode()
+        #todo decode for python3 version
         self.log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data + "\n")
         self.log_file.flush()
 
@@ -50,10 +52,10 @@ class S(BaseHTTPRequestHandler):
         # 合并并且缓存
         # 检查是否是一场新游戏的开始
         if state_info.tick <= Replayer.TICK_PER_STATE:
-            print "clear"
+            print("clear")
             S.prev_stat = None
         elif S.prev_stat is not None and S.prev_stat.tick >= state_info.tick:
-            print "clear %s %s" % (S.prev_stat.tick, state_info.tick)
+            print ("clear %s %s" % (S.prev_stat.tick, state_info.tick))
             S.prev_stat = None
         state_info = Replayer.update_state_log(S.prev_stat, state_info)
         S.prev_stat = state_info
@@ -61,6 +63,8 @@ class S(BaseHTTPRequestHandler):
         # 构造反馈结果
         rsp_str = Replayer.build_action_response(state_info)
         print(rsp_str)
+        #rsp_str = rsp_str.encode(encoding="utf-8")
+        # todo: encode for python3 version
 
         self._set_headers()
         self.wfile.write(rsp_str)

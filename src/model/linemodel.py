@@ -15,7 +15,6 @@ from src.model.herostateinfo import HeroStateInfo
 from src.util.replayer import Replayer as rp
 from src.model.line_input import Line_input
 
-
 class linemodel:
     REWARD_GAMMA = 0.9
 
@@ -72,13 +71,9 @@ class linemodel:
             for hero in stateInformation.heros:
                 if hero.hero_name==self.hero_name:
                     team=hero.team
-            line_input = Line_input(stateInformation,team)
+            line_input = Line_input(stateInformation)
             state=line_input.gen_input()#todo:待完成
             #todo:replay 的更新target这里需要继续写
-
-
-
-
 
     # def select_actions(self, acts, stateinformation):
     #     #这样传stateinformation太拖慢运行速度了，后面要改
@@ -164,7 +159,6 @@ class linemodel:
     #
     #     return ["HOLD"]
 
-
     def select_actions(self, acts, stateinformation):
         #这样传stateinformation太拖慢运行速度了，后面要改
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
@@ -216,7 +210,7 @@ class linemodel:
                 if hero.hero_name != hero_name:
                     tgtid = hero.hero_name
         else:
-            creeps=rp.get_nearby_enemy_units(stateinformation,hero_name)
+            creeps=rp.get_nearby_enemy_units(stateinformation, hero_name)
             n=selected-2
             tgtid=creeps[n].unit_name
         return tgtid
@@ -245,10 +239,6 @@ class linemodel:
         actions=self.model.predict(stateinformation)
         action=self.select_actions(actions,stateinformation)
         return action
-
-
-
-
 
     # 计算对线情况下每次行动的效果反馈
     # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值

@@ -70,13 +70,13 @@ class Replayer:
 
     @staticmethod
     def get_units_in_team(state_info, team_id):
-        return [unit for unit in state_info.units if unit.team == team_id]
+        return [unit for unit in state_info.units if unit.team == team_id and unit.state == "in"]
 
     @staticmethod
     def parse_state_log(json_str):
         #print(json_str)
-        json_str = json_str[23:]
-        #maybe becasu python3, the time before the { should be cut off
+        #json_str = json_str[23:]
+        #todo maybe becasu python3, the time before the { should be cut off
         state_json = JSON.loads(json_str)
         state_info = StateInfo.decode(state_json)
         return state_info
@@ -107,6 +107,22 @@ class Replayer:
                 if distance < Replayer.ATTACK_HERO_RADIUS:
                     nearby_enemies.append(enemy)
         return nearby_enemies
+
+    @staticmethod
+    def get_nearby_friend_units(state_info, hero_id):
+        hero = state_info.get_hero(hero_id)
+        friend_unit_team =hero.team
+        friend_units = Replayer.get_units_in_team(state_info, friend_unit_team)
+
+        nearby_friend_units = []
+        for unit in friend_units:
+            # 排除掉塔
+            # 排除掉野怪
+            if int(unit.unit_name) > 26 and not Replayer.if_unit_monster(unit):
+                distance = Replayer.cal_distance(hero.pos, unit.pos)
+                if distance < Replayer.ATTACK_UNIT_RADIUS:
+                    nearby_friend_units.append(unit)
+        return nearby_friend_units
 
     @staticmethod
     def get_nearby_enemy_units(state_info, hero_id):
@@ -319,7 +335,8 @@ class Replayer:
         return rsp_str
 
 if __name__ == "__main__":
-    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/tempbattlelog.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
 
@@ -337,10 +354,10 @@ if __name__ == "__main__":
         cur_state = replayer.parse_state_log(line)
 
         if cur_state.tick == Replayer.TICK_PER_STATE:
-            print "clear"
+            print("clear")
             prev_stat = None
         elif prev_stat is not None and prev_stat.tick + Replayer.TICK_PER_STATE > cur_state.tick:
-            print "clear"
+            print ("clear")
             prev_stat = None
 
         state_info = replayer.update_state_log(prev_state, cur_state)

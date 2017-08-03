@@ -123,6 +123,7 @@ class StateInfo:
         for key in obj.keys():
             if key.isdigit():
                 key1 = int(key)
+                # todo: in my python3 version, there is a type error, so I use a int key1 replace key
                 if key1 < 27 or key1 > hero_id:
                   units.append(UnitStateInfo.decode(obj[key], key))
 
