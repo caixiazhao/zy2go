@@ -51,6 +51,8 @@ class S(BaseHTTPRequestHandler):
     def do_GET(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         get_data = self.rfile.read(content_length)  # <--- Gets the data itself
+        get_data = get_data.decode()
+        #decode for python3 version
         self.log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + get_data + "\n")
         self.log_file.flush()
 
@@ -90,6 +92,8 @@ class S(BaseHTTPRequestHandler):
 
         rsp_obj = {"ID":battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
+        rsp_str = rsp_str.encode(encoding="utf-8")
+        # for python3 version
         print(rsp_str)
         self._set_headers()
         self.wfile.write(rsp_str)

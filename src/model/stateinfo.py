@@ -122,7 +122,8 @@ class StateInfo:
         units = []
         for key in obj.keys():
             if key.isdigit():
-                if key < 27 or key > hero_id:
+                key1 = int(key)
+                if key1 < 27 or key1 > hero_id:
                   units.append(UnitStateInfo.decode(obj[key], key))
 
         attack_infos = []

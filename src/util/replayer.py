@@ -56,6 +56,9 @@ class Replayer:
 
     @staticmethod
     def parse_state_log(json_str):
+        #print(json_str)
+        json_str = json_str[23:]
+        #maybe becasu python3, the time before the { should be cut off
         state_json = JSON.loads(json_str)
         state_info = StateInfo.decode(state_json)
         return state_info
@@ -230,7 +233,7 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/tempbattlelog.log"
     file = open(path, "r")
     lines = file.readlines()
 
