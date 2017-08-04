@@ -9,7 +9,7 @@
   * 移动: MOVE, pos/fwd （移动目的点和移动方向二选一）
       - 需要讨论，是否支持指定移动方向而不是移动目的点
   * 物理攻击：ATTACK, tgtid
-  * 施法：CAST, skillid, tgtid/tgtpos （tgtid和tgtpos可选，回城和使用野怪技能也算施法）
+  * 施法：CAST, skillid, tgtid/tgtpos/fwd （tgtid,fwd和tgtpos可选，回城和使用野怪技能也算施法）
       - skillid是skill的位置，值为1-3
       - tgtpos的y值可以给个不一定正确的吗，因为不清楚该点y值具体为多少
   * 技能升级：UPDATE, skillid

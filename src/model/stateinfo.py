@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 from herostateinfo import HeroStateInfo
+from model.action import Action
 from model.attackstateinfo import AttackStateInfo
 from model.dmgstateinfo import DmgStateInfo
 from model.hitstateinfo import HitStateInfo
@@ -78,10 +79,10 @@ class StateInfo:
                 if not found:
                     merged_units.append(prev)
 
+        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units,
+                         delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions)
 
-        return StateInfo(self.battleid, delta.tick, merged_heros, merged_units, delta.attack_infos, delta.hit_infos, delta.dmg_infos)
-
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
@@ -89,6 +90,7 @@ class StateInfo:
         self.attack_infos = attack_infos
         self.hit_infos = hit_infos
         self.dmg_infos = dmg_infos
+        self.actions = actions
 
     @staticmethod
     def decode_hero(obj, hero_id):
@@ -142,4 +144,9 @@ class StateInfo:
             for di in obj['dmginfos']:
                 dmg_infos.append(DmgStateInfo.decode(di))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos)
+        actions = []
+        if 'actions' in obj:
+            for ac in obj['actions']:
+                actions.append(Action.decode(ac))
+
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions)
