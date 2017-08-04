@@ -14,6 +14,7 @@ from src.model.stateinfo import StateInfo
 from src.model.herostateinfo import HeroStateInfo
 from src.util.replayer import Replayer as rp
 from src.model.line_input import Line_input
+import random
 
 class linemodel:
     REWARD_GAMMA = 0.9
@@ -28,9 +29,15 @@ class linemodel:
         self.e_decay = .99
         self.e_min = 0.05
         self.learning_rate = 0.01
-        self.hero_name=hero_name
         self.model = self._build_model
-        
+
+        self.hero_name = hero_name
+        #todo:英雄1,2普攻距离为2，后续需修改
+        self.att_dist=2
+        #todo:以下仅为英雄1技能距离，后续需将这些信息加入到skillinfo中
+        self.skilldist=[8,6,5]
+
+
     @property
     def _build_model(self):
 
@@ -168,88 +175,174 @@ class linemodel:
     #
     #
     #
-    #             #TODO ...
+    #
     #
     #     return ["HOLD"]
 
     def select_actions(self, acts, stateinformation):
         #这样传stateinformation太拖慢运行速度了，后面要改
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
-        flag = True
-        while flag:
+        for hero in stateinformation:
+            if hero.hero_name==self.hero_name:
+                self.hero=hero
+
+        for i in range(len(acts)):
             maxQ = max(acts)
             selected = acts.index(maxQ)
+            #每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
+            if random.random()<0.15:
+                #随机策略，选择跳过当前最优解
+                acts[selected]=0
+                continue
             if selected < 8:  #move
+                if self.hero.movelock == True:
+                    #英雄可以移动
+                    acts[selected] = 0
+                    continue
                 fwd = self.mov(selected)
                 action = "MOV"
                 return [action, fwd]
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
+                if self.hero.skills[0].canuse!=True:
+                    #被控制住
+                    acts[selected]=0
+                    continue
                 action="ATTACK"
                 if selected==8:
-                    tgtid=self.get_tower_temp(stateinformation)
+                    tower=self.get_tower_temp(stateinformation)
+                    dist=rp.cal_distance(self.hero.pos,tower.pos)
+                    if dist>self.att_dist:
+                        acts[selected]=0
+                        continue
+                    tgtid=tower.unit_name
                     return [action,tgtid]
                 elif selected==9:
                     for hero in stateinformation.heros:
                         if hero.hero_name!= self.hero_name:
                             tgtid=hero.hero_name
+                            break
+                    dist=rp.cal_distance(self.hero.pos,hero.pos)
+                    if dist>self.att_dist:
+                        acts[selected]=0
+                        continue
                     return  [action,tgtid]
                 else:
                     creeps=rp.get_nearby_enemy_units(stateinformation,self.hero_name)
                     n=selected-10
+                    dist=rp.cal_distance(self.hero.pos,creeps[n].pos)
+                    if dist > self.att_dist:
+                        acts[selected]=0
+                        continue
                     tgtid=creeps[n].unit_name
                     return  [action,tgtid]
             elif selected<28: #skill1
+                if self.hero.skills[1].canuse!=True:
+                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[1].cost>self.hero.mp:
+                    #mp不足
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[1].cd>0:
+                    #技能未冷却
+                    acts[selected]=0
+                    continue
                 action="CAST"
                 skillid=1
-                tgtid=self.choose_skill_target(selected-18)
+                tgtid=self.choose_skill_target(selected-18,stateinformation,1)
+                if tgtid==-1:
+                    #目标在施法范围外
+                    acts[selected]=0
+                    continue
                 return [action,skillid,tgtid]
             elif selected<38: #skill2
+                if self.hero.skills[2].canuse!=True:
+                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[2].cost>self.hero.mp:
+                    #mp不足
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[2].cd>0:
+                    #技能未冷却
+                    acts[selected]=0
+                    continue
                 action = "CAST"
                 skillid = 2
-                tgtid = self.choose_skill_target(selected - 28)
+                tgtid = self.choose_skill_target(selected - 28,stateinformation,2)
+                if tgtid==-1:
+                    #目标在施法范围外
+                    acts[selected]=0
+                    continue
                 return [action, skillid, tgtid]
             else:
+                if self.hero.skills[3].canuse!=True:
+                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[3].cost>self.hero.mp:
+                    #mp不足
+                    acts[selected]=0
+                    continue
+                if self.hero.skills[3].cd>0:
+                    #技能未冷却
+                    acts[selected]=0
+                    continue
                 action = "CAST"
                 skillid = 3
-                tgtid = self.choose_skill_target(selected - 38)
+                tgtid = self.choose_skill_target(selected - 38,stateinformation,3)
+                if tgtid==-1:
+                    #目标在施法范围外
+                    acts[selected]=0
+                    continue
                 return [action, skillid, tgtid]
         return ["HOLD"]
 
-    def choose_skill_target(self, selected,stateinformation, hero_name):
+    def choose_skill_target(self, selected,stateinformation, skill):
         if selected==0:
-            tgtid =hero_name
+            tgtid =self.hero_name
         elif selected==1:
             for hero in stateinformation.heros:
-                if hero.hero_name != hero_name:
-                    tgtid = hero.hero_name
+                if hero.hero_name != self.hero_name:
+                    if rp.cal_distance(hero.pos,self.hero.pos)>self.skilldist[skill-1]:
+                        tgtid=-1
+                    else:
+                        tgtid = hero.hero_name
         else:
-            creeps=rp.get_nearby_enemy_units(stateinformation, hero_name)
+            creeps=rp.get_nearby_enemy_units(stateinformation, self.hero_name)
             n=selected-2
-            tgtid=creeps[n].unit_name
+            if rp.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
+                tgtid=-1
+            else:
+                tgtid=creeps[n].unit_name
         return tgtid
 
     def get_tower_temp(self, stateinformation):#一个临时的在中路判断哪个塔可以作为目标的函数
         # 这样传stateinformation太拖慢运行速度了，后面要改
         for unit in stateinformation.units:
             if unit.unit_name==15 and unit.state=="in":
-                return 15
+                return unit
             elif unit.unit_name==16 and unit.state=="in":
-                return 16
+                return unit
             elif unit.unit_name==17 and unit.state=="in":
-                return 17
+                return unit
             elif unit.unit_name>17:
                 break
         for unit in stateinformation.units:
             if unit.unit_name==1 and unit.state=="in":
-                return 1
+                return unit
             elif unit.unit_name==2 and unit.state=="in":
-                return 2
+                return unit
             else:
-                return 7
+                return unit
 
     def get_action(self,stateinformation):
         # 这样传stateinformation太拖慢运行速度了，后面要改
-        actions=self.model.predict(stateinformation)
+        line_input = Line_input(stateinformation, self.hero_name)
+        state = line_input.gen_input()
+        actions=self.model.predict(state)
         action=self.select_actions(actions,stateinformation)
         return action
 

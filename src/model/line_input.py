@@ -3,14 +3,16 @@ import numpy as np
 from src.util.replayer import Replayer as rp
 
 class Line_input:
-    def __init__(self, stateInformation):
+    def __init__(self, stateInformation,hero_name):
         self.stateInformation = stateInformation
-        self.hero_name = self.stateInformation.heros[0].hero_name
-        self.team=self.stateInformation.heros[0].team
-        self.hero_pos=self.stateInformation.heros[0].pos
-        self.skills=[[10110,5,0,0,0,0,0,0,0,0,5,0,0,1,8000],[10120,6,0,0,0,0,0,0,0,0,0,0,6,3,6000],
-                     [10130,8,0,0,0,0,0,0,0,0,0,7,0,4,3500],[10210,4,4,0,0,0,0,0,4,0,5,0,0,3,8000],
-                     [10220,3,0,0,0,0,0,0,0,0,0,7,4,1,5000],[10230,2,10,5,7,0,0,0,0,0,0,0,0,6,6000]]
+        self.hero_name = hero_name
+        for hero in stateInformation.heros:
+            if hero.hero_name==hero_name:
+                self.team=hero.team
+                self.hero_pos=hero.pos
+        self.skills=[[10110,5,0,0,0,0,0,0,0,0,5,0,0,1,8],[10120,6,0,0,0,0,0,0,0,0,0,0,6,3,6],
+                     [10130,8,0,0,0,0,0,0,0,0,0,7,0,4,3.5],[10210,4,4,0,0,0,0,0,4,0,5,0,0,3,8],
+                     [10220,3,0,0,0,0,0,0,0,0,0,7,4,1,5],[10230,2,10,5,7,0,0,0,0,0,0,0,0,6,6]]
 
     def gen_input(self):
         state=[]
@@ -62,9 +64,9 @@ class Line_input:
 
 
     def gen_input_hero(self,hero):
-        heroInfo=[int(hero.hero_name), hero.pos[0], hero.pos[1], hero.speed, hero.att, 2000, hero.mag, hero.hp, hero.mp,
+        heroInfo=[int(hero.hero_name), hero.pos[0], hero.pos[1], hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
                   1000+hero.attspeed, int(hero.movelock), hero.team]
-        #todo: 2000 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
+        #todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
         if hero.stae=="in":
             heroInfo.append(1)
         else:
