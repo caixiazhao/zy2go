@@ -61,8 +61,15 @@ class S(BaseHTTPRequestHandler):
         S.prev_stat = state_info
 
         # 构造反馈结果
-        rsp_str = Replayer.build_action_response(state_info)
+        # 注：这里帧状态得到了更新，添加了行为信息
+        rsp_str = Replayer.build_action_response_with_model(state_info)
         print(rsp_str)
+
+        # 保存帧状态
+        state_json = JSON.dumps(state_info.__dict__)
+        self.state_file.write(state_json)
+        self.state_file.flush()
+
         #rsp_str = rsp_str.encode(encoding="utf-8")
         # todo: encode for python3 version
 
@@ -81,6 +88,7 @@ class S(BaseHTTPRequestHandler):
         self.wfile.write("copy that! " + post_data)
 
     log_file = open('httpd.log', 'a')
+    state_file = open('state.txt', 'w')
 
     def log_message(self, format, *args):
         return

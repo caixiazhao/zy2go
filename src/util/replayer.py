@@ -20,6 +20,7 @@ from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from model import linemodel
 from model.posstateinfo import PosStateInfo
 from src.model.stateinfo import StateInfo
 
@@ -260,6 +261,30 @@ class Replayer:
             prev_state = state_info
 
     @staticmethod
+    def build_action_command(action):
+        if action.action == 'MOVE' and action.pos is not None:
+            return {"hero_id": action.hero_name, "action": action.action, "pos": action.pos}
+        if action.action == 'ATTACK' and action.tgtid is not None:
+            return {"hero_id": action.hero_name, "action": action.action, "tgtid": action.tgtid}
+        if action.action == 'CAST' and action.skillid is not None:
+            command = {"hero_id": action.hero_name, "action": action.action, "skillid": action.skillid}
+            if action.tgtid is not None:
+                command['tgtid'] = action.tgtid
+            if action.tgtpos is not None:
+                command['tgtpos'] = action.tgtpos
+            if action.fwd:
+                command['fwd'] = action.fwd
+            return command
+        if action.action == 'UPDATE' and action.skillid is not None:
+            return {"hero_id": action.hero_name, "action": action, "skillid": action.skillid}
+        if action.action == 'AUTO':
+            return {"hero_id": action.hero_name, "action": action.action}
+        if action.action == 'HOLD':
+            return {"hero_id": action.hero_name, "action": action.action}
+        raise ValueError('unexpected action type ' + action)
+
+
+    @staticmethod
     def build_action_command(hero_id, action, parameters):
         if action == 'MOVE' and 'pos' in parameters:
             return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
@@ -312,6 +337,7 @@ class Replayer:
                 # 优先使用技能
                 # 其实技能需要根据种类不同来返回朝向，目标，或者目标地点，甚至什么都不传
                 for skillid in range(1, 4):
+                    # canuse不光代表是否英雄被沉默了，不能使用技能，也表示当前技能等级是否为0而导致不可用，还表示是否在cd中
                     if hero.skills[skillid].canuse:
                         action_str = Replayer.build_action_command(hero.hero_name, 'CAST',
                                                                    {'skillid': str(skillid), 'tgtid': tgtid,
@@ -329,6 +355,32 @@ class Replayer:
                 action_str = Replayer.build_action_command(hero.hero_name, 'HOLD', {})
 
             action_strs.append(action_str)
+
+        rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
+        rsp_str = JSON.dumps(rsp_obj)
+        return rsp_str
+
+    @staticmethod
+    def build_action_response_with_model(state_info):
+        battle_id = state_info.battleid
+        tick = state_info.tick
+
+        action_strs = []
+        for hero in state_info.heros:
+            # 如果有可以升级的技能，直接选择第一个升级
+            skills = Replayer.get_skills_can_upgrade(hero)
+            if len(skills) > 0:
+                update_str = Replayer.build_action_command(hero.hero_name, 'UPDATE', {'skillid': str(skills[0])})
+                action_strs.append(update_str)
+
+            #TODO 使用模型进行决策
+
+            #TODO 保存action信息到状态帧中
+
+            # 根据action返回结果给客户端
+            for action in state_info.actions:
+                action_str = Replayer.build_action_command(action)
+                action_strs.append(action_str)
 
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
@@ -364,7 +416,9 @@ if __name__ == "__main__":
         state_logs.append(state_info)
         prev_state = state_info
 
-        rsp_str = Replayer.build_action_response(state_info)
+        model = linemodel()
+
+        rsp_str = Replayer.build_action_response_with_model(state_info)
         print(rsp_str)
 
     print(len(state_logs))

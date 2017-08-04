@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 # 记录选择的结果行为
+# 注：skillid表示第几个skill
 class Action(object):
     def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
         self.hero_name = hero_name
