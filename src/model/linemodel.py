@@ -44,7 +44,7 @@ class linemodel:
 
         #battle_map=Input(shape=())
         #TODO:for multi-input model, we may use a map as input
-        battle_information=Input(shape=())
+        battle_information=Input(shape=(240,))
         #to store the information of buildings,creeps and heroes.
         #现在英雄信息包含2*21个属性，技能2*3*15，塔9~11，小兵16*（9~11），输入应为一个固定长度向量
         #预测长度应该在300左右
@@ -53,7 +53,8 @@ class linemodel:
         dropped_1=Dropout(0.15)(dense_1)
         dense_2=Dense(256,activation='relu')(dropped_1)
         dropped_2=Dropout(0.15)(dense_2)
-        lstm=LSTM(128)(dropped_2)
+        reshaped = Reshape((256, 1))(dropped_2)
+        lstm=LSTM(128)(reshaped)
         # TODO:check the data form
         dense_3 = Dense(64, activation='relu')(lstm)
         dropped_3 = Dropout(0.15)(dense_3)
@@ -182,12 +183,14 @@ class linemodel:
     def select_actions(self, acts, stateinformation):
         #这样传stateinformation太拖慢运行速度了，后面要改
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
-        for hero in stateinformation:
+        for hero in stateinformation.heros:
             if hero.hero_name==self.hero_name:
                 self.hero=hero
-
+        acts=acts[0]
+        acts=list(acts)
         for i in range(len(acts)):
             maxQ = max(acts)
+
             selected = acts.index(maxQ)
             #每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             if random.random()<0.15:
@@ -229,6 +232,10 @@ class linemodel:
                 else:
                     creeps=rp.get_nearby_enemy_units(stateinformation,self.hero_name)
                     n=selected-10
+                    if n>=len(creeps):
+                        #没有这么多小兵
+                        acts[selected]=0
+                        continue
                     dist=rp.cal_distance(self.hero.pos,creeps[n].pos)
                     if dist > self.att_dist:
                         acts[selected]=0
@@ -313,7 +320,10 @@ class linemodel:
         else:
             creeps=rp.get_nearby_enemy_units(stateinformation, self.hero_name)
             n=selected-2
-            if rp.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
+            if n >= len(creeps):
+                # 没有这么多小兵
+                return -1
+            elif rp.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
                 tgtid=-1
             else:
                 tgtid=creeps[n].unit_name
@@ -322,26 +332,27 @@ class linemodel:
     def get_tower_temp(self, stateinformation):#一个临时的在中路判断哪个塔可以作为目标的函数
         # 这样传stateinformation太拖慢运行速度了，后面要改
         for unit in stateinformation.units:
-            if unit.unit_name==15 and unit.state=="in":
+            if unit.unit_name=='15' and unit.state=="in":
                 return unit
-            elif unit.unit_name==16 and unit.state=="in":
+            elif unit.unit_name=='16' and unit.state=="in":
                 return unit
-            elif unit.unit_name==17 and unit.state=="in":
+            elif unit.unit_name=='17' and unit.state=="in":
                 return unit
-            elif unit.unit_name>17:
+            elif int(unit.unit_name)>17:
                 break
         for unit in stateinformation.units:
-            if unit.unit_name==1 and unit.state=="in":
+            if unit.unit_name=="1" and unit.state=="in":
                 return unit
-            elif unit.unit_name==2 and unit.state=="in":
+            elif unit.unit_name=="2" and unit.state=="in":
                 return unit
-            else:
+            elif unit.unit_name=="7":
                 return unit
 
     def get_action(self,stateinformation):
         # 这样传stateinformation太拖慢运行速度了，后面要改
         line_input = Line_input(stateinformation, self.hero_name)
         state = line_input.gen_input()
+        state=np.array([state])
         actions=self.model.predict(state)
         action=self.select_actions(actions,stateinformation)
         return action

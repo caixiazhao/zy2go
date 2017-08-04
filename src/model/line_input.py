@@ -21,7 +21,7 @@ class Line_input:
             hero_input=self.gen_input_hero(hero)
             state=state+hero_input
             #todo:仅对1v1模型有效，第一个英雄为当前操作英雄
-        min_tower_distance=int("Inf")
+        min_tower_distance=999999
         nearest_tower=None
         for unit in self.stateInformation.units:
             if int(unit.unit_name)<27:
@@ -57,6 +57,7 @@ class Line_input:
                 state=state+list(temp)
 
         return state
+        #2*68+8+16*6=240
 
 
 
@@ -64,10 +65,10 @@ class Line_input:
 
 
     def gen_input_hero(self,hero):
-        heroInfo=[int(hero.hero_name), hero.pos[0], hero.pos[1], hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
+        heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.y, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
                   1000+hero.attspeed, int(hero.movelock), hero.team]
         #todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
-        if hero.stae=="in":
+        if hero.state=="in":
             heroInfo.append(1)
         else:
             heroInfo.append(0)
@@ -86,10 +87,13 @@ class Line_input:
         #13+1+3*18
 
     def gen_input_skill(self,skill):
-        skillid=skill.skill_name
+        skillid=skill.skill_id
+        skill_info=[]
         for i in range(len(self.skills)):
             if skillid==self.skills[i][0]:
                 skill_info=self.skills[i]
+        if skill.cost==None:
+            skill.cost=0
         skill_info=skill_info+[skill.cost]
         if skill.cd!=None:
             skill_info.append(int(skill.cd))
@@ -109,13 +113,13 @@ class Line_input:
             building_info=np.zeros(8)
             building_info=list(building_info)
         else:
-            building_info=[int(building.unit_name), building.pos[0], building.pos[1], building.att, 7000, building.hp,
+            building_info=[int(building.unit_name), building.pos.x, building.pos.y, building.att, 7000, building.hp,
                            1000+building.attspeed, building.team]
         return building_info
         #8
 
 
     def gen_input_creep(self,creep):
-        creep_info=[creep.pos[0],creep.pos[1],creep.att,creep.hp,1000+creep.attspeed,creep.team]
+        creep_info=[creep.pos.x,creep.pos.y,creep.att,creep.hp,1000+creep.attspeed,creep.team]
         return creep_info
         #6

@@ -43,7 +43,7 @@ class StateInfo:
         return None
 
     def merge(self, delta):
-        print(delta.tick)
+        print("this is the delta.tick in state merge",delta.tick)
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
