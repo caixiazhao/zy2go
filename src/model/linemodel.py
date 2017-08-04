@@ -68,12 +68,25 @@ class linemodel:
         for i in range(batch_size):
             sample_index = minibatch[i]
             stateInformation = self.memory[sample_index]
-            for hero in stateInformation.heros:
-                if hero.hero_name==self.hero_name:
-                    team=hero.team
-            line_input = Line_input(stateInformation)
-            state=line_input.gen_input()#todo:待完成
-            #todo:replay 的更新target这里需要继续写
+
+            # 这里应该是选择reward更大的一方作为训练对象
+            # 默认只有两个英雄
+            action_index = 0 if stateInformation.actions[0].reward > stateInformation.actions[1].reward else 1
+            hero_name = stateInformation.actions[action_index].hero_name
+            line_input = Line_input(stateInformation, hero_name)
+            state = line_input.gen_input()
+
+            # 得到模型预测结果
+            target = self.model.predict(state)
+
+            # 修改其中我们选择的行为
+            choson_action = stateInformation.actions[action_index]
+            target[0][choson_action.output_index] = choson_action.reward
+
+            X[i], Y[i] = state, target
+        self.model.fit(X, Y, batch_size=batch_size, nb_epoch=1, verbose=0)
+        if self.epsilon > self.e_min:
+            self.epsilon *= self.e_decay
 
     # def select_actions(self, acts, stateinformation):
     #     #这样传stateinformation太拖慢运行速度了，后面要改
@@ -240,21 +253,36 @@ class linemodel:
         action=self.select_actions(actions,stateinformation)
         return action
 
+    # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
+    @staticmethod
+    def update_rewards(state_infos, start_index, end_index):
+        result = []
+        for i in range(start_index, end_index):
+            state_info = state_infos[start_index]
+            hero_names = [state_info.heros[0].hero_name, state_info.heros[1].hero_name]
+            reward_map = linemodel.cal_target_4_line()
+        for hero_name in hero_names:
+            reward = reward_map[hero_name]
+            state_info.add_rewards(hero_name, reward)
+
     # 计算对线情况下每次行动的效果反馈
     # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值
     # 其中每一帧的效果评估方式为：我方获得金币数量x(我方血量变化比率+我方附近塔血量变化比率) A 和 对方获得金币x(对方血量变化比率+对方附近塔血量变化比率) B 的比例关系
     # A/(A + B)
+    # 同时反馈两个值，teama（上路）的反馈值和teamb的反馈值
     @staticmethod
-    def cal_target_4_line(state_infos, state_idx, hero_names, if_team_a):
+    def cal_target_4_line(state_infos, state_idx, hero_names):
         prev_state = state_infos[state_idx]
 
-        reward_per_states = []
+        reward_range = []
         for i in range(1, 11):
+            reward_map = {}
             cur_state = state_infos[state_idx + i]
 
-            # 将传入的英雄分为两个阵容，计算两个阵营之间的奖励比率，根据if_team_a决定返回哪个阵营的比例
+            # 将传入的英雄分为两个阵容，计算两个阵营之间的奖励比率
             gain_team_a = 0
             gain_team_b = 0
+            hero_reward_map = {}
             for hero_name in hero_names:
                 prev_hero = prev_state.get_hero(hero_name)
                 cur_hero = cur_state.get_hero(hero_name)
@@ -274,15 +302,23 @@ class linemodel:
                 else:
                     gain_team_b += gain
 
-            reward = gain_team_a / float(gain_team_a + gain_team_b) if if_team_a else gain_team_b / float(gain_team_a + gain_team_b)
-            reward_per_states.append(reward)
+                hero_reward_map[hero_name] = gain
+
+            for hero_name in hero_names:
+                reward_hero = hero_reward_map[hero_name] / float(gain_team_a + gain_team_b)
+                reward_map[hero_name] = reward_hero
+
+            reward_range.append(reward_map)
 
         # 根据衰减系数来得到总的奖励值
-        total_reward = 0
-        for reward in reversed(reward_per_states):
-            total_reward = total_reward * linemodel.REWARD_GAMMA + reward
+        final_reward_map = {}
+        for hero_name in hero_names:
+            fianl_reward_hero = 0
+            for reward_map in reversed(reward_range):
+                fianl_reward_hero = fianl_reward_hero * linemodel.REWARD_GAMMA + reward_map[hero_name]
+            final_reward_map[reward_hero] = fianl_reward_hero
 
-        return total_reward
+        return final_reward_map
 
     def mov(self, direction):
         if direction == 0:
