@@ -2,7 +2,7 @@
 
 # 记录选择的结果行为
 class Action(object):
-    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, reward):
+    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
         self.hero_name = hero_name
         self.action = action
         self.skillid = skillid
@@ -10,6 +10,7 @@ class Action(object):
         self.tgtpos = tgtpos
         self.fwd = fwd
         self.itemid = itemid
+        self.output_index = output_index
         self.reward = reward
 
     @staticmethod
@@ -21,5 +22,6 @@ class Action(object):
         tgtpos = obj['tgtpos'] if 'tgtpos' in obj else None
         fwd = obj['fwd'] if 'fwd' in obj else None
         itemid = obj['itemid'] if 'itemid' in obj else None
+        output_index = obj['output_index'] if 'output_index' in obj else None
         reward = obj['reward'] if 'reward' in obj else None
-        return Action(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, reward)
+        return Action(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
