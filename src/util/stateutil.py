@@ -185,6 +185,7 @@ class StateUtil:
 
     @staticmethod
     def build_action_command(hero_id, action, parameters):
+        #todo 这个函数现在只传了一个action进来，但是现在的action里面以及包含了需要的信息了，这个函数需要重写一下
         if action == 'MOVE' and 'pos' in parameters:
             return {"hero_id": hero_id, "action": action, "pos": parameters['pos']}
         if action == 'ATTACK' and 'tgtid' in parameters:

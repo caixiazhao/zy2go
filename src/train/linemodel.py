@@ -7,17 +7,21 @@ from keras.engine import Input, Model
 from keras.layers import Dense, LSTM, Reshape
 from keras.layers import Dropout
 from keras.optimizers import Nadam
+import math
 
-from model.action import Action
-from train.actioncommandenum import ActionCommandEnum
+#from model.action import Action
+#from train.actioncommandenum import ActionCommandEnum
+from model.cmdaction import CmdAction
+from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
 from util.stateutil import StateUtil
+from model.fwdstateinfo import FwdStateInfo
 
 
 class linemodel:
     REWARD_GAMMA = 0.9
 
-    def __init__(self, statesize, actionsize, hero_name):
+    def __init__(self, statesize, actionsize):
         self.state_size = statesize
         #TODO:need to be settled
         self.action_size = actionsize #48=8*mov+10*attack+10*skill1+10*skill2+10*skill3
@@ -29,7 +33,6 @@ class linemodel:
         self.learning_rate = 0.01
         self.model = self._build_model
 
-        self.hero_name = hero_name
         #todo:英雄1,2普攻距离为2，后续需修改
         self.att_dist=2
         #todo:以下仅为英雄1技能距离，后续需将这些信息加入到skillinfo中
@@ -182,8 +185,8 @@ class linemodel:
         #这样传stateinformation太拖慢运行速度了，后面要改
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
         for hero in stateinformation.heros:
-            if hero.hero_name==self.hero_name:
-                self.hero=hero
+            if hero.hero_name==hero_name:
+                break
         acts=acts[0]
         acts=list(acts)
         for i in range(len(acts)):
@@ -196,141 +199,151 @@ class linemodel:
                 acts[selected]=0
                 continue
             if selected < 8:  #move
-                if self.hero.movelock == True:
+                if hero.movelock == True:
                     #英雄可以移动
                     acts[selected] = 0
                     continue
                 fwd = self.mov(selected)
 
                 #hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward
-                action = Action(hero_name, ActionCommandEnum.MOVE, None, None, None, fwd, selected, None)
+                action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
                 return StateUtil.build_action_command(action)
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
-                if self.hero.skills[0].canuse!=True:
+                if hero.skills[0].canuse!=True:
                     #被控制住
                     acts[selected]=0
                     continue
-                action="ATTACK"
                 if selected==8:
                     tower=self.get_tower_temp(stateinformation)
-                    dist=StateUtil.cal_distance(self.hero.pos,tower.pos)
+                    dist=StateUtil.cal_distance(hero.pos,tower.pos)
                     if dist>self.att_dist:
+                        # 在攻击范围外
                         acts[selected]=0
                         continue
                     tgtid=tower.unit_name
-                    action = Action(hero_name, ActionCommandEnum.MOVE, None, tgtid, None, None, selected, None)
+                    action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return StateUtil.build_action_command(action)
                 elif selected==9:
                     #TODO 这部分逻辑可以优化
                     for hero in stateinformation.heros:
-                        if hero.hero_name!= self.hero_name:
+                        if hero.hero_name!= hero_name:
                             tgtid=hero.hero_name
                             break
-                    dist=StateUtil.cal_distance(self.hero.pos,hero.pos)
+                    dist=StateUtil.cal_distance(hero.pos,hero.pos)
                     if dist>self.att_dist:
                         acts[selected]=0
                         continue
-                    action = Action(hero_name, ActionCommandEnum.MOVE, None, tgtid, None, None, selected, None)
+                    action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return StateUtil.build_action_command(action)
                 else:
-                    creeps=StateUtil.get_nearby_enemy_units(stateinformation,self.hero_name)
+                    creeps=StateUtil.get_nearby_enemy_units(stateinformation,hero_name)
                     n=selected-10
                     if n>=len(creeps):
                         #没有这么多小兵
                         acts[selected]=0
                         continue
-                    dist=StateUtil.cal_distance(self.hero.pos,creeps[n].pos)
+                    dist=StateUtil.cal_distance(hero.pos,creeps[n].pos)
                     if dist > self.att_dist:
                         acts[selected]=0
                         continue
                     tgtid=creeps[n].unit_name
-                    return  [action,tgtid]
+                    action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
+                    return StateUtil.build_action_command(action)
             elif selected<28: #skill1
-                if self.hero.skills[1].canuse!=True:
+                if hero.skills[1].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected]=0
                     continue
-                if self.hero.skills[1].cost>self.hero.mp:
+                if hero.skills[1].cost>hero.mp:
                     #mp不足
                     acts[selected]=0
                     continue
-                if self.hero.skills[1].cd>0:
+                if hero.skills[1].cd>0:
                     #技能未冷却
                     acts[selected]=0
                     continue
-                action="CAST"
                 skillid=1
-                tgtid=self.choose_skill_target(selected-18,stateinformation,1)
+                [tgtid, tgtpos]=self.choose_skill_target(selected-18,stateinformation,1,hero_name,hero.pos)
                 if tgtid==-1:
                     #目标在施法范围外
                     acts[selected]=0
                     continue
-                return [action,skillid,tgtid]
+                fwd=self.getfwd(hero.pos,tgtpos)
+                action=CmdAction(hero_name, CmdActionEnum.CAST,skillid,tgtid, tgtpos, fwd, None, selected, None )
+                return StateUtil.build_action_command(action)
             elif selected<38: #skill2
-                if self.hero.skills[2].canuse!=True:
+                if hero.skills[2].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected]=0
                     continue
-                if self.hero.skills[2].cost>self.hero.mp:
+                if hero.skills[2].cost>hero.mp:
                     #mp不足
                     acts[selected]=0
                     continue
-                if self.hero.skills[2].cd>0:
+                if hero.skills[2].cd>0:
                     #技能未冷却
                     acts[selected]=0
                     continue
-                action = "CAST"
                 skillid = 2
-                tgtid = self.choose_skill_target(selected - 28,stateinformation,2)
+                [tgtid,tgtpos] = self.choose_skill_target(selected - 28,stateinformation,2,hero_name,hero.pos)
                 if tgtid==-1:
                     #目标在施法范围外
                     acts[selected]=0
                     continue
-                return [action, skillid, tgtid]
+                fwd = self.getfwd(hero.pos, tgtpos)
+                action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
+                return StateUtil.build_action_command(action)
             else:
-                if self.hero.skills[3].canuse!=True:
+                if hero.skills[3].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected]=0
                     continue
-                if self.hero.skills[3].cost>self.hero.mp:
+                if hero.skills[3].cost>hero.mp:
                     #mp不足
                     acts[selected]=0
                     continue
-                if self.hero.skills[3].cd>0:
+                if hero.skills[3].cd>0:
                     #技能未冷却
                     acts[selected]=0
                     continue
-                action = "CAST"
                 skillid = 3
-                tgtid = self.choose_skill_target(selected - 38,stateinformation,3)
+                [tgtid,tgtpos] = self.choose_skill_target(selected - 38,stateinformation,3,hero_name,hero.pos)
                 if tgtid==-1:
                     #目标在施法范围外
                     acts[selected]=0
                     continue
-                return [action, skillid, tgtid]
-        return ["HOLD"]
+                    fwd = self.getfwd(hero.pos, tgtpos)
+                    action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
+                    return StateUtil.build_action_command(action)
+        action=CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, None, None)
+        return  StateUtil.build_action_command(action)
 
-    def choose_skill_target(self, selected,stateinformation, skill):
+    def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos):
         if selected==0:
-            tgtid =self.hero_name
+            tgtid =hero_name
+            tgtpos=pos
         elif selected==1:
             for hero in stateinformation.heros:
-                if hero.hero_name != self.hero_name:
-                    if StateUtil.cal_distance(hero.pos,self.hero.pos)>self.skilldist[skill-1]:
+                if hero.hero_name != hero_name:
+                    if StateUtil.cal_distance(hero.pos,pos)>self.skilldist[skill-1]:
                         tgtid=-1
+                        tgtpos=None
                     else:
                         tgtid = hero.hero_name
+                        tgtpos=hero.pos
         else:
-            creeps=StateUtil.get_nearby_enemy_units(stateinformation, self.hero_name)
+            creeps=StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
             n=selected-2
             if n >= len(creeps):
                 # 没有这么多小兵
-                return -1
-            elif StateUtil.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
+                return [-1, None]
+            elif StateUtil.cal_distance(pos,creeps[n].pos)>self.skilldist[skill-1]:
                 tgtid=-1
+                tgtpos=None
             else:
                 tgtid=creeps[n].unit_name
-        return tgtid
+                tgtpos=creeps[n].pos
+        return [tgtid,tgtpos]
 
     def get_tower_temp(self, stateinformation):#一个临时的在中路判断哪个塔可以作为目标的函数
         # 这样传stateinformation太拖慢运行速度了，后面要改
@@ -351,13 +364,13 @@ class linemodel:
             elif unit.unit_name=="7":
                 return unit
 
-    def get_action(self,stateinformation):
+    def get_action(self,stateinformation,hero_name):
         # 这样传stateinformation太拖慢运行速度了，后面要改
-        line_input = Line_input(stateinformation, self.hero_name)
+        line_input = Line_input(stateinformation, hero_name)
         state = line_input.gen_input()
         state=np.array([state])
         actions=self.model.predict(state)
-        action=self.select_actions(actions,stateinformation)
+        action=self.select_actions(actions,stateinformation,hero_name)
         return action
 
     # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
@@ -368,6 +381,7 @@ class linemodel:
             state_info = state_infos[start_index]
             hero_names = [state_info.heros[0].hero_name, state_info.heros[1].hero_name]
             reward_map = linemodel.cal_target_4_line()
+            #todo: 传入参数
         for hero_name in hero_names:
             reward = reward_map[hero_name]
             state_info.add_rewards(hero_name, reward)
@@ -428,23 +442,28 @@ class linemodel:
         return final_reward_map
 
     def mov(self, direction):
-        if direction == 0:
-            return [1000, 0, 0]
-        elif direction == 1:
-            return [707, 0, 707]
-        elif direction == 2:
-            return [0, 0, 1000]
-        elif direction == 3:
-            return [-707, 0, 707]
-        elif direction == 4:
-            return [0, 0, -1000]
-        elif direction == 5:
-            return [-707, 0, -707]
-        elif direction == 6:
-            return [-1000, 0, 0]
-        else:
-            return [-707, 0, 707]
-
         # the input is 0~8 and the output will be a vector that indicate the direction
-        return direction
+        if direction == 0:
+            return FwdStateInfo(1000, 0, 0)
+        elif direction == 1:
+            return FwdStateInfo(707, 0, 707)
+        elif direction == 2:
+            return FwdStateInfo(0, 0, 1000)
+        elif direction == 3:
+            return FwdStateInfo(-707, 0, 707)
+        elif direction == 4:
+            return FwdStateInfo(0, 0, -1000)
+        elif direction == 5:
+            return FwdStateInfo(-707, 0, -707)
+        elif direction == 6:
+            return FwdStateInfo(-1000, 0, 0)
+        else:
+            return FwdStateInfo(-707, 0, 707)
 
+    def getfwd(self, pos1, pos2):
+        x=pos2.x-pos1.x
+        z=pos2.z-pos1.z
+        a=(x*x+z*z)/1000000
+        x=x/math.sqrt(a)
+        z=z/math.sqrt(a)
+        return FwdStateInfo(x,0,z)
