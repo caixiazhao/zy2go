@@ -12,10 +12,12 @@
 #   玩家意图
 
 # 第一条信息貌似和后续信息有所不同
+import json as JSON
 from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from util.stateutil import StateUtil
 
 
 class Replayer:
@@ -101,6 +103,45 @@ class Replayer:
                 # 检查位移信息，是否在兵线
 
             prev_state = state_info
+
+
+    @staticmethod
+    def build_action_response_with_model(state_info, line_model):
+        battle_id = state_info.battleid
+        tick = state_info.tick
+
+        action_strs = []
+        for hero in state_info.heros:
+            # 如果有可以升级的技能，直接选择第一个升级
+            skills = StateUtil.get_skills_can_upgrade(hero)
+            if len(skills) > 0:
+                update_str = StateUtil.build_action_command(hero.hero_name, 'UPDATE', {'skillid': str(skills[0])})
+                action_strs.append(update_str)
+
+            # 在游戏开始阶段我们需要两方英雄移动到指定位置
+            if state_info.tick < StateUtil.TICK_PER_STATE * 2 * 20:
+                # TODO 跟兵线这个本身也应该是模型的事情
+                if hero.team == 0:
+                    action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( -5000, -80, 0)'})
+                    action_strs.append(update_str)
+                else:
+                    action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
+                    action_strs.append(update_str)
+            else:
+                # TODO 使用模型进行决策
+                action = line_model.get_action(state_info)
+
+                # TODO 保存action信息到状态帧中
+                break
+
+        # 根据action返回结果给客户端
+        for action in state_info.actions:
+            action_str = StateUtil.build_action_command(action)
+            action_strs.append(action_str)
+
+        rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
+        rsp_str = JSON.dumps(rsp_obj)
+        return rsp_str
 
 if __name__ == "__main__":
     path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"

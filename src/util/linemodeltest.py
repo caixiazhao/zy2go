@@ -1,6 +1,4 @@
-from src.util.replayer import Replayer as rp
-from src.model.linemodel import linemodel
-from src.model.line_input import Line_input
+from train.linemodel import linemodel
 from util.stateutil import StateUtil
 
 if __name__ == "__main__":

@@ -1,21 +1,16 @@
 # -*- coding: utf8 -*-
-import random
 import collections
+import random
 
 import numpy as np
 from keras.engine import Input, Model
 from keras.layers import Dense, LSTM, Reshape
+from keras.layers import Dropout
+from keras.optimizers import Nadam
 
-from keras.models import Sequential
-from keras.optimizers import RMSprop, Nadam
-from keras.layers import Dropout,Conv1D
-
-from src.model.stateinfo import StateInfo
-from src.model.herostateinfo import HeroStateInfo
-from src.util.replayer import Replayer as rp
-from src.model.line_input import Line_input
-import random
-
+from model.action import Action
+from train.actioncommandenum import ActionCommandEnum
+from train.line_input import Line_input
 from util.stateutil import StateUtil
 
 
@@ -183,7 +178,7 @@ class linemodel:
     #
     #     return ["HOLD"]
 
-    def select_actions(self, acts, stateinformation):
+    def select_actions(self, acts, stateinformation, hero_name):
         #这样传stateinformation太拖慢运行速度了，后面要改
         # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
         for hero in stateinformation.heros:
@@ -206,8 +201,10 @@ class linemodel:
                     acts[selected] = 0
                     continue
                 fwd = self.mov(selected)
-                action = "MOV"
-                return [action, fwd]
+
+                #hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward
+                action = Action(hero_name, ActionCommandEnum.MOVE, None, None, None, fwd, selected, None)
+                return StateUtil.build_action_command(action)
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
                 if self.hero.skills[0].canuse!=True:
                     #被控制住
@@ -221,8 +218,10 @@ class linemodel:
                         acts[selected]=0
                         continue
                     tgtid=tower.unit_name
-                    return [action,tgtid]
+                    action = Action(hero_name, ActionCommandEnum.MOVE, None, tgtid, None, None, selected, None)
+                    return StateUtil.build_action_command(action)
                 elif selected==9:
+                    #TODO 这部分逻辑可以优化
                     for hero in stateinformation.heros:
                         if hero.hero_name!= self.hero_name:
                             tgtid=hero.hero_name
@@ -231,7 +230,8 @@ class linemodel:
                     if dist>self.att_dist:
                         acts[selected]=0
                         continue
-                    return  [action,tgtid]
+                    action = Action(hero_name, ActionCommandEnum.MOVE, None, tgtid, None, None, selected, None)
+                    return StateUtil.build_action_command(action)
                 else:
                     creeps=StateUtil.get_nearby_enemy_units(stateinformation,self.hero_name)
                     n=selected-10
