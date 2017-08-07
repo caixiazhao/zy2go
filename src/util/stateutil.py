@@ -6,6 +6,7 @@ from random import randint
 
 from model.posstateinfo import PosStateInfo
 from model.stateinfo import StateInfo
+from train.cmdactionenum import CmdActionEnum
 
 
 class StateUtil:
@@ -130,10 +131,10 @@ class StateUtil:
         return None
 
     @staticmethod
-    def if_near_tower(state_info, hero_state):
-        for unit in state_info:
+    def if_near_tower(state_info, hero_state, distance = NEARBY_TOWER_RADIUS):
+        for unit in state_info.units:
             if int(unit.unit_name) <= 26:
-                if StateUtil.cal_distance(unit.pos, hero_state.pos) < 7:  # 根据配置得来
+                if StateUtil.cal_distance(unit.pos, hero_state.pos) < distance:  # 根据配置得来
                     return unit
         return None
 
@@ -161,12 +162,14 @@ class StateUtil:
         return False
 
     @staticmethod
-    def build_action_command(action):
-        if action.action == 'MOVE' and action.pos is not None:
-            return {"hero_id": action.hero_name, "action": action.action, "pos": action.pos}
-        if action.action == 'ATTACK' and action.tgtid is not None:
+    def build_command(action):
+        if action.action == CmdActionEnum.MOVE and action.tgtpos is not None:
+            return {"hero_id": action.hero_name, "action": action.action, "pos": action.tgtpos}
+        if action.action == CmdActionEnum.MOVE and action.fwd is not None:
+            return {"hero_id": action.hero_name, "action": action.action, "fwd": action.fwd}
+        if action.action == CmdActionEnum.ATTACK and action.tgtid is not None:
             return {"hero_id": action.hero_name, "action": action.action, "tgtid": action.tgtid}
-        if action.action == 'CAST' and action.skillid is not None:
+        if action.action == CmdActionEnum.CAST and action.skillid is not None:
             command = {"hero_id": action.hero_name, "action": action.action, "skillid": action.skillid}
             if action.tgtid is not None:
                 command['tgtid'] = action.tgtid
@@ -175,13 +178,13 @@ class StateUtil:
             if action.fwd:
                 command['fwd'] = action.fwd
             return command
-        if action.action == 'UPDATE' and action.skillid is not None:
+        if action.action == CmdActionEnum.UPDATE and action.skillid is not None:
             return {"hero_id": action.hero_name, "action": action, "skillid": action.skillid}
-        if action.action == 'AUTO':
+        if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": action.action}
-        if action.action == 'HOLD':
+        if action.action == CmdActionEnum.HOLD:
             return {"hero_id": action.hero_name, "action": action.action}
-        raise ValueError('unexpected action type ' + action)
+        raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod
     def build_action_command(hero_id, action, parameters):

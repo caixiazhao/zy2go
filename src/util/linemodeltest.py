@@ -4,7 +4,7 @@ from util.stateutil import StateUtil
 if __name__ == "__main__":
     path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"
     file = open(path, "r")
-    model1 = linemodel(240,48,'27')
+    model1 = linemodel(240,48)
     lines = file.readlines()
     prestateinfo=None
     for line in lines:
@@ -17,5 +17,5 @@ if __name__ == "__main__":
             stateinfo=StateUtil.update_state_log(prestateinfo,stateinfo)
             #model1.remeber(stateinfo)
         prestateinfo=stateinfo
-        action=model1.get_action(stateinfo)
+        action=model1.get_action(stateinfo, '27', '28')
         print(action)

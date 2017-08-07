@@ -5,9 +5,13 @@ from util.stateutil import StateUtil
 
 
 class Line_input:
-    def __init__(self, stateInformation,hero_name):
+    #注：这个值需要小心调整，会和找附近塔的逻辑有冲突
+    NEAR_TOWER_RADIUS = 20
+
+    def __init__(self, stateInformation,hero_name, rival_hero):
         self.stateInformation = stateInformation
         self.hero_name = hero_name
+        self.rival_hero = rival_hero
         for hero in stateInformation.heros:
             if hero.hero_name==hero_name:
                 self.team=hero.team
@@ -19,25 +23,25 @@ class Line_input:
     def gen_input(self):
         state=[]
 
-        for hero in self.stateInformation.heros:
-            hero_input=self.gen_input_hero(hero)
-            state=state+hero_input
-            #todo:仅对1v1模型有效，第一个英雄为当前操作英雄
-        min_tower_distance=999999
-        nearest_tower=None
-        for unit in self.stateInformation.units:
-            if int(unit.unit_name)<27:
-                #get the nearest tower, no matter which team it belongs to
-                distance=StateUtil.cal_distance(self.hero_pos,unit.pos)
-                if distance<=min_tower_distance and unit.state=="in":
-                    min_tower_distance=distance
-                    nearest_tower=unit
+        # 添加双方英雄信息，对线模型暂时只考虑1v1的情况
+        my_hero_info = self.stateInformation.get_hero(self.hero_name)
+        rival_hero_info = self.stateInformation.get_hero(self.rival_hero)
+        my_hero_input = self.gen_input_hero(my_hero_info)
 
+        # 首先判断对手英雄的位置，如果距离过远则不加入队伍中
+        if StateUtil.cal_distance(my_hero_info.pos, rival_hero_info.pos) > self.NEAR_TOWER_RADIUS:
+            rival_hero_input = np.zeros(len(my_hero_input)).tolist()
+            # print "对手距离过远，不作为输入信息"
+        else:
+            rival_hero_input = self.gen_input_hero(rival_hero_info)
+        state += my_hero_input
+        state += rival_hero_input
 
-        if min_tower_distance>20:
-            nearest_tower=None
+        # 添加附近塔信息（1个）,搜索半径为self.NEAR_TOWER_RADIUS
+        #TODO 如果半径过大可能会有多个塔，需要处理这种情况
+        nearest_tower = StateUtil.if_near_tower(self.stateInformation, my_hero_info, self.NEAR_TOWER_RADIUS)
         tower_input=self.gen_input_building(nearest_tower)
-        state=state+tower_input
+        state += tower_input
 
         # creep infos
         enermy_creeps=StateUtil.get_nearby_enemy_units(self.stateInformation,self.hero_name)
@@ -61,11 +65,7 @@ class Line_input:
         return state
         #2*68+8+16*6=240
 
-
-
-
-
-
+    #TODO 需要更多注释
     def gen_input_hero(self,hero):
         heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.y, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
                   1000+hero.attspeed, int(hero.movelock), hero.team]

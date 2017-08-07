@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 from herostateinfo import HeroStateInfo
-from model.action import Action
 from model.attackstateinfo import AttackStateInfo
+from model.cmdaction import CmdAction
 from model.dmgstateinfo import DmgStateInfo
 from model.hitstateinfo import HitStateInfo
 from unitstateinfo import UnitStateInfo
@@ -153,6 +153,6 @@ class StateInfo:
         actions = []
         if 'actions' in obj:
             for ac in obj['actions']:
-                actions.append(Action.decode(ac))
+                actions.append(CmdAction.decode(ac))
 
         return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions)
