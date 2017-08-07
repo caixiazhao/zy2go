@@ -4,6 +4,9 @@ class FwdStateInfo(object):
         self.y = y
         self.z = z
 
+    def to_string(self):
+        return '( %s, %s, %s)' % (self.x, self.y, self.z)
+
     @staticmethod
     def decode(obj):
         # need parse str

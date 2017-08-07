@@ -7,3 +7,5 @@ ZY2GoEnv
 battle_logs
 
 *.log
+
+*.model

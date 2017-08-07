@@ -164,26 +164,26 @@ class StateUtil:
     @staticmethod
     def build_command(action):
         if action.action == CmdActionEnum.MOVE and action.tgtpos is not None:
-            return {"hero_id": action.hero_name, "action": action.action, "pos": action.tgtpos}
+            return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         if action.action == CmdActionEnum.MOVE and action.fwd is not None:
-            return {"hero_id": action.hero_name, "action": action.action, "fwd": action.fwd}
+            return {"hero_id": action.hero_name, "action": 'MOVE', "fwd": action.fwd.to_string()}
         if action.action == CmdActionEnum.ATTACK and action.tgtid is not None:
-            return {"hero_id": action.hero_name, "action": action.action, "tgtid": action.tgtid}
+            return {"hero_id": action.hero_name, "action": 'ATTACK', "tgtid": action.tgtid}
         if action.action == CmdActionEnum.CAST and action.skillid is not None:
-            command = {"hero_id": action.hero_name, "action": action.action, "skillid": action.skillid}
+            command = {"hero_id": action.hero_name, "action": 'CAST', "skillid": action.skillid}
             if action.tgtid is not None:
                 command['tgtid'] = action.tgtid
             if action.tgtpos is not None:
-                command['tgtpos'] = action.tgtpos
+                command['tgtpos'] = action.tgtpos.to_string()
             if action.fwd:
-                command['fwd'] = action.fwd
+                command['fwd'] = action.fwd.to_string()
             return command
         if action.action == CmdActionEnum.UPDATE and action.skillid is not None:
-            return {"hero_id": action.hero_name, "action": action, "skillid": action.skillid}
+            return {"hero_id": action.hero_name, "action": 'UPDATE', "skillid": action.skillid}
         if action.action == CmdActionEnum.AUTO:
-            return {"hero_id": action.hero_name, "action": action.action}
+            return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:
-            return {"hero_id": action.hero_name, "action": action.action}
+            return {"hero_id": action.hero_name, "action": 'HOLD'}
         raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod

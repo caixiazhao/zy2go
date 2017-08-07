@@ -17,10 +17,18 @@ from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from train.linemodel import LineModel
+from util.jsonencoder import ComplexEncoder
 from util.stateutil import StateUtil
 
 
 class Replayer:
+    @staticmethod
+    # 推测玩家在每一帧中的行为
+    # 注：移动方向的推测怎么算
+    def guess_player_action(state_infos):
+        return None
+
     @staticmethod
     def guess_strategy(state_infos):
         # 根据英雄的位置和状态猜测他当之前一段时间内的策略层面的决定
@@ -119,32 +127,30 @@ class Replayer:
                 action_strs.append(update_str)
 
             # 在游戏开始阶段我们需要两方英雄移动到指定位置
-            if state_info.tick < StateUtil.TICK_PER_STATE * 2 * 20:
+            if state_info.tick < StateUtil.TICK_PER_STATE * 2 * 25:
                 # TODO 跟兵线这个本身也应该是模型的事情
                 if hero.team == 0:
                     action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( -5000, -80, 0)'})
-                    action_strs.append(update_str)
+                    action_strs.append(action_str)
                 else:
                     action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
-                    action_strs.append(update_str)
+                    action_strs.append(action_str)
             else:
-                # TODO 使用模型进行决策
-                action = line_model.get_action(state_info)
+                # 使用模型进行决策
+                rival_hero = '28' if hero.hero_name == '27' else '27'
+                action = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                action_str = StateUtil.build_command(action)
+                action_strs.append(action_str)
 
-                # TODO 保存action信息到状态帧中
-                break
-
-        # 根据action返回结果给客户端
-        for action in state_info.actions:
-            action_str = StateUtil.build_action_command(action)
-            action_strs.append(action_str)
+                # 保存action信息到状态帧中
+                state_info.actions.append(action)
 
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
 
 if __name__ == "__main__":
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"
+    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -156,24 +162,31 @@ if __name__ == "__main__":
     state_logs = []
     prev_state = None
     replayer = Replayer()
+
+    model = LineModel(240,48)
+    model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
+
     for line in lines:
         if prev_state is not None and int(prev_state.tick) > 21510:
             i = 1
 
-        cur_state = replayer.parse_state_log(line)
+        cur_state = StateUtil.parse_state_log(line)
 
-        if cur_state.tick == Replayer.TICK_PER_STATE:
+        if cur_state.tick == StateUtil.TICK_PER_STATE:
             print("clear")
             prev_stat = None
-        elif prev_stat is not None and prev_stat.tick + Replayer.TICK_PER_STATE > cur_state.tick:
+        elif prev_stat is not None and prev_stat.tick + StateUtil.TICK_PER_STATE > cur_state.tick:
             print ("clear")
             prev_stat = None
 
-        state_info = replayer.update_state_log(prev_state, cur_state)
+        state_info = StateUtil.update_state_log(prev_state, cur_state)
         state_logs.append(state_info)
         prev_state = state_info
 
-        rsp_str = Replayer.build_action_response_with_model(state_info)
+        rsp_str = Replayer.build_action_response_with_model(state_info, model)
         print(rsp_str)
+
+        state_json = JSON.dumps(state_info, cls=ComplexEncoder)
+        print(state_json)
 
     print(len(state_logs))

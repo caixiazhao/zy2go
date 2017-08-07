@@ -1,6 +1,5 @@
 # -*- coding: utf8 -*-
 import numpy as np
-from src.util.replayer import Replayer as rp
 from util.stateutil import StateUtil
 
 
