@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 import numpy as np
 from src.util.replayer import Replayer as rp
+from util.stateutil import StateUtil
+
 
 class Line_input:
     def __init__(self, stateInformation,hero_name):
@@ -26,7 +28,7 @@ class Line_input:
         for unit in self.stateInformation.units:
             if int(unit.unit_name)<27:
                 #get the nearest tower, no matter which team it belongs to
-                distance=rp.cal_distance(self.hero_pos,unit.pos)
+                distance=StateUtil.cal_distance(self.hero_pos,unit.pos)
                 if distance<=min_tower_distance and unit.state=="in":
                     min_tower_distance=distance
                     nearest_tower=unit
@@ -38,7 +40,7 @@ class Line_input:
         state=state+tower_input
 
         # creep infos
-        enermy_creeps=rp.get_nearby_enemy_units(self.stateInformation,self.hero_name)
+        enermy_creeps=StateUtil.get_nearby_enemy_units(self.stateInformation,self.hero_name)
         m=len(enermy_creeps)
         n=8
         for i in range(n):
@@ -47,7 +49,7 @@ class Line_input:
             else:
                 temp=np.zeros(6)
                 state=state+list(temp)
-        friend_creeps=rp.get_nearby_friend_units(self.stateInformation,self.hero_name)
+        friend_creeps=StateUtil.get_nearby_friend_units(self.stateInformation,self.hero_name)
         m=len(friend_creeps)
         for i in range(n):
             if i <m:

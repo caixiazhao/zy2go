@@ -4,7 +4,7 @@ import collections
 
 import numpy as np
 from keras.engine import Input, Model
-from keras.layers import Dense, LSTM, Reshape, concatenate, Concatenate
+from keras.layers import Dense, LSTM, Reshape
 
 from keras.models import Sequential
 from keras.optimizers import RMSprop, Nadam
@@ -15,6 +15,9 @@ from src.model.herostateinfo import HeroStateInfo
 from src.util.replayer import Replayer as rp
 from src.model.line_input import Line_input
 import random
+
+from util.stateutil import StateUtil
+
 
 class linemodel:
     REWARD_GAMMA = 0.9
@@ -213,7 +216,7 @@ class linemodel:
                 action="ATTACK"
                 if selected==8:
                     tower=self.get_tower_temp(stateinformation)
-                    dist=rp.cal_distance(self.hero.pos,tower.pos)
+                    dist=StateUtil.cal_distance(self.hero.pos,tower.pos)
                     if dist>self.att_dist:
                         acts[selected]=0
                         continue
@@ -224,19 +227,19 @@ class linemodel:
                         if hero.hero_name!= self.hero_name:
                             tgtid=hero.hero_name
                             break
-                    dist=rp.cal_distance(self.hero.pos,hero.pos)
+                    dist=StateUtil.cal_distance(self.hero.pos,hero.pos)
                     if dist>self.att_dist:
                         acts[selected]=0
                         continue
                     return  [action,tgtid]
                 else:
-                    creeps=rp.get_nearby_enemy_units(stateinformation,self.hero_name)
+                    creeps=StateUtil.get_nearby_enemy_units(stateinformation,self.hero_name)
                     n=selected-10
                     if n>=len(creeps):
                         #没有这么多小兵
                         acts[selected]=0
                         continue
-                    dist=rp.cal_distance(self.hero.pos,creeps[n].pos)
+                    dist=StateUtil.cal_distance(self.hero.pos,creeps[n].pos)
                     if dist > self.att_dist:
                         acts[selected]=0
                         continue
@@ -313,17 +316,17 @@ class linemodel:
         elif selected==1:
             for hero in stateinformation.heros:
                 if hero.hero_name != self.hero_name:
-                    if rp.cal_distance(hero.pos,self.hero.pos)>self.skilldist[skill-1]:
+                    if StateUtil.cal_distance(hero.pos,self.hero.pos)>self.skilldist[skill-1]:
                         tgtid=-1
                     else:
                         tgtid = hero.hero_name
         else:
-            creeps=rp.get_nearby_enemy_units(stateinformation, self.hero_name)
+            creeps=StateUtil.get_nearby_enemy_units(stateinformation, self.hero_name)
             n=selected-2
             if n >= len(creeps):
                 # 没有这么多小兵
                 return -1
-            elif rp.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
+            elif StateUtil.cal_distance(self.hero.pos,creeps[n].pos)>self.skilldist[skill-1]:
                 tgtid=-1
             else:
                 tgtid=creeps[n].unit_name

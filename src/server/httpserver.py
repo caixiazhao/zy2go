@@ -62,7 +62,7 @@ class S(BaseHTTPRequestHandler):
 
         # 构造反馈结果
         # 注：这里帧状态得到了更新，添加了行为信息
-        rsp_str = Replayer.build_action_response_with_model(state_info)
+        rsp_str = Replayer.build_action_response(state_info)
         print(rsp_str)
 
         # 保存帧状态
