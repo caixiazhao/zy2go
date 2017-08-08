@@ -4,6 +4,7 @@ import math
 import json as JSON
 from random import randint
 
+from hero_strategy.soldierline import SoldierLine
 from model.posstateinfo import PosStateInfo
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
@@ -16,9 +17,25 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 13  # 13.5
     ATTACK_UNIT_RADIUS = 9  # 10
+    LINE_MODEL_RADIUS = 20
 
     ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10120": 6000, "10130": 3500,
                            "10200": 2000, "10210": 8000, "10220": 5000, "10230": 6000}
+
+    LINE_WAY_POINTS = [
+        [PosStateInfo(56800, 0, -2800), PosStateInfo(54000, 0, -5100), PosStateInfo(53000, 0, -20000),
+         PosStateInfo(37500, 0, -29500), PosStateInfo(31800, 0, -38700), PosStateInfo(14000, 0, -54500),
+         PosStateInfo(-600, 0, -61000), PosStateInfo(-22100, 0, -47000), PosStateInfo(-33400, 0, -37500),
+         PosStateInfo(-41000, 0, -27000), PosStateInfo(-51000, 0, -13000), PosStateInfo(-56300, 0, 800)],
+
+        [PosStateInfo(58100, 0, -100), PosStateInfo(45100, 0, -2000), PosStateInfo(28800, 0, 500),
+         PosStateInfo(16900, 0, 1000), PosStateInfo(-11500, 0, 300), PosStateInfo(-17400, 0, -200),
+         PosStateInfo(-44900, 0, 2600), PosStateInfo(-56500, 0, 1700)],
+
+        [PosStateInfo(56900, 0, 2600), PosStateInfo(54000, 0, 5000), PosStateInfo(54200, 0, 18400),
+         PosStateInfo(43300, 0, 25700), PosStateInfo(36500, 0, 34000), PosStateInfo(26000, 0, 45200),
+         PosStateInfo(0, 0, 60800), PosStateInfo(-20600, 0, 51700), PosStateInfo(-39900, 0, 30000),
+         PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
     def can_attack_hero(hero_info, defer_hero_info, skill_id):
@@ -35,7 +52,7 @@ class StateUtil:
 
     @staticmethod
     def if_hero_at_basement(hero_info):
-        basement = PosStateInfo(75140, -80, 0) if hero_info.team == 0 else PosStateInfo(-75680, -80, 0)
+        basement = PosStateInfo(75140, -80, 0) if hero_info.team == 1 else PosStateInfo(-75680, -80, 0)
         distance = StateUtil.cal_distance(hero_info.pos, basement)
         if distance < StateUtil.NEARBY_BASEMENT_RADIUS:
             return True
@@ -50,12 +67,90 @@ class StateUtil:
         return False
 
     @staticmethod
+    def if_unit_tower(unit_info):
+        if int(unit_info.unit_name) <= 26:
+            return True
+        return False
+
+    @staticmethod
     def get_heros_in_team(state_info, team_id):
         return [hero for hero in state_info.heros if hero.team == team_id]
 
     @staticmethod
     def get_units_in_team(state_info, team_id):
         return [unit for unit in state_info.units if unit.team == team_id and unit.state == "in"]
+
+    # 得到兵线位置，小兵数量
+    # 兵线编号，从左到右为0-2
+    @staticmethod
+    def get_solider_lines(state_info, line_index, team_id):
+        units = StateUtil.get_units_in_team(state_info, team_id)
+        soliders = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
+        line_pos_map = {}
+        for idx, solider in enumerate(soliders):
+            line_pos = StateUtil.if_in_line(solider, line_index)
+            if line_pos >= 0:
+                if line_pos not in line_pos_map:
+                    line_pos_map[line_pos] = [idx]
+                else:
+                    line_pos_map[line_pos].append(idx)
+
+        # 遍历所有的小兵位置信息，然后返回小兵的集中点
+        # 集中点的定义为：只要相邻的格子有小兵出现，就认为他们处于同一个集中点，如果有间断，就认为属于一个新的集中点
+        solider_lines = []
+        cache_units = []
+        for idx in range(len(StateUtil.LINE_WAY_POINTS[line_index])):
+            if idx not in line_pos_map:
+                if len(cache_units) > 0:
+                    # 计算中点
+                    pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
+                    sl = SoldierLine(team_id, line_index, pos, cache_units)
+                    solider_lines.append(sl)
+
+                    # 清空
+                    cache_units = []
+            else:
+                cache_units.append(line_pos_map[idx])
+
+        if len(cache_units) > 0:
+            # 计算中点
+            pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
+            sl = SoldierLine(team_id, line_index, pos, cache_units)
+            solider_lines.append(sl)
+
+        # 按照兵线从开始到结尾进行排序 team0的顺序需要翻转
+        if team_id == 1 and len(solider_lines) > 0:
+            solider_lines = solider_lines.reverse()
+
+        return solider_lines
+
+    @staticmethod
+    def cal_soldier_wave_point(state_info, unit_index_list):
+        cached_x = 0
+        cached_z = 0
+        for idx in unit_index_list:
+            unit = state_info.units[idx]
+            cached_x += unit.pos.x
+            cached_z += unit.pos.z
+        return PosStateInfo(cached_x/float(len(unit_index_list)), 0, cached_z/float(len(unit_index_list)))
+
+
+    # 返回单位在兵线上的位置
+    # 结果从0开始
+    @staticmethod
+    def if_in_line(unit_info, line_index):
+        line = StateUtil.LINE_WAY_POINTS[line_index]
+        for idx, point in enumerate(line):
+            if idx >= len(line) - 1:
+                continue
+            next_point = line[idx+1]
+            bound_x1 = min(next_point.x, point.x)
+            bound_x2 = max(next_point.x, point.x)
+            bound_y1 = min(next_point.z, point.z) - 1000
+            bound_y2 = max(next_point.z, point.z) + 1000
+            if bound_x1 <= unit_info.pos.x <= bound_x2 and bound_y1 <= unit_info.pos.z <= bound_y2:
+                return idx
+        return -1
 
     @staticmethod
     def parse_state_log(json_str):
@@ -79,7 +174,7 @@ class StateUtil:
         return new_state
 
     @staticmethod
-    def get_nearby_enemy_heros(state_info, hero_id):
+    def get_nearby_enemy_heros(state_info, hero_id, max_distance=ATTACK_HERO_RADIUS):
         hero = state_info.get_hero(hero_id)
         enemy_hero_team = 1 - hero.team
         enemy_heros = StateUtil.get_heros_in_team(state_info, enemy_hero_team)
@@ -89,12 +184,12 @@ class StateUtil:
             # 首先需要确定敌方英雄可见
             if enemy.is_enemy_visible():
                 distance = StateUtil.cal_distance(hero.pos, enemy.pos)
-                if distance < StateUtil.ATTACK_HERO_RADIUS:
+                if distance < max_distance:
                     nearby_enemies.append(enemy)
         return nearby_enemies
 
     @staticmethod
-    def get_nearby_friend_units(state_info, hero_id):
+    def get_nearby_friend_units(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
         hero = state_info.get_hero(hero_id)
         friend_unit_team = hero.team
         friend_units = StateUtil.get_units_in_team(state_info, friend_unit_team)
@@ -105,12 +200,12 @@ class StateUtil:
             # 排除掉野怪
             if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit):
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
-                if distance < StateUtil.ATTACK_UNIT_RADIUS:
+                if distance < max_distance:
                     nearby_friend_units.append(unit)
         return nearby_friend_units
 
     @staticmethod
-    def get_nearby_enemy_units(state_info, hero_id):
+    def get_nearby_enemy_units(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
         hero = state_info.get_hero(hero_id)
         enemy_unit_team = 1 - hero.team
         enemy_units = StateUtil.get_units_in_team(state_info, enemy_unit_team)
@@ -121,7 +216,7 @@ class StateUtil:
             # 排除掉野怪
             if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit):
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
-                if distance < StateUtil.ATTACK_UNIT_RADIUS:
+                if distance < max_distance:
                     nearby_enemy_units.append(unit)
         return nearby_enemy_units
 

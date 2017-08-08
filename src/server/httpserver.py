@@ -26,6 +26,7 @@ from model.herostateinfo import HeroStateInfo
 from model.stateinfo import StateInfo
 from train.linemodel import LineModel
 from util.jsonencoder import ComplexEncoder
+from util.linetrainer import LineTrainer
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 
@@ -67,7 +68,7 @@ class S(BaseHTTPRequestHandler):
 
         # 构造反馈结果
         # 注：这里帧状态得到了更新，添加了行为信息
-        rsp_str = Replayer.build_action_response_with_model(state_info, self.model)
+        rsp_str = self.line_trainer.build_heros_response(state_info, self.model)
         # rsp_str = StateUtil.build_action_response(state_info)
         print(rsp_str)
 
@@ -96,7 +97,8 @@ class S(BaseHTTPRequestHandler):
     log_file = open('httpd.log', 'a')
     state_file = open('state.txt', 'a')
     model = LineModel(240,48)
-    model.save('line_model_' + str(datetime.now()) + '.model')
+    model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
+    line_trainer = LineTrainer()
 
     def log_message(self, format, *args):
         return

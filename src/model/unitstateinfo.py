@@ -78,6 +78,6 @@ class UnitStateInfo(object):
         vis1 = obj['vis1'] if 'vis1' in obj else None
         vis2 = obj['vis2'] if 'vis2' in obj else None
         vis3 = obj['vis3'] if 'vis3' in obj else None
-        team = None if pos is None else 0 if pos.x < 0 else 1
+        team = None if pos is None else (0 if pos.x < 0 else 1)
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
                              attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
