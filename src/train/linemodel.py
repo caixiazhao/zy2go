@@ -23,7 +23,6 @@ class LineModel:
 
     def __init__(self, statesize, actionsize):
         self.state_size = statesize
-        #TODO:need to be settled
         self.action_size = actionsize #48=8*mov+10*attack+10*skill1+10*skill2+10*skill3
         self.memory = collections.deque()
         self.gamma = 0.9  # discount rate
@@ -44,19 +43,15 @@ class LineModel:
 
 
         #battle_map=Input(shape=())
-        #TODO:for multi-input model, we may use a map as input
+        #TODO:模型可能需要的地图信息，暂时忽略了
         battle_information=Input(shape=(240,))
-        #to store the information of buildings,creeps and heroes.
-        # 现在英雄信息包含2*21个属性，技能2*3*15，塔9~11，小兵16*（9~11），输入应为一个固定长度向量
-        # 预测长度应该在300左右
-        # TODO:input shape need check,
+        # 输入的英雄，建筑和小兵的各类属性信息
         dense_1=Dense(512,activation='relu')(battle_information)
         dropped_1=Dropout(0.15)(dense_1)
         dense_2=Dense(256,activation='relu')(dropped_1)
         dropped_2=Dropout(0.15)(dense_2)
         reshaped = Reshape((256, 1))(dropped_2)
         lstm=LSTM(128)(reshaped)
-        # TODO:check the data form
         dense_3 = Dense(64, activation='relu')(lstm)
         dropped_3 = Dropout(0.15)(dense_3)
 
@@ -105,93 +100,10 @@ class LineModel:
         if self.epsilon > self.e_min:
             self.epsilon *= self.e_decay
 
-    # def select_actions(self, acts, stateinformation):
-    #     #这样传stateinformation太拖慢运行速度了，后面要改
-    #     # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
-    #     flag = True
-    #     while flag:
-    #         maxQ = max(acts)
-    #         selected = acts.index(maxQ)
-    #         if selected < 8:  #move
-    #             fwd = self.mov(selected)
-    #             action = "MOV"
-    #             return [action, fwd]
-    #         elif selected < 16:  #闪现
-    #             fwd = self.mov(selected - 8)
-    #             action = "CAST"
-    #             skillid = 64141
-    #             hero_pos=stateinformation.get_hero_pos(self.hero_name)
-    #             tgtpos = list(np.array(fwd) + np.array(hero_pos))
-    #             #todo：判断该技能是否可用，可用返回，不可用跳过，选可能性排在这个技能之后的选择
-    #             return [action, skillid, tgtpos]
-    #         elif selected ==16:   #放草，烧，加速，三个不用管目标的技能
-    #             action = "CAST"
-    #             skillid=202
-    #             tgtpos=stateinformation.get_hero_pos(self.hero_name)
-    #             #get current hero position
-    #             #todo：判断该技能是否可用，可用返回，不可用跳过，选可能性排在这个技能之后的选择
-    #             return [action,skillid,tgtpos]
-    #         elif selected==17:
-    #             action="CAST"
-    #             skillid=61141
-    #             tgtid=self.heroname
-    #             #todo：判断该技能是否可用，可用返回，不可用跳过，选可能性排在这个技能之后的选择
-    #             return [action,skillid,tgtid]
-    #         elif selected==18:
-    #             action="CAST"
-    #             skillid=64142
-    #             tgtid=self.hero_name
-    #             #todo: if can use, return, if not ,continue to the next loop
-    #             return [action,skillid,tgtid]
-    #         elif selected==19:  #对敌英雄使用变形#
-    #             action="CAST"
-    #             skillid=611041
-    #             # 现在是中线1v1，使用不涉及选择对方某一个英雄，只有一个非己方的英雄作为目标，
-    #             # 后期可能要加上信息来选择当前作为对手的目标英雄，或者对于对线模型使用对线stateinfo取代全局stateinfo，
-    #             # 舍弃掉部分信息在保存在模型中
-    #             for hero in stateinformation.heros:
-    #                 if hero.hero_name!= self.hero_name:
-    #                     tgtid=hero.hero_name
-    #             # todo: if can use, return, if not ,continue to the next loop
-    #             return [action, skillid, tgtid]
-    #         elif selected<30: #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
-    #             action="ATTACK"
-    #             if selected==20:
-    #                 tgtid=self.get_tower_temp(stateinformation)
-    #                 return [action,tgtid]
-    #             elif selected==21:
-    #                 for hero in stateinformation.heros:
-    #                     if hero.hero_name!= self.hero_name:
-    #                         tgtid=hero.hero_name
-    #                 return  [action,tgtid]
-    #             else:
-    #                 creeps=rp.get_nearby_enemy_units(stateinformation,self.hero_name)
-    #                 n=selected-22
-    #                 tgtid=creeps[n].unit_name
-    #                 return  [action,tgtid]
-    #         elif selected<40: #skill1
-    #             action="CAST"
-    #             for hero in stateinformation.heros:
-    #                 if hero.hero_name==self.hero_name:
-    #                     skillid=hero.skills[1].skillid
-    #             if selected==30: #use on itself, skill like buff, recover or somthing like that
-    #                 tgtid=self.hero_name
-    #             elif selected==31:
-    #
-    #         elif selected<50: #skill2
-    #
-    #         else:
-    #
-    #
-    #
-    #
-    #
-    #
-    #     return ["HOLD"]
 
     def select_actions(self, acts, stateinformation, hero_name, rival_hero):
         #这样传stateinformation太拖慢运行速度了，后面要改
-        # acts is the vector of q-values, hero_information contains the ID,location, and other information we may need
+        #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
         acts=acts[0]
         acts=list(acts)
@@ -206,20 +118,20 @@ class LineModel:
                 continue
             if selected < 8:  #move
                 if hero.movelock == True:
-                    #英雄可以移动
+                    #英雄可以移动，没有被限制住
                     acts[selected] = 0
                     continue
                 fwd = self.mov(selected)
 
-                #hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward
+                #生成action所需的参数：CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
                 return action
-            elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻；对敌我英雄，敌小兵1~8使用技能1~3
+            elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
                 if hero.skills[0].canuse!=True:
                     #被控制住
                     acts[selected]=0
                     continue
-                if selected==8:
+                if selected==8:#敌方塔
                     tower=self.get_tower_temp(stateinformation)
                     dist=StateUtil.cal_distance(hero.pos, tower.pos)
                     if dist>self.att_dist:
@@ -229,7 +141,7 @@ class LineModel:
                     tgtid=tower.unit_name
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
-                elif selected==9:
+                elif selected==9:#敌方英雄
                     tgtid = rival_hero
                     dist=StateUtil.cal_distance(hero.pos,hero.pos)
                     if dist>self.att_dist:
@@ -237,7 +149,7 @@ class LineModel:
                         continue
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
-                else:
+                else:#小兵
                     creeps=StateUtil.get_nearby_enemy_units(stateinformation,hero_name)
                     n=selected-10
                     if n>=len(creeps):
@@ -270,7 +182,7 @@ class LineModel:
                     #目标在施法范围外
                     acts[selected]=0
                     continue
-                # 异常情况处理：
+                # todo: 异常情况处理：
                 fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST,skillid,tgtid, tgtpos, fwd, None, selected, None)
                 return action
@@ -288,7 +200,7 @@ class LineModel:
                     acts[selected]=0
                     continue
                 skillid = 2
-                [tgtid,tgtpos] = self.choose_skill_target(selected - 28,stateinformation,2,hero_name,hero.pos)
+                [tgtid,tgtpos] = self.choose_skill_target(selected - 28,stateinformation,2,hero_name,hero.pos,rival_hero)
                 if tgtid==-1:
                     #目标在施法范围外
                     acts[selected]=0
@@ -310,7 +222,7 @@ class LineModel:
                     acts[selected]=0
                     continue
                 skillid = 3
-                [tgtid,tgtpos] = self.choose_skill_target(selected - 38,stateinformation,3,hero_name,hero.pos)
+                [tgtid,tgtpos] = self.choose_skill_target(selected - 38,stateinformation,3,hero_name,hero.pos,rival_hero)
                 if tgtid==-1:
                     # 目标在施法范围外
                     acts[selected]=0
@@ -446,7 +358,7 @@ class LineModel:
         return final_reward_map
 
     def mov(self, direction):
-        # the input is 0~8 and the output will be a vector that indicate the direction
+        # 根据输入0~7这8个整数，选择上下左右等八个方向返回
         if direction == 0:
             return FwdStateInfo(1000, 0, 0)
         elif direction == 1:

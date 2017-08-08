@@ -18,6 +18,7 @@ class Line_input:
         self.skills=[[10110,5,0,0,0,0,0,0,0,0,5,0,0,1,8],[10120,6,0,0,0,0,0,0,0,0,0,0,6,3,6],
                      [10130,8,0,0,0,0,0,0,0,0,0,7,0,4,3.5],[10210,4,4,0,0,0,0,0,4,0,5,0,0,3,8],
                      [10220,3,0,0,0,0,0,0,0,0,0,7,4,1,5],[10230,2,10,5,7,0,0,0,0,0,0,0,0,6,6]]
+        #对英雄101,102技能信息的临时编码
 
     def gen_input(self):
         state=[]
@@ -42,7 +43,7 @@ class Line_input:
         tower_input=self.gen_input_building(nearest_tower)
         state += tower_input
 
-        # creep infos
+        # 小兵信息
         enermy_creeps=StateUtil.get_nearby_enemy_units(self.stateInformation,self.hero_name)
         m=len(enermy_creeps)
         n=8
@@ -62,7 +63,7 @@ class Line_input:
                 state=state+list(temp)
 
         return state
-        #2*68+8+16*6=240
+        #返回总信息向量大小=2*68+8+16*6=240
 
     #TODO 需要更多注释
     def gen_input_hero(self,hero):
@@ -85,7 +86,7 @@ class Line_input:
         skill3=self.gen_input_skill(hero.skills[3])
         heroInfo=heroInfo+skill1+skill2+skill3
         return heroInfo
-        #13+1+3*18
+        #英雄信息向量大小13+1+3*18
 
     def gen_input_skill(self,skill):
         skillid=skill.skill_id
@@ -105,9 +106,8 @@ class Line_input:
         else:
             skill_info.append(int(skill.canuse))
         return skill_info
-        #15+3
+        #技能信息向量大小=15+3
 
-        #todo: skill
 
     def gen_input_building(self,building):
         if building==None:
@@ -117,10 +117,10 @@ class Line_input:
             building_info=[int(building.unit_name), building.pos.x, building.pos.y, building.att, 7000, building.hp,
                            1000+building.attspeed, building.team]
         return building_info
-        #8
+        #建筑信息向量大小=8
 
 
     def gen_input_creep(self,creep):
         creep_info=[creep.pos.x,creep.pos.y,creep.att,creep.hp,1000+creep.attspeed,creep.team]
         return creep_info
-        #6
+        #单个小兵信息大小=6
