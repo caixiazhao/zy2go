@@ -127,7 +127,9 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
                 return action
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
-                if hero.skills[0].canuse!=True:
+                if hero.skills[0].canuse!=True and (hero.skills[0].cd==0 or hero.skills[0].cd==None):
+                    #普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
+                    #所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
                     #被控制住
                     acts[selected]=0
                     continue

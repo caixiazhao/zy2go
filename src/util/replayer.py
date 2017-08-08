@@ -52,8 +52,13 @@ class Replayer:
             for attack in hero_current.attack_info:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
                     skillid=attack.skill%100
+
                     tgtid = str(attack.defer)
-                    if skillid==1: #普攻，不会以自己为目标
+                    if skillid==0:#回城
+                        action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48, None)
+                        return action
+                    skillid=skillid//10
+                    if skillid==0: #普攻，不会以自己为目标
                         if tgtid<27: #打塔
                             output_index=8
                         elif tgtid==int(hero_rival_current.hero_name): #普通攻击敌方英雄
@@ -67,11 +72,9 @@ class Replayer:
 
                         action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, output_index, None)
                         return action
-                    elif skillid==0:#回城
-                        action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48,None)
-                        return action
+
                     else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
-                        skillid=skillid/10
+
                         if tgtid==int(hero_name):#对自身施法
                             tgtpos=hero_current.pos
                             output_index=8+skillid*10
