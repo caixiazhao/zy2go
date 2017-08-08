@@ -23,7 +23,7 @@ class LineModel:
 
     def __init__(self, statesize, actionsize):
         self.state_size = statesize
-        self.action_size = actionsize #48=8*mov+10*attack+10*skill1+10*skill2+10*skill3
+        self.action_size = actionsize #50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
         self.memory = collections.deque()
         self.gamma = 0.9  # discount rate
         self.epsilon = 1.0  # exploration rate
@@ -208,7 +208,7 @@ class LineModel:
                 fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
                 return action
-            else:
+            elif selected<48: #skill3
                 if hero.skills[3].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected]=0
@@ -230,7 +230,22 @@ class LineModel:
                 fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
                 return action
-        action=CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, None, None)
+            elif selected==48:#回城
+                if hero.skills[6].canuse!=True:
+                    #不能回城
+                    acts[selected] = 0
+                    continue
+                if hero.skills[6].cd > 0:
+                    #技能未冷却
+                    acts[selected] = 0
+                    continue
+                skillid = 6
+                action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, None, None, None, None, selected, None)
+                return action
+            else:#hold
+                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                return action
+        action=CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
         return action
 
     def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero):
@@ -362,16 +377,17 @@ class LineModel:
         if direction == 0:
             return FwdStateInfo(1000, 0, 0)
         elif direction == 1:
-            return FwdStateInfo(707, 0, 707)
+            return FwdStateInfo(707, 707, 0)
         elif direction == 2:
-            return FwdStateInfo(0, 0, 1000)
+            return FwdStateInfo(0, 1000, 0)
         elif direction == 3:
-            return FwdStateInfo(-707, 0, 707)
+            return FwdStateInfo(-707, 707, 0)
         elif direction == 4:
-            return FwdStateInfo(0, 0, -1000)
+            return FwdStateInfo(0, -1000, 0)
         elif direction == 5:
-            return FwdStateInfo(-707, 0, -707)
+            return FwdStateInfo(-707, -707, 0)
         elif direction == 6:
             return FwdStateInfo(-1000, 0, 0)
         else:
-            return FwdStateInfo(-707, 0, 707)
+            return FwdStateInfo(-707, 707, 0)
+

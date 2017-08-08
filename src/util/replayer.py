@@ -20,14 +20,132 @@ from hero_strategy.strategyrecords import StrategyRecords
 from train.linemodel import LineModel
 from util.jsonencoder import ComplexEncoder
 from util.stateutil import StateUtil
+from model.cmdaction import CmdAction
+from train.cmdactionenum import CmdActionEnum
+from model.fwdstateinfo import FwdStateInfo
+import math
 
 
 class Replayer:
+
     @staticmethod
     # 推测玩家在每一帧中的行为
     # 注：移动方向的推测怎么算
-    def guess_player_action(state_infos):
-        return None
+    def guess_player_action(state_info, next_state_info, hero_name):
+        #针对每一帧，结合后一帧信息，判断英雄在该帧的有效操作
+        #仅对于一对一线上模型有效
+        #技能>攻击>走位
+        #技能：检查cd和mp变化，hitstateinfo，attackstateinfo，dmgstateinifo，回推pos，fwd，tgt，selected
+        #攻击：检查hit，damage，attack
+        #检查pos变化
+
+        for temphero in state_info.heros:
+            if temphero.hero_name==hero_name:
+                hero_current=temphero
+            else:
+                hero_rival_current=temphero
+        for temphero in next_state_info:
+            if temphero.hero_name==hero_name:
+                hero_next=temphero
+
+        if len(hero_current.attack_info)>0: #有角色进行了攻击
+            for attack in hero_current.attack_info:
+                if attack.atker==int(hero_name): #英雄进行了攻击
+                    skillid=attack.skill
+                    tgtid = str(attack.defer)
+                    if skillid==0: #普攻，不会以自己为目标
+                        if tgtid<27: #打塔
+                            output_index=8
+                        elif tgtid==int(hero_rival_current.hero_name): #普通攻击敌方英雄
+                            output_index=9
+                        else:#普通攻击敌方小兵
+                            creeps=StateUtil.get_nearby_enemy_units(state_info,hero_name)
+                            n=len(creeps)
+                            for i in range(n):
+                                if creeps[i].unit_name==str(tgtid):
+                                    output_index=i+10
+
+                        action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, output_index, None)
+                        return action
+                    else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
+                        if tgtid==int(hero_name):#对自身施法
+                            tgtpos=hero_current.pos
+                            output_index=8+skillid*10
+                        elif tgtid==int(hero_rival_current.hero_name):#对敌方英雄施法
+                            tgtpos=hero_rival_current.pos
+                            output_index=9+skillid*10
+                        elif tgtid>27:#对小兵施法
+                            creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
+                            n = len(creeps)
+                            for i in range(n):
+                                if creeps[i].unit_name == str(tgtid):
+                                    output_index = i + skillid*10+10
+                        else:#对塔施法，模型中未考虑
+                            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                            return action
+                        action=CmdAction(hero_name,CmdActionEnum.CAST,skillid,tgtid,tgtpos,None,None,output_index,None)
+                        return action
+                else:
+                #英雄没有进攻
+                    if hero_current.skills[6].canuse==True:#回城
+                        #todo:判断回城的施法状态
+                        return None
+                    elif hero_current.pos.x!=hero_next.pos.x or hero_current.pos.z!= hero_next.pos.z or hero_current.pos.y!=hero_next.pos.y:#移动
+                        fwd=Replayer.get_fwd(hero_current.pos,hero_next.pos)
+                        [fwd,output_index]=Replayer.get_closest_fwd(fwd)
+                        action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
+                        return action
+                    else:#hold
+                        action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                        return action
+
+
+    @staticmethod
+    def get_fwd(pos1, pos2):
+        x = pos2.x - pos1.x
+        y = pos2.y - pos1.y
+        z = pos2.z - pos1.z
+        a = (x * x + y * y + z * z) / 1000000
+        x = x / math.sqrt(a)
+        y = y / math.sqrt(a)
+        z = z / math.sqrt(a)
+        return FwdStateInfo(x, y, z)
+
+    @staticmethod
+    def get_closest_fwd(fwd):
+        maxcos=-1
+        output_index=0
+        output_fwd=fwd
+        for i in range(8):
+            fwd1=Replayer.mov(i)
+            a=fwd.x*fwd.x+fwd.y*fwd.y
+            b=fwd1.x*fwd1.x+fwd1.y*fwd1.y
+            cos=(fwd.x*fwd1.x+fwd.y*fwd1.y)/(math.sqrt(a)*math.sqrt(b))
+            if cos>maxcos:
+                maxcos=cos
+                output_index=i
+                output_fwd=fwd1
+        return [output_fwd, output_index]
+
+    @staticmethod
+    def mov(direction):
+        # 根据输入0~7这8个整数，选择上下左右等八个方向返回
+        if direction == 0:
+            return FwdStateInfo(1000, 0, 0)
+        elif direction == 1:
+            return FwdStateInfo(707, 707, 0)
+        elif direction == 2:
+            return FwdStateInfo(0, 1000, 0)
+        elif direction == 3:
+            return FwdStateInfo(-707, 707, 0)
+        elif direction == 4:
+            return FwdStateInfo(0, -1000, 0)
+        elif direction == 5:
+            return FwdStateInfo(-707, -707, 0)
+        elif direction == 6:
+            return FwdStateInfo(-1000, 0, 0)
+        else:
+            return FwdStateInfo(-707, 707, 0)
 
     @staticmethod
     def guess_strategy(state_infos):
@@ -150,7 +268,7 @@ class Replayer:
         return rsp_str
 
 if __name__ == "__main__":
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -164,7 +282,7 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
+    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
 
     for line in lines:
         if prev_state is not None and int(prev_state.tick) > 21510:
@@ -181,6 +299,7 @@ if __name__ == "__main__":
 
         state_info = StateUtil.update_state_log(prev_state, cur_state)
         state_logs.append(state_info)
+
         prev_state = state_info
 
         rsp_str = Replayer.build_action_response_with_model(state_info, model)
