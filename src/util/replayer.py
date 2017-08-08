@@ -48,12 +48,12 @@ class Replayer:
             if temphero.hero_name==hero_name:
                 hero_next=temphero
 
-        if len(hero_current.attack_info)>0: #有角色进行了攻击
+        if len(hero_current.attack_info)>0: #有角色进行了攻击或回城
             for attack in hero_current.attack_info:
-                if attack.atker==int(hero_name): #英雄进行了攻击
-                    skillid=attack.skill
+                if attack.atker==int(hero_name): #英雄进行了攻击或回城
+                    skillid=attack.skill%100
                     tgtid = str(attack.defer)
-                    if skillid==0: #普攻，不会以自己为目标
+                    if skillid==1: #普攻，不会以自己为目标
                         if tgtid<27: #打塔
                             output_index=8
                         elif tgtid==int(hero_rival_current.hero_name): #普通攻击敌方英雄
@@ -67,7 +67,11 @@ class Replayer:
 
                         action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, output_index, None)
                         return action
+                    elif skillid==0:#回城
+                        action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48,None)
+                        return action
                     else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
+                        skillid=skillid/10
                         if tgtid==int(hero_name):#对自身施法
                             tgtpos=hero_current.pos
                             output_index=8+skillid*10
@@ -86,11 +90,8 @@ class Replayer:
                         action=CmdAction(hero_name,CmdActionEnum.CAST,skillid,tgtid,tgtpos,None,None,output_index,None)
                         return action
                 else:
-                #英雄没有进攻
-                    if hero_current.skills[6].canuse==True:#回城
-                        #todo:判断回城的施法状态
-                        return None
-                    elif hero_current.pos.x!=hero_next.pos.x or hero_current.pos.z!= hero_next.pos.z or hero_current.pos.y!=hero_next.pos.y:#移动
+                #英雄没有进攻也没有施法
+                    if hero_current.pos.x!=hero_next.pos.x or hero_current.pos.z!= hero_next.pos.z or hero_current.pos.y!=hero_next.pos.y:#移动
                         fwd=Replayer.get_fwd(hero_current.pos,hero_next.pos)
                         [fwd,output_index]=Replayer.get_closest_fwd(fwd)
                         action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
