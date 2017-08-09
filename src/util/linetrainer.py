@@ -48,8 +48,10 @@ class LineTrainer:
                     else:
                         # 得到最前方的兵线位置
                         front_point = solider_lines[-1]
+                        print 'front_point, team:%s, line:%s, wave:%s, units:%s' % (front_point.team_id, front_point.line_index, len(solider_lines), len(front_point.units))
                         move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_point.pos, None, None, None, None)
                         action_str = StateUtil.build_command(move_action)
+                        # action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
                         action_strs.append(action_str)
             else:
                 # 使用模型进行决策

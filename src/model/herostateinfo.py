@@ -185,6 +185,7 @@ class HeroStateInfo:
             skills.append(skill_info)
 
         # 根据其实位置来决定英雄阵营，注意，这里的判断只有在第一帧时候是合理的，后续的其实应该根据merge来判断
+        # 上路是team0，下路team1
         team = None if pos is None else 0 if pos.x < 0 else 1
 
         return HeroStateInfo(hero_name, state, cfg_id, pos, fwd, hp, maxhp, mp, maxmp, speed, att, gold, hprec, equips,

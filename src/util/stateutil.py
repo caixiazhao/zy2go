@@ -85,54 +85,59 @@ class StateUtil:
     @staticmethod
     def get_solider_lines(state_info, line_index, team_id):
         units = StateUtil.get_units_in_team(state_info, team_id)
-        soliders = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
+        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
         line_pos_map = {}
-        for idx, solider in enumerate(soliders):
-            line_pos = StateUtil.if_in_line(solider, line_index)
+        soldiers_in_line = 0
+        for idx, soldier in enumerate(soldiers):
+            line_pos = StateUtil.if_in_line(soldier, line_index)
             if line_pos >= 0:
+                soldiers_in_line += 1
                 if line_pos not in line_pos_map:
-                    line_pos_map[line_pos] = [idx]
+                    line_pos_map[line_pos] = [soldier.unit_name]
                 else:
-                    line_pos_map[line_pos].append(idx)
+                    line_pos_map[line_pos].append(soldier.unit_name)
+
+        print 'front_point team:%s, line:%s, %s/%s in line' % (team_id, line_index, soldiers_in_line, len(soldiers))
 
         # 遍历所有的小兵位置信息，然后返回小兵的集中点
         # 集中点的定义为：只要相邻的格子有小兵出现，就认为他们处于同一个集中点，如果有间断，就认为属于一个新的集中点
-        solider_lines = []
+        soldier_lines = []
         cache_units = []
-        for idx in range(len(StateUtil.LINE_WAY_POINTS[line_index])):
-            if idx not in line_pos_map:
+        for line_pos_idx in range(len(StateUtil.LINE_WAY_POINTS[line_index])):
+            # 如果当前兵线区域没有小兵，则连续中断，将之前连续的部分存成一个集中点
+            if line_pos_idx not in line_pos_map:
                 if len(cache_units) > 0:
                     # 计算中点
                     pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
                     sl = SoldierLine(team_id, line_index, pos, cache_units)
-                    solider_lines.append(sl)
+                    soldier_lines.append(sl)
 
                     # 清空
                     cache_units = []
             else:
-                cache_units.append(line_pos_map[idx])
+                cache_units.extend(line_pos_map[line_pos_idx])
 
         if len(cache_units) > 0:
             # 计算中点
             pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
             sl = SoldierLine(team_id, line_index, pos, cache_units)
-            solider_lines.append(sl)
+            soldier_lines.append(sl)
 
         # 按照兵线从开始到结尾进行排序 team0的顺序需要翻转
-        if team_id == 1 and len(solider_lines) > 0:
-            solider_lines = solider_lines.reverse()
+        if team_id == 1 and len(soldier_lines) > 0:
+            soldier_lines.reverse()
 
-        return solider_lines
+        return soldier_lines
 
     @staticmethod
     def cal_soldier_wave_point(state_info, unit_index_list):
         cached_x = 0
         cached_z = 0
-        for idx in unit_index_list:
-            unit = state_info.units[idx]
+        for unit_name in unit_index_list:
+            unit = state_info.get_unit(unit_name)
             cached_x += unit.pos.x
             cached_z += unit.pos.z
-        return PosStateInfo(cached_x/float(len(unit_index_list)), 0, cached_z/float(len(unit_index_list)))
+        return PosStateInfo(cached_x/len(unit_index_list), -80, cached_z/len(unit_index_list))
 
 
     # 返回单位在兵线上的位置
@@ -146,8 +151,8 @@ class StateUtil:
             next_point = line[idx+1]
             bound_x1 = min(next_point.x, point.x)
             bound_x2 = max(next_point.x, point.x)
-            bound_y1 = min(next_point.z, point.z) - 1000
-            bound_y2 = max(next_point.z, point.z) + 1000
+            bound_y1 = min(next_point.z, point.z) - 2000
+            bound_y2 = max(next_point.z, point.z) + 2000
             if bound_x1 <= unit_info.pos.x <= bound_x2 and bound_y1 <= unit_info.pos.z <= bound_y2:
                 return idx
         return -1

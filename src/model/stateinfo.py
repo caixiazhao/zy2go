@@ -124,6 +124,8 @@ class StateInfo:
                 hero_id += 1
             else:
                 break
+        # 最后一次递增需要回滚
+        hero_id -= 1
 
         # 其它单位
         units = []

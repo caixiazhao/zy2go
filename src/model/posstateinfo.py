@@ -10,8 +10,8 @@ class PosStateInfo:
         position = str(obj)
         str_pieces = position.replace("(", "").replace(")", "").replace(" ", "").split(",")
         x = int(str_pieces[0])
-        y = int(str_pieces[2])
-        z = int(str_pieces[1])
+        y = int(str_pieces[1])
+        z = int(str_pieces[2])
         return PosStateInfo(x, y, z)
 
     def to_string(self):

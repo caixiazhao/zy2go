@@ -97,7 +97,7 @@ class S(BaseHTTPRequestHandler):
     log_file = open('httpd.log', 'a')
     state_file = open('state.txt', 'a')
     model = LineModel(240,48)
-    model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
+    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
     line_trainer = LineTrainer()
 
     def log_message(self, format, *args):
