@@ -21,6 +21,7 @@ from model.fwdstateinfo import FwdStateInfo
 class LineModel:
     REWARD_GAMMA = 0.9
 
+
     def __init__(self, statesize, actionsize):
         self.state_size = statesize
         self.action_size = actionsize #50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
@@ -36,6 +37,8 @@ class LineModel:
         self.att_dist=2
         #todo:以下仅为英雄1技能距离，后续需将这些信息加入到skillinfo中
         self.skilldist=[8,6,5]
+        #todo:一下仅为英雄1的技能对自己可用情况，后续应该整合到skillinfo
+        self.skill_tag=[0,1,1]
 
 
     @property
@@ -185,7 +188,10 @@ class LineModel:
                     acts[selected]=0
                     continue
                 # todo: 异常情况处理：
-                fwd = tgtpos.fwd(hero.pos)
+                if tgtpos==None:
+                    fwd=None
+                else:
+                    fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST,skillid,tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected<38: #skill2
@@ -207,7 +213,10 @@ class LineModel:
                     #目标在施法范围外
                     acts[selected]=0
                     continue
-                fwd = tgtpos.fwd(hero.pos)
+                if tgtpos==None:
+                    fwd=None
+                else:
+                    fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected<48: #skill3
@@ -229,7 +238,10 @@ class LineModel:
                     # 目标在施法范围外
                     acts[selected]=0
                     continue
-                fwd = tgtpos.fwd(hero.pos)
+                if tgtpos==None:
+                    fwd=None
+                else:
+                    fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected==48:#回城
@@ -252,9 +264,13 @@ class LineModel:
 
     def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero):
         if selected==0:
-            tgtid =hero_name
+            if self.skill_tag[skill-1]==0:
+                return [-1,None]
+            #tgtid =hero_name
+            tgtid=None
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
-            tgtpos=pos
+            #tgtpos=pos
+            tgtpos=None
         elif selected==1:
             rival = stateinformation.get_hero(rival_hero)
             if StateUtil.cal_distance(rival.pos, pos) > self.skilldist[skill - 1]:
