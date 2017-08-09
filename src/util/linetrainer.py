@@ -87,7 +87,7 @@ class LineTrainer:
             action=self.build_hero_response(state_info,line_model,hero.hero_name)
             action_strs=action_strs+action
         rsp_obj={"ID": battle_id, "tick":tick, "cmd":action_strs}
-        rsp_str=JSON.dump(rsp_obj)
+        rsp_str=JSON.dumps(rsp_obj)
         return rsp_str
 
 
@@ -101,6 +101,6 @@ class LineTrainer:
         action = self.build_hero_response(state_info, line_model, "28")
         action_strs = action_strs + action
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
-        rsp_str = JSON.dump(rsp_obj)
+        rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
 

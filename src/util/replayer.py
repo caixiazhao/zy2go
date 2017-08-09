@@ -46,12 +46,12 @@ class Replayer:
                 hero_current=temphero
             else:
                 hero_rival_current=temphero
-        for temphero in next_state_info:
+        for temphero in next_state_info.heros:
             if temphero.hero_name==hero_name:
                 hero_next=temphero
 
-        if len(hero_current.attack_info)>0: #有角色进行了攻击或回城
-            for attack in hero_current.attack_info:
+        if state_info.attack_infos!=None: #有角色进行了攻击或回城
+            for attack in state_info.attack_infos:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
                     skillid=attack.skill%100
 
@@ -104,6 +104,16 @@ class Replayer:
                     else:#hold
                         action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                         return action
+        else: #没有角色进行攻击或使用技能，英雄在移动或hold
+            if hero_current.pos.x != hero_next.pos.x or hero_current.pos.z != hero_next.pos.z or hero_current.pos.y != hero_next.pos.y:  # 移动
+                fwd = Replayer.get_fwd(hero_current.pos, hero_next.pos)
+                [fwd, output_index] = Replayer.get_closest_fwd(fwd)
+                action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
+                return action
+            else:  # hold
+                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                return action
+
 
 
     @staticmethod
