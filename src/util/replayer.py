@@ -315,7 +315,7 @@ if __name__ == "__main__":
     
     line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 36030:
+        if prev_state is not None and int(prev_state.tick) > 173504:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -330,13 +330,13 @@ if __name__ == "__main__":
         state_info = StateUtil.update_state_log(prev_state, cur_state)
         state_logs.append(state_info)
 
-        prev_state = state_info
-
-        rsp_str = line_trainer.build_response(state_info, prev_stat, model)
+        rsp_str = line_trainer.build_response(state_info, prev_state, model)
         print(rsp_str)
 
         state_json = JSON.dumps(state_info, cls=ComplexEncoder)
         print(state_json)
+
+        prev_state = state_info
 
     # model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
     print(len(state_logs))
