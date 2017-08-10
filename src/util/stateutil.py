@@ -5,6 +5,7 @@ import json as JSON
 from random import randint
 
 from hero_strategy.soldierline import SoldierLine
+from model.fwdstateinfo import FwdStateInfo
 from model.posstateinfo import PosStateInfo
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
@@ -266,16 +267,36 @@ class StateUtil:
     @staticmethod
     def cal_distance(pos1, pos2):
         # 忽略y值
-        distance = math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.y - pos2.y) * (pos1.y - pos2.y)) / 1000
+        distance = math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.z - pos2.z) * (pos1.z - pos2.z)) / 1000
         return distance
 
     @staticmethod
-    def if_retreat(prev_pos, cur_pos, hero_name):
-        if int(hero_name) <= 31 and cur_pos.x > prev_pos.x:
+    def if_retreat(prev_pos, cur_pos, hero):
+        if hero.team == 0 and cur_pos.x < prev_pos.x:
             return True
-        if int(hero_name) > 31 and cur_pos.x < prev_pos.y:
+        if hero.team == 1 and cur_pos.x > prev_pos.x:
             return True
         return False
+
+    @staticmethod
+    def mov(direction):
+        # 根据输入0~7这8个整数，选择上下左右等八个方向返回
+        if direction == 0:
+            return FwdStateInfo(1000, 0, 0)
+        elif direction == 1:
+            return FwdStateInfo(707, 0, 707)
+        elif direction == 2:
+            return FwdStateInfo(0, 0, 1000)
+        elif direction == 3:
+            return FwdStateInfo(-707, 0, 707)
+        elif direction == 4:
+            return FwdStateInfo(0, 0, -1000)
+        elif direction == 5:
+            return FwdStateInfo(-707, 0, -707)
+        elif direction == 6:
+            return FwdStateInfo(-1000, 0, 0)
+        else:
+            return FwdStateInfo(-707, 0, 707)
 
     @staticmethod
     def build_command(action):
@@ -286,7 +307,7 @@ class StateUtil:
         if action.action == CmdActionEnum.ATTACK and action.tgtid is not None:
             return {"hero_id": action.hero_name, "action": 'ATTACK', "tgtid": action.tgtid}
         if action.action == CmdActionEnum.CAST and action.skillid is not None:
-            command = {"hero_id": action.hero_name, "action": 'CAST', "skillid": action.skillid}
+            command = {"hero_id": action.hero_name, "action": 'CAST', "skillid": str(action.skillid)}
             if action.tgtid is not None:
                 command['tgtid'] = action.tgtid
             if action.tgtpos is not None:
@@ -295,7 +316,7 @@ class StateUtil:
                 command['fwd'] = action.fwd.to_string()
             return command
         if action.action == CmdActionEnum.UPDATE and action.skillid is not None:
-            return {"hero_id": action.hero_name, "action": 'UPDATE', "skillid": action.skillid}
+            return {"hero_id": action.hero_name, "action": 'UPDATE', "skillid": str(action.skillid)}
         if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:

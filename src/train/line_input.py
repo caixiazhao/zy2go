@@ -67,7 +67,7 @@ class Line_input:
 
     #TODO 需要更多注释
     def gen_input_hero(self,hero):
-        heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.y, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
+        heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.z, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
                   1000+hero.attspeed, int(hero.movelock), hero.team]
         #todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
         if hero.state=="in":
@@ -114,13 +114,13 @@ class Line_input:
             building_info=np.zeros(8)
             building_info=list(building_info)
         else:
-            building_info=[int(building.unit_name), building.pos.x, building.pos.y, building.att, 7000, building.hp,
+            building_info=[int(building.unit_name), building.pos.x, building.pos.z, building.att, 7000, building.hp,
                            1000+building.attspeed, building.team]
         return building_info
         #建筑信息向量大小=8
 
 
     def gen_input_creep(self,creep):
-        creep_info=[creep.pos.x,creep.pos.y,creep.att,creep.hp,1000+creep.attspeed,creep.team]
+        creep_info=[creep.pos.x,creep.pos.z,creep.att,creep.hp,1000+creep.attspeed,creep.team]
         return creep_info
         #单个小兵信息大小=6

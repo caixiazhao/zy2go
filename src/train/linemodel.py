@@ -38,7 +38,7 @@ class LineModel:
         #todo:以下仅为英雄1技能距离，后续需将这些信息加入到skillinfo中
         self.skilldist=[8,6,5]
         #todo:一下仅为英雄1的技能对自己可用情况，后续应该整合到skillinfo
-        self.skill_tag=[0,1,1]
+        self.skill_tag=[0,0,1]
 
 
     @property
@@ -115,6 +115,7 @@ class LineModel:
             maxQ = max(acts)
 
             selected = acts.index(maxQ)
+            # print "%s %s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts))
             #每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             if random.random()<0.15:
                 #随机策略，选择跳过当前最优解
@@ -125,7 +126,7 @@ class LineModel:
                     #英雄可以移动，没有被限制住
                     acts[selected] = 0
                     continue
-                fwd = self.mov(selected)
+                fwd = StateUtil.mov(selected)
 
                 #生成action所需的参数：CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
@@ -141,6 +142,7 @@ class LineModel:
                     tower=self.get_tower_temp(stateinformation)
                     dist=StateUtil.cal_distance(hero.pos, tower.pos)
                     if dist>self.att_dist:
+                    # if dist>StateUtil.ATTACK_UNIT_RADIUS:
                         # 在攻击范围外
                         acts[selected]=0
                         continue
@@ -150,10 +152,12 @@ class LineModel:
                 elif selected==9:#敌方英雄
                     tgtid = rival_hero
                     rival_info = stateinformation.get_hero(rival_hero)
-                    dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
+                    dist=StateUtil.cal_distance(hero.pos,rival_info.pos)
                     if dist>self.att_dist:
+                    # if dist>StateUtil.ATTACK_HERO_RADIUS:
                         acts[selected]=0
                         continue
+                    print 'attack rival hero %s %s' % (rival_hero, str(dist))
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
                 else:#小兵
@@ -165,8 +169,10 @@ class LineModel:
                         continue
                     dist=StateUtil.cal_distance(hero.pos,creeps[n].pos)
                     if dist > self.att_dist:
+                    # if dist > StateUtil.ATTACK_UNIT_RADIUS:
                         acts[selected]=0
                         continue
+                    print 'attack unit %s %s' % (creeps[n].unit_name, str(dist))
                     tgtid=creeps[n].unit_name
                     action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
@@ -391,23 +397,4 @@ class LineModel:
             final_reward_map[reward_hero] = fianl_reward_hero
 
         return final_reward_map
-
-    def mov(self, direction):
-        # 根据输入0~7这8个整数，选择上下左右等八个方向返回
-        if direction == 0:
-            return FwdStateInfo(1000, 0, 0)
-        elif direction == 1:
-            return FwdStateInfo(707, 707, 0)
-        elif direction == 2:
-            return FwdStateInfo(0, 1000, 0)
-        elif direction == 3:
-            return FwdStateInfo(-707, 707, 0)
-        elif direction == 4:
-            return FwdStateInfo(0, -1000, 0)
-        elif direction == 5:
-            return FwdStateInfo(-707, -707, 0)
-        elif direction == 6:
-            return FwdStateInfo(-1000, 0, 0)
-        else:
-            return FwdStateInfo(-707, 707, 0)
 

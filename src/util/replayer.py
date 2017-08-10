@@ -200,35 +200,15 @@ class Replayer:
         output_index=0
         output_fwd=fwd
         for i in range(8):
-            fwd1=Replayer.mov(i)
-            a=fwd.x*fwd.x+fwd.y*fwd.y
-            b=fwd1.x*fwd1.x+fwd1.y*fwd1.y
-            cos=(fwd.x*fwd1.x+fwd.y*fwd1.y)/(math.sqrt(a)*math.sqrt(b))
+            fwd1=StateUtil.mov(i)
+            a=fwd.x*fwd.x+fwd.z*fwd.z
+            b=fwd1.x*fwd1.x+fwd1.z*fwd1.z
+            cos=(fwd.x*fwd1.x+fwd.z*fwd1.z)/(math.sqrt(a)*math.sqrt(b))
             if cos>maxcos:
                 maxcos=cos
                 output_index=i
                 output_fwd=fwd1
         return [output_fwd, output_index]
-
-    @staticmethod
-    def mov(direction):
-        # 根据输入0~7这8个整数，选择上下左右等八个方向返回
-        if direction == 0:
-            return FwdStateInfo(1000, 0, 0)
-        elif direction == 1:
-            return FwdStateInfo(707, 707, 0)
-        elif direction == 2:
-            return FwdStateInfo(0, 1000, 0)
-        elif direction == 3:
-            return FwdStateInfo(-707, 707, 0)
-        elif direction == 4:
-            return FwdStateInfo(0, -1000, 0)
-        elif direction == 5:
-            return FwdStateInfo(-707, -707, 0)
-        elif direction == 6:
-            return FwdStateInfo(-1000, 0, 0)
-        else:
-            return FwdStateInfo(-707, 707, 0)
 
     @staticmethod
     def guess_strategy(state_infos):
@@ -315,8 +295,8 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    #path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
+    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle1.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -330,9 +310,9 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
-    # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
-
+    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-10121512.668858.model')
+    
     line_trainer = LineTrainer()
     for line in lines:
         if prev_state is not None and int(prev_state.tick) > 36030:
@@ -358,5 +338,5 @@ if __name__ == "__main__":
         state_json = JSON.dumps(state_info, cls=ComplexEncoder)
         print(state_json)
 
-    model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
+    # model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
     print(len(state_logs))
