@@ -163,6 +163,10 @@ class LineModel:
                         acts[selected]=0
                         print("英雄太远，放弃普攻")
                         continue
+                    # 对方英雄死亡时候忽略这个目标
+                    elif rival_info.hp <= 0:
+                        acts[selected] = 0
+                        continue
                     print('attack rival hero %s %s' % (rival_hero, str(dist)))
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
@@ -309,6 +313,10 @@ class LineModel:
                 # print "技能攻击不到对方 %s %s %s" % (rival_hero, StateUtil.cal_distance(rival.pos, pos), self.skilldist[skill - 1])
                 tgtid = -1
                 tgtpos = None
+            # 对方英雄死亡时候忽略这个目标
+            elif rival.hp <= 0:
+                tgtid = -1
+                tgtpos = None
             else:
                 tgtid = rival_hero
                 tgtpos = rival.pos
@@ -321,6 +329,9 @@ class LineModel:
             elif StateUtil.cal_distance(pos,creeps[n].pos)>self.skilldist[skill-1]:
                 tgtid=-1
                 tgtpos=None
+            elif creeps[n].hp <= 0:
+                tgtid = -1
+                tgtpos = None
             else:
                 tgtid=creeps[n].unit_name
                 tgtpos=creeps[n].pos
