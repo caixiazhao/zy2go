@@ -19,7 +19,7 @@ class LineTrainer:
 
     # 双方英雄集中到中路中间区域，进行对线
     # 一方英雄回城之后，负责等他满血后回到对战区
-    def build_hero_response(self, state_info, line_model, hero_names=None):
+    def build_response(self, state_info, prev_state_info, line_model, hero_names=None):
         
         battle_id = state_info.battleid
         tick = state_info.tick

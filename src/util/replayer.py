@@ -285,7 +285,7 @@ if __name__ == "__main__":
 
         prev_state = state_info
 
-        rsp_str = line_trainer.build_heros_response(state_info, prev_stat, model)
+        rsp_str = line_trainer.build_response(state_info, prev_stat, model)
         print(rsp_str)
 
         state_json = JSON.dumps(state_info, cls=ComplexEncoder)
