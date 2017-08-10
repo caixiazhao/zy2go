@@ -124,7 +124,7 @@ class LineModel:
                 continue
             if selected < 8:  #move
                 if hero.movelock == False:
-                    #英雄可以移动，没有被限制住
+                    #英雄移动限制
                     acts[selected] = 0
                     print("移动受限，放弃移动"+str(hero.movelock))
 
@@ -189,10 +189,10 @@ class LineModel:
                     action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
             elif selected<28: #skill1
-                if hero.skills[1].canuse==False:
+                if hero.skills[1].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected]=0
-                    print("技能受限，放弃施法1"+" hero.skills[1].canuse="+str(hero.skills[1].canuse))
+                    print("技能受限，放弃施法1"+" hero.skills[1].canuse="+str(hero.skills[1].canuse)+" tick="+str(stateinformation.tick))
                     continue
                 if hero.skills[1].cost>hero.mp:
                     #mp不足
@@ -219,9 +219,9 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.CAST,str(skillid),tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected<38: #skill2
-                if hero.skills[2].canuse==False:
+                if hero.skills[2].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    print("技能受限，放弃施法2"+" hero.skills[2].canuse="+str(hero.skills[2].canuse))
+                    print("技能受限，放弃施法2"+" hero.skills[2].canuse="+str(hero.skills[2].canuse)+" tick="+str(stateinformation.tick))
                     acts[selected]=0
                     continue
                 if hero.skills[2].cost>hero.mp:
@@ -248,9 +248,9 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected<48: #skill3
-                if hero.skills[3].canuse==False:
+                if hero.skills[3].canuse!=True:
                     #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    print("技能受限，放弃大招"+" hero.skills[3].canuse="+str(hero.skills[3].canuse))
+                    print("技能受限，放弃大招"+" hero.skills[3].canuse="+str(hero.skills[3].canuse)+" tick="+str(stateinformation.tick))
                     acts[selected]=0
                     continue
                 if hero.skills[3].cost>hero.mp:
@@ -277,7 +277,7 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), tgtid, tgtpos, fwd, None, selected, None)
                 return action
             elif selected==48:#回城
-                if hero.skills[6].canuse==False:
+                if hero.skills[6].canuse!=True:
                     print("技能受限，放弃回城")
                     #不能回城
                     acts[selected] = 0
@@ -288,7 +288,7 @@ class LineModel:
                     acts[selected] = 0
                     continue
                 skillid = 6
-                action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), None, None, None, None, selected, None)
+                action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), hero_name, None, None, None, selected, None)
                 return action
             else:#hold
                 print("轮到了49号行为-hold")
@@ -303,7 +303,7 @@ class LineModel:
             if self.skill_tag[skill-1]==0:
                 return [-1,None]
             #tgtid =hero_name
-            tgtid=0
+            tgtid=hero_name
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
             #tgtpos=pos
             tgtpos=None
