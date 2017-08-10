@@ -13,3 +13,4 @@ class ActionEnum:
     near_self_tower = 11
     near_enemy_tower = 12
     be_attacked = 13
+    town_ing = 14

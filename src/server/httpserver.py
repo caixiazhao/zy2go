@@ -72,22 +72,16 @@ class S(BaseHTTPRequestHandler):
             S.prev_stat = None
         state_info = StateUtil.update_state_log(S.prev_stat, state_info)
 
-
         # 构造反馈结果
         # 注：这里帧状态得到了更新，添加了行为信息
-
-        #rsp_str = self.line_trainer.build_heros_response(state_info, self.model)
+        # rsp_str = self.line_trainer.build_heros_response(state_info, S.prev_stat, self.model)
         #todo：这样更新的state都没有reward，reward是否需要在后续操作中单独更新
         #下面是修改之后的内容，用作人与机器对战时的训练
-        rsp_str=self.line_trainer.build_PVE_response(state_info,self.model)
-        # rsp_str = StateUtil.build_action_response(state_info)
+        rsp_str=self.line_trainer.build_heros_response(state_info,S.prev_stat,self.model, ['28'])
+        
         print(rsp_str)
         rsp_str = rsp_str.encode(encoding="utf-8")
         # todo: encode for python3 version
-
-        self._set_headers()
-        self.wfile.write(rsp_str)
-        #给客户端提供对应的指令
 
         # 由当前帧状态推测上一帧玩家的action，更新state，无reward，若后面的更新只更新模型reward，可以在分析玩家action时指定reward
         if S.prev_stat is not None:
@@ -100,11 +94,14 @@ class S(BaseHTTPRequestHandler):
         state_json = JSON.dumps(state_info, cls=ComplexEncoder)
         self.state_file.write(strftime("%Y-%m-%d %H:%M:%S", time) + " -- " + state_json + "\n")
         self.state_file.flush()
-
+        
+        # 缓存当前帧
         S.prev_stat = state_info
-
-
-
+        
+        #给客户端提供对应的指令
+        self._set_headers()
+        self.wfile.write(rsp_str)
+            
 
     def do_HEAD(self):
         self._set_headers()

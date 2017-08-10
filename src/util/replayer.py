@@ -248,7 +248,8 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -262,12 +263,12 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
     # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
 
     line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 21510:
+        if prev_state is not None and int(prev_state.tick) > 36030:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -284,7 +285,7 @@ if __name__ == "__main__":
 
         prev_state = state_info
 
-        rsp_str = line_trainer.build_heros_response(state_info, model)
+        rsp_str = line_trainer.build_heros_response(state_info, prev_stat, model)
         print(rsp_str)
 
         state_json = JSON.dumps(state_info, cls=ComplexEncoder)
