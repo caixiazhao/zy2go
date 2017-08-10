@@ -20,16 +20,16 @@ class LineTrainer:
     # 双方英雄集中到中路中间区域，进行对线
     # 一方英雄回城之后，负责等他满血后回到对战区
     def build_response(self, state_info, prev_state_info, line_model, hero_names=None):
-        
+
         battle_id = state_info.battleid
         tick = state_info.tick
         action_strs=[]
-        
+
         if hero_names is None:
             hero_names = [hero.hero_name for hero in state_info.heros]
         for hero_name in hero_names:
             hero = state_info.get_hero(hero_name)
-            
+
             # 如果有可以升级的技能，直接选择第一个升级
             skills = StateUtil.get_skills_can_upgrade(hero)
             if len(skills) > 0:
@@ -78,14 +78,14 @@ class LineTrainer:
                     else:
                         # 得到最前方的兵线位置
                         front_point = solider_lines[-1]
-                        print 'front_point, team:%s, line:%s, wave:%s, units:%s' % (front_point.team_id, front_point.line_index, len(solider_lines), len(front_point.units))
+                        print('front_point, team:%s, line:%s, wave:%s, units:%s' % (front_point.team_id, front_point.line_index, len(solider_lines), len(front_point.units)))
                         move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_point.pos, None, None, None, None)
                         action_str = StateUtil.build_command(move_action)
                         # action_str = StateUtil.build_action_command(hero.hero_name, 'MOVE', {'pos': '( 5000, -80, 0)'})
                         action_strs.append(action_str)
             else:
                 # 使用模型进行决策
-                print 'line model decides'
+                print('line model decides')
                 rival_hero = '28' if hero.hero_name == '27' else '27'
                 action = line_model.get_action(state_info, hero.hero_name, rival_hero)
                 action_str = StateUtil.build_command(action)
@@ -96,3 +96,4 @@ class LineTrainer:
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
+

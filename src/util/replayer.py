@@ -56,39 +56,66 @@ class Replayer:
                     skillid=attack.skill%100
 
                     tgtid = str(attack.defer)
+                    tgtpos=attack.tgtpos
+                    if tgtid==None:
+                        #attackinfo里没有tgtid只有tgtpos
+                        tgtid1=0
+                    else:
+                        tgtid1=int(tgtid)
                     if skillid==0:#回城
                         action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48, None)
                         return action
                     skillid=skillid//10
                     if skillid==0: #普攻，不会以自己为目标
-                        if tgtid<27: #打塔
+                        if tgtid1<27 and tgtid1!= 0: #打塔
                             output_index=8
-                        elif tgtid==int(hero_rival_current.hero_name): #普通攻击敌方英雄
+                        elif tgtid==hero_rival_current.hero_name: #普通攻击敌方英雄
                             output_index=9
-                        else:#普通攻击敌方小兵
+                        elif tgtid1!=0:#普通攻击敌方小兵
                             creeps=StateUtil.get_nearby_enemy_units(state_info,hero_name)
                             n=len(creeps)
                             for i in range(n):
                                 if creeps[i].unit_name==str(tgtid):
                                     output_index=i+10
+                        elif tgtid1==0:
+                            #attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
+                            [tgtid,output_index]=Replayer.get_closest_tgt(state_info,hero_name,tgtpos,0)
+                            if output_index==-2:
+                                output_index=8
+                                #打塔
+                            elif output_index==-1:
+                                output_index=9
+                                #对方英雄
+                            else:
+                                output_index=output_index+9
 
-                        action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, output_index, None)
+                        action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, tgtpos, None, None, output_index, None)
                         return action
 
                     else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
 
-                        if tgtid==int(hero_name):#对自身施法
+                        if tgtid==hero_name:#对自身施法
                             tgtpos=hero_current.pos
                             output_index=8+skillid*10
-                        elif tgtid==int(hero_rival_current.hero_name):#对敌方英雄施法
+                        elif tgtid==hero_rival_current.hero_name:#对敌方英雄施法
                             tgtpos=hero_rival_current.pos
                             output_index=9+skillid*10
-                        elif tgtid>27:#对小兵施法
+                        elif tgtid1>27:#对小兵施法
                             creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
                             n = len(creeps)
                             for i in range(n):
                                 if creeps[i].unit_name == str(tgtid):
                                     output_index = i + skillid*10+10
+                        elif tgtid1==0:
+                            [tgtid, output_index] = Replayer.get_closest_tgt(state_info, hero_name, tgtpos, 1)
+                            if output_index==0:
+                                output_index=8+skillid*10
+                                #己方英雄或无指向
+                            elif output_index==-1:
+                                output_index=9+skillid*10
+                                #对方英雄
+                            else:
+                                output_index=output_index+skillid*10+9
                         else:#对塔施法，模型中未考虑
                             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                             return action
@@ -114,6 +141,46 @@ class Replayer:
                 action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                 return action
 
+    @staticmethod
+    def get_closest_tgt(state_info,hero_name,pos,skillslot):
+        creeps=StateUtil.get_nearby_enemy_units(state_info,hero_name)
+        min_distance=1000
+        index=None
+        #这是用作返回的 output_index
+
+        m=len(creeps)
+        for i in range(m):
+            dist=StateUtil.cal_distance(pos,creeps[i].pos)
+            if dist<min_distance:
+                min_distance=dist
+                index=i
+                tgtid=creeps[i].unit_name
+        index=index+1
+        #index=1~8代表当前传入的pos与小兵1~8最接近
+        for hero in state_info.heros:
+            dist=StateUtil.cal_distance(pos,hero.pos)
+            if hero.hero_name==hero_name:
+                if skillslot!=0 and dist < min_distance:
+                    #普攻时目标不可为自己
+                    min_distance=dist
+                    index = 0
+                    tgtid = None
+            else:
+                if dist<min_distance:
+                    min_distance=dist
+                    index=-1
+                    tgtid=hero.hero_name
+                #index=0代表无目标施法，index=-1代表向对方英雄施法
+        if skillslot==0:
+            #普攻时目标才能为塔
+            tower=StateUtil.get_nearest_enemy_tower(state_info,hero_name)
+            dist=StateUtil.cal_distance(pos,tower.pos)
+            if dist<min_distance:
+                min_distance=dist
+                tgtid=tower.unit_name
+                index=-2
+                #-2指塔
+        return [tgtid,index]
 
 
     @staticmethod
@@ -248,8 +315,8 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    #path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -263,7 +330,7 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
     # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
 
     line_trainer = LineTrainer()

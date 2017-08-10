@@ -97,7 +97,7 @@ class StateUtil:
                 else:
                     line_pos_map[line_pos].append(soldier.unit_name)
 
-        print 'front_point team:%s, line:%s, %s/%s in line' % (team_id, line_index, soldiers_in_line, len(soldiers))
+        print('front_point team:%s, line:%s, %s/%s in line' % (team_id, line_index, soldiers_in_line, len(soldiers)))
 
         # 遍历所有的小兵位置信息，然后返回小兵的集中点
         # 集中点的定义为：只要相邻的格子有小兵出现，就认为他们处于同一个集中点，如果有间断，就认为属于一个新的集中点
@@ -137,7 +137,7 @@ class StateUtil:
             unit = state_info.get_unit(unit_name)
             cached_x += unit.pos.x
             cached_z += unit.pos.z
-        return PosStateInfo(cached_x/len(unit_index_list), -80, cached_z/len(unit_index_list))
+        return PosStateInfo(int(cached_x/len(unit_index_list)),int( -80),int( cached_z/len(unit_index_list)))
 
 
     # 返回单位在兵线上的位置
@@ -224,6 +224,22 @@ class StateUtil:
                 if distance < max_distance:
                     nearby_enemy_units.append(unit)
         return nearby_enemy_units
+
+    @staticmethod
+    def get_nearest_enemy_tower(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
+        hero = state_info.get_hero(hero_id)
+        enemy_unit_team = 1 - hero.team
+        enemy_units = StateUtil.get_units_in_team(state_info, enemy_unit_team)
+        nearest_enemy_tower = None
+        for unit in enemy_units:
+            # 排除小兵
+            # 排除掉野怪
+            if int(unit.unit_name) < 27 and not StateUtil.if_unit_monster(unit):
+                distance = StateUtil.cal_distance(hero.pos, unit.pos)
+                if distance < max_distance:
+                    nearest_enemy_tower=unit
+                    max_distance=distance
+        return nearest_enemy_tower
 
     @staticmethod
     def get_nearby_monsters(state_info, hero_id):
