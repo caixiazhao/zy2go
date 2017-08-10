@@ -86,7 +86,8 @@ class LineModel:
             # 默认只有两个英雄
             action_index = 0 if state_info.actions[0].reward > state_info.actions[1].reward else 1
             hero_name = state_info.actions[action_index].hero_name
-            line_input = Line_input(state_info, hero_name)
+            rival_hero=state_info.actions[1-action_index].hero_name
+            line_input = Line_input(state_info, hero_name,rival_hero)
             state = line_input.gen_input()
 
             # 得到模型预测结果
@@ -148,7 +149,8 @@ class LineModel:
                     return action
                 elif selected==9:#敌方英雄
                     tgtid = rival_hero
-                    dist=StateUtil.cal_distance(hero.pos,hero.pos)
+                    rival_info = stateinformation.get_hero(rival_hero)
+                    dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
                     if dist>self.att_dist:
                         acts[selected]=0
                         continue
@@ -316,9 +318,9 @@ class LineModel:
     def get_action(self,stateinformation,hero_name, rival_hero):
         # 这样传stateinformation太拖慢运行速度了，后面要改
         line_input = Line_input(stateinformation, hero_name, rival_hero)
-        state = line_input.gen_input()
-        state=np.array([state])
-        actions=self.model.predict(state)
+        state_input = line_input.gen_input()
+        state_input=np.array([state_input])
+        actions=self.model.predict(state_input)
         action=self.select_actions(actions,stateinformation,hero_name, rival_hero)
         return action
 
