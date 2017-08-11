@@ -107,6 +107,19 @@ class StateInfo:
                 return hero_info
         return None
 
+    def encode(self):
+        json_map = {'wldstatic': {'ID' : self.battleid}, 'wldruntime': {'tick' : self.tick}}
+        for hero in self.heros:
+            json_map[hero.hero_name] = hero.encode()
+        for unit in self.units:
+            json_map[unit.unit_name] = unit.encode()
+        json_map['attackinfos'] = [ai.encode() for ai in self.attack_infos]
+        json_map['hitinfos'] = [hi.encode() for hi in self.hit_infos]
+        json_map['dmginfos'] = [di.encode() for di in self.dmg_infos]
+        json_map['actions'] = [ac.encode() for ac in self.actions]
+        return json_map
+
+
     @staticmethod
     def decode(obj):
         battleid = obj['wldstatic']['ID']

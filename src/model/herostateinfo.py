@@ -97,6 +97,19 @@ class HeroStateInfo:
         else:
             return self.vis2
 
+    def encode(self):
+        json_map = {'state': self.state, 'cfgID': self.cfg_id, 'pos': self.pos.encode(), 'fwd': self.fwd.encode(),
+                    'hp': self.hp, 'maxhp': self.maxhp, 'maxmp': self.maxmp, 'mp': self.mp, 'speed': self.speed,
+                    'att': self.att, 'gold': self.gold, 'Hprec': self.hprec, 'vis1': self.vis1, 'vis2': self.vis2,
+                    'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen, 'magpen': self.magpen,
+                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock, 'buff': self.buffs,
+                    }
+        for equip in self.equips:
+            json_map[equip.name] = equip.encode()
+        for skill in self.skills:
+            json_map[skill.skill_name] = skill.encode()
+        return json_map
+
     @staticmethod
     def decode_add_skill(obj, skill_id):
         if skill_id in obj:

@@ -14,6 +14,9 @@ class PosStateInfo:
         z = int(str_pieces[2])
         return PosStateInfo(x, y, z)
 
+    def encode(self):
+        return self.to_string()
+
     def to_string(self):
         return '( %s, %s, %s)' % (self.x, self.y, self.z)
 

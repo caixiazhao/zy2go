@@ -55,6 +55,17 @@ class UnitStateInfo(object):
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
                              attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
 
+    def encode(self):
+        json_map = {'state': self.state, 'cfgID': self.cfg_id, 'pos': self.pos.encode(), 'fwd': self.fwd.encode(),
+                    'hp': self.hp, 'maxhp': self.maxhp, 'speed': self.speed, 'moving': self.moving, 'chrtype': self.chrtype,
+                    'att': self.att, 'vis1': self.vis1, 'vis2': self.vis2,
+                    'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen,
+                    'magpen': self.magpen,
+                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock,
+                    'buff': self.buffs,
+                    }
+        return json_map
+
     @staticmethod
     def decode(obj, unit_name):
         unit_name = unit_name
