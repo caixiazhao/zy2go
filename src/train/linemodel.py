@@ -116,8 +116,9 @@ class LineModel:
 
             selected = acts.index(maxQ)
             # print "%s %s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts))
-            #每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
-            if random.random()<0.15:
+            # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
+            # 调试阶段暂时关闭随机，方便复现所有的问题
+            if random.random()<-1:
                 #随机策略，选择跳过当前最优解
                 acts[selected]=0
                 print("随机跳了一个操作")

@@ -18,7 +18,7 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 13  # 13.5
     ATTACK_UNIT_RADIUS = 9  # 10
-    LINE_MODEL_RADIUS = 20
+    LINE_MODEL_RADIUS = 13
 
     ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10120": 6000, "10130": 3500,
                            "10200": 2000, "10210": 8000, "10220": 5000, "10230": 6000}
@@ -81,8 +81,26 @@ class StateUtil:
     def get_units_in_team(state_info, team_id):
         return [unit for unit in state_info.units if unit.team == team_id and unit.state == "in"]
 
+    @staticmethod
+    def get_frontest_soldier_in_line(state_info, line_index, team_id):
+        units = StateUtil.get_units_in_team(state_info, team_id)
+        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
+        soldiers_in_line = 0
+        frontest = None
+        for idx, soldier in enumerate(soldiers):
+            line_pos = StateUtil.if_in_line(soldier, line_index)
+            if line_pos >= 0:
+                soldiers_in_line += 1
+                frontest = frontest if frontest is not None and ((frontest.pos.x > soldier.pos.x and team_id == 0) or
+                                    (frontest.pos.x < soldier.pos.x and team_id == 1)) else soldier
+
+        print('front_point team:%s, line:%s, %s/%s in line, frontest.x: %s' % (team_id, line_index, soldiers_in_line,
+                                                                             len(soldiers), 0 if frontest is None else frontest.pos.x))
+        return frontest
+
     # 得到兵线位置，小兵数量
     # 兵线编号，从左到右为0-2
+    # 逻辑过于复杂，可能因为一个兵线格子过长，计算中点时候导致离真实的两波小兵都很远
     @staticmethod
     def get_solider_lines(state_info, line_index, team_id):
         units = StateUtil.get_units_in_team(state_info, team_id)
@@ -101,28 +119,16 @@ class StateUtil:
         print('front_point team:%s, line:%s, %s/%s in line' % (team_id, line_index, soldiers_in_line, len(soldiers)))
 
         # 遍历所有的小兵位置信息，然后返回小兵的集中点
-        # 集中点的定义为：只要相邻的格子有小兵出现，就认为他们处于同一个集中点，如果有间断，就认为属于一个新的集中点
+        # 集中点的定义为：每个格子记录一个集中点，为这个格子内所有小兵的中心位置
         soldier_lines = []
         cache_units = []
         for line_pos_idx in range(len(StateUtil.LINE_WAY_POINTS[line_index])):
             # 如果当前兵线区域没有小兵，则连续中断，将之前连续的部分存成一个集中点
             if line_pos_idx not in line_pos_map:
-                if len(cache_units) > 0:
-                    # 计算中点
-                    pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
-                    sl = SoldierLine(team_id, line_index, pos, cache_units)
-                    soldier_lines.append(sl)
-
-                    # 清空
-                    cache_units = []
-            else:
-                cache_units.extend(line_pos_map[line_pos_idx])
-
-        if len(cache_units) > 0:
-            # 计算中点
-            pos = StateUtil.cal_soldier_wave_point(state_info, cache_units)
-            sl = SoldierLine(team_id, line_index, pos, cache_units)
-            soldier_lines.append(sl)
+                # 计算中点
+                pos = StateUtil.cal_soldier_wave_point(state_info, line_pos_map[line_pos_idx])
+                sl = SoldierLine(team_id, line_index, pos, cache_units)
+                soldier_lines.append(sl)
 
         # 按照兵线从开始到结尾进行排序 team0的顺序需要翻转
         if team_id == 1 and len(soldier_lines) > 0:
@@ -188,7 +194,7 @@ class StateUtil:
         nearby_enemies = []
         for enemy in enemy_heros:
             # 首先需要确定敌方英雄可见
-            if enemy.is_enemy_visible():
+            if enemy.is_enemy_visible() and enemy.hp > 0:
                 distance = StateUtil.cal_distance(hero.pos, enemy.pos)
                 if distance < max_distance:
                     nearby_enemies.append(enemy)
@@ -204,7 +210,7 @@ class StateUtil:
         for unit in friend_units:
             # 排除掉塔
             # 排除掉野怪
-            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit):
+            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp > 0:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_friend_units.append(unit)
@@ -220,7 +226,7 @@ class StateUtil:
         for unit in enemy_units:
             # 排除掉塔
             # 排除掉野怪
-            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit):
+            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp > 0:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_enemy_units.append(unit)
@@ -235,7 +241,7 @@ class StateUtil:
         for unit in enemy_units:
             # 排除小兵
             # 排除掉野怪
-            if int(unit.unit_name) < 27 and not StateUtil.if_unit_monster(unit):
+            if int(unit.unit_name) < 27 and not StateUtil.if_unit_monster(unit) and unit.hp > 0:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearest_enemy_tower=unit
