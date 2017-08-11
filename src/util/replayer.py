@@ -29,11 +29,12 @@ from datetime import datetime
 
 
 class Replayer:
-
+    skill_tag = [0, 0, 1]
+    #todo:
     @staticmethod
     # 推测玩家在每一帧中的行为
     # 注：移动方向的推测怎么算
-    def guess_player_action(state_info, next_state_info, hero_name):
+    def guess_player_action(prev_state_info, state_info, hero_name):
         #针对每一帧，结合后一帧信息，判断英雄在该帧的有效操作
         #仅对于一对一线上模型有效
         #技能>攻击>走位
@@ -46,15 +47,15 @@ class Replayer:
                 hero_current=temphero
             else:
                 hero_rival_current=temphero
-        for temphero in next_state_info.heros:
+        for temphero in prev_state_info.heros:
             if temphero.hero_name==hero_name:
-                hero_next=temphero
+                hero_prev=temphero
 
-        if state_info.attack_infos!=None: #有角色进行了攻击或回城
+        if len(state_info.attack_infos)!=0 : #有角色进行了攻击或回城
             for attack in state_info.attack_infos:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
+                    skill=attack.skill
                     skillid=attack.skill%100
-
                     tgtid = str(attack.defer)
                     tgtpos=attack.tgtpos
                     if tgtid==None:
@@ -72,50 +73,118 @@ class Replayer:
                         elif tgtid==hero_rival_current.hero_name: #普通攻击敌方英雄
                             output_index=9
                         elif tgtid1!=0:#普通攻击敌方小兵
-                            creeps=StateUtil.get_nearby_enemy_units(state_info,hero_name)
+                            creeps=StateUtil.get_nearby_enemy_units(prev_state_info,hero_name)
                             n=len(creeps)
                             for i in range(n):
                                 if creeps[i].unit_name==str(tgtid):
                                     output_index=i+10
-                        elif tgtid1==0:
-                            #attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
-                            [tgtid,output_index]=Replayer.get_closest_tgt(state_info,hero_name,tgtpos,0)
-                            if output_index==-2:
-                                output_index=8
-                                #打塔
-                            elif output_index==-1:
-                                output_index=9
-                                #对方英雄
-                            else:
-                                output_index=output_index+9
+                        elif tgtid1==0:#attacinfo里没有目标，从hit里找目标
+                            tgtid=0
+                            for hit in state_info.hit_infos:
+                                if hit.atker==int(hero_name) and hit.skill==skill:
+                                    tgtid = str(hit.tgt)
+                                    if int(tgtid)<27: #打塔
+                                        output_index=8
+                                    elif tgtid==hero_rival_current.hero_name:#敌方英雄
+                                        output_index=9
+                                    else:#小兵
+                                        creeps=StateUtil.get_nearby_enemy_units(prev_state_info,hero_name)
+                                        n=len(creeps)
+                                        for i in range(n):
+                                            if creeps[i].unit_name==tgtid:
+                                                output_index=i+10
+                            # 现在的技能应该没有那么高的延迟，如果需要后续信息后面可以多传几帧
+                            # if tgtid==0:#这一帧没有对应的hit，在下一帧找
+                            #     for hit in next_state_info.hit_infos:
+                            #         if hit.atker == int(hero_name) and hit.skill == skill:
+                            #             tgtid = str(hit.tgt)
+                            #             if int(tgtid) < 27:  # 打塔
+                            #                 output_index = 8
+                            #             elif tgtid == hero_rival_current.hero_name:  # 敌方英雄
+                            #                 output_index = 9
+                            #             else:  # 小兵
+                            #                 creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
+                            #                 n = len(creeps)
+                            #                 for i in range(n):
+                            #                     if creeps[i].unit_name == tgtid:
+                            #                         output_index = i + 10
+                            if tgtid==0:#任然没有hit，技能空放
+                                if tgtpos !=None:
+                                    #attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
+                                    [tgtid,output_index]=Replayer.get_closest_tgt(prev_state_info,hero_name,tgtpos,0)
+                                    if output_index==-2:
+                                        output_index=8
+                                        #打塔
+                                    elif output_index==-1:
+                                        output_index=9
+                                        #对方英雄
+                                    else:
+                                        output_index=output_index+9
+                                else:#真的打空了
+                                    action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49,
+                                                       None)
+                                    return action
 
                         action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, tgtpos, None, None, output_index, None)
                         return action
 
                     else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
 
-                        if tgtid==hero_name:#对自身施法
+                        if tgtid==hero_name or (tgtid=='0' and Replayer.skill_tag[skillid]==1):#对自身施法:部分技能无任何目标，tgt为0
+                            #todo:
                             tgtpos=hero_current.pos
                             output_index=8+skillid*10
                         elif tgtid==hero_rival_current.hero_name:#对敌方英雄施法
                             tgtpos=hero_rival_current.pos
                             output_index=9+skillid*10
                         elif tgtid1>27:#对小兵施法
-                            creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
+                            creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
                             n = len(creeps)
                             for i in range(n):
                                 if creeps[i].unit_name == str(tgtid):
                                     output_index = i + skillid*10+10
-                        elif tgtid1==0:
-                            [tgtid, output_index] = Replayer.get_closest_tgt(state_info, hero_name, tgtpos, 1)
-                            if output_index==0:
-                                output_index=8+skillid*10
-                                #己方英雄或无指向
-                            elif output_index==-1:
-                                output_index=9+skillid*10
-                                #对方英雄
-                            else:
-                                output_index=output_index+skillid*10+9
+                        elif tgtid1==0:#attacinfo里没有目标，从hit里找目标
+                            # todo::::
+                            tgtid = 0
+                            for hit in state_info.hit_infos:
+                                if hit.atker == int(hero_name) and hit.skill == skill:
+                                    tgtid = str(hit.tgt)
+                                    if tgtid == hero_rival_current.hero_name:  # 敌方英雄
+                                        output_index = 9+skillid*10
+                                    else:  # 小兵
+                                        creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
+                                        n = len(creeps)
+                                        for i in range(n):
+                                            if creeps[i].unit_name == tgtid:
+                                                output_index = i + 10+skillid*10
+                            # if tgtid == 0:  # 这一帧没有对应的hit，在下一帧找
+                            #     for hit in next_state_info.hit_infos:
+                            #         if hit.atker == int(hero_name) and hit.skill == skill:
+                            #             tgtid = str(hit.tgt)
+                            #             if tgtid == hero_rival_current.hero_name:  # 敌方英雄
+                            #                 output_index = 9 + skillid * 10
+                            #             else:  # 小兵
+                            #                 creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
+                            #                 n = len(creeps)
+                            #                 for i in range(n):
+                            #                     if creeps[i].unit_name == tgtid:
+                            #                         output_index = i + 10 + skillid * 10
+                            if tgtid == 0:  # 任然没有hit，技能空放
+                                if tgtpos != None:
+                                    # attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
+                                    [tgtid, output_index] = Replayer.get_closest_tgt(prev_state_info, hero_name, tgtpos, 1)
+                                    if output_index == 0:
+                                        output_index = 8 + skillid * 10
+                                        # 己方英雄或无指向
+                                    elif output_index == -1:
+                                        output_index = 9 + skillid * 10
+                                        # 对方英雄
+                                    else:
+                                        output_index = output_index + skillid * 10 + 9
+                                else:#真的技能空放了
+                                    action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49,
+                                                       None)
+                                    return action
                         else:#对塔施法，模型中未考虑
                             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                             return action
@@ -123,8 +192,8 @@ class Replayer:
                         return action
                 else:
                 #英雄没有进攻也没有施法
-                    if hero_current.pos.x!=hero_next.pos.x or hero_current.pos.z!= hero_next.pos.z or hero_current.pos.y!=hero_next.pos.y:#移动
-                        fwd=Replayer.get_fwd(hero_current.pos,hero_next.pos)
+                    if hero_current.pos.x!=hero_prev.pos.x or hero_current.pos.z!= hero_prev.pos.z or hero_current.pos.y!=hero_prev.pos.y:#移动
+                        fwd=Replayer.get_fwd(hero_prev.pos,hero_current.pos)
                         [fwd,output_index]=Replayer.get_closest_fwd(fwd)
                         action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
                         return action
@@ -132,8 +201,8 @@ class Replayer:
                         action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                         return action
         else: #没有角色进行攻击或使用技能，英雄在移动或hold
-            if hero_current.pos.x != hero_next.pos.x or hero_current.pos.z != hero_next.pos.z or hero_current.pos.y != hero_next.pos.y:  # 移动
-                fwd = Replayer.get_fwd(hero_current.pos, hero_next.pos)
+            if hero_current.pos.x != hero_prev.pos.x or hero_current.pos.z != hero_prev.pos.z or hero_current.pos.y != hero_prev.pos.y:  # 移动
+                fwd = Replayer.get_fwd(hero_prev.pos, hero_current.pos)
                 [fwd, output_index] = Replayer.get_closest_fwd(fwd)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
                 return action
@@ -155,7 +224,10 @@ class Replayer:
                 min_distance=dist
                 index=i
                 tgtid=creeps[i].unit_name
-        index=index+1
+        if index!=None:
+            index=index+1
+        else:
+            index=0
         #index=1~8代表当前传入的pos与小兵1~8最接近
         for hero in state_info.heros:
             dist=StateUtil.cal_distance(pos,hero.pos)
@@ -295,8 +367,8 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle1.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    #path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")
     lines = file.readlines()
@@ -310,9 +382,9 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
-    model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-10121512.668858.model')
-    
+    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
+
     line_trainer = LineTrainer()
     for line in lines:
         if prev_state is not None and int(prev_state.tick) > 173504:
