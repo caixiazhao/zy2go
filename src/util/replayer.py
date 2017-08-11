@@ -58,10 +58,12 @@ class Replayer:
                     skillid=attack.skill%100
                     tgtid = str(attack.defer)
                     tgtpos=attack.tgtpos
-                    if tgtid==None:
+                    if tgtid==None or tgtid=='None':
                         #attackinfo里没有tgtid只有tgtpos
                         tgtid1=0
                     else:
+                        #print("tgtid=")
+                        #print(tgtid)
                         tgtid1=int(tgtid)
                     if skillid==0:#回城
                         action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48, None)
