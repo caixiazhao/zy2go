@@ -16,3 +16,7 @@ class AttackStateInfo(object):
         tgtpos = PosStateInfo.decode(obj['tgtpos']) if 'tgtpos' in obj else None
         skill = obj['skill']
         return AttackStateInfo(atker, defer, tgtpos, skill)
+
+    def encode(self):
+        json_map = {'atker': self.atker, 'defer': self.defer, 'tgtpos':self.tgtpos, 'skill': self.skill}
+        return json_map

@@ -2,6 +2,8 @@
 
 # 记录选择的结果行为
 # 注：skillid表示第几个skill
+from model.fwdstateinfo import FwdStateInfo
+from  model.posstateinfo import PosStateInfo
 class CmdAction(object):
     def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
         self.hero_name = hero_name
@@ -26,3 +28,11 @@ class CmdAction(object):
         output_index = obj['output_index'] if 'output_index' in obj else None
         reward = obj['reward'] if 'reward' in obj else None
         return CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
+
+    def encode(self):
+        json_map = {'hero_name': self.hero_name, 'action': self.action, 'skillid':self.skillid, 'tgtid': self.tgtid, \
+                    'itemid':self.itemid, 'output_index':self.output_index, 'reward':self.reward}
+        json_map['tgtpos'] = [pi.encode() for pi in self.tgtpos]
+        json_map['fwd'] = [fi.encode() for fi in self.fwd]
+
+        return json_map

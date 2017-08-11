@@ -17,3 +17,7 @@ class DmgStateInfo(object):
         skillslot = obj['skillslot'] if 'skillslot' in obj else None
         dmg = obj['dmg']
         return DmgStateInfo(atker, tgt, skillslot, dmg)
+
+    def encode(self):
+        json_map = {'atker': self.atker, 'tgt': self.tgt, 'skillslot': self.skillslot, 'dmg': self.dmg}
+        return json_map

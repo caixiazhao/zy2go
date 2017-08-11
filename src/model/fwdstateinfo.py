@@ -15,3 +15,6 @@ class FwdStateInfo(object):
         y = str_pieces[2]
         z = str_pieces[1]
         return FwdStateInfo(x, y, z)
+
+    def encode(self):
+        return self.to_string()
