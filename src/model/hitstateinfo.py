@@ -7,6 +7,9 @@ class HitStateInfo(object):
         self.tgt = tgt
         self.skill = skill
 
+    def encode(self):
+        return {'atker': self.atker, 'tgt': self.tgt, 'skill': self.skill}
+
     @staticmethod
     def decode(obj):
         atker = obj['atker']

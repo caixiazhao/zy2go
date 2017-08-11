@@ -100,7 +100,7 @@ class LineModel:
             target[0][chosen_action.output_index] = chosen_action.reward
 
             x[i], y[i] = state, target
-        self.model.fit(x, y, batch_size=batch_size, nb_epoch=1, verbose=0)
+        self.model.fit(x, y, batch_size=batch_size, epochs=1, verbose=0)
         if self.epsilon > self.e_min:
             self.epsilon *= self.e_decay
 
@@ -115,7 +115,7 @@ class LineModel:
             maxQ = max(acts)
 
             selected = acts.index(maxQ)
-            # print "%s %s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts))
+            print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
             if random.random()<-1:
@@ -368,16 +368,16 @@ class LineModel:
 
     # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
     @staticmethod
-    def update_rewards(state_infos, start_index, end_index):
-        result = []
-        for i in range(start_index, end_index):
-            state_info = state_infos[start_index]
-            hero_names = [state_info.heros[0].hero_name, state_info.heros[1].hero_name]
-            reward_map = LineModel.cal_target_4_line()
-            #todo: 传入参数
-        for hero_name in hero_names:
-            reward = reward_map[hero_name]
-            state_info.add_rewards(hero_name, reward)
+    def update_rewards(state_infos):
+        for i in range(len(state_infos) - 11):
+            state_info = state_infos[i]
+            hero_names = ['27', '28']
+            reward_map = LineModel.cal_target_4_line(state_infos, i, hero_names)
+            for hero_name in hero_names:
+                reward = reward_map[hero_name]
+                state_info.add_rewards(hero_name, reward)
+            print("rewards: %s, tick: %s" % (str(reward_map), state_info.tick))
+        return state_infos
 
     # 计算对线情况下每次行动的效果反馈
     # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值
@@ -419,7 +419,7 @@ class LineModel:
                 hero_reward_map[hero_name] = gain
 
             for hero_name in hero_names:
-                reward_hero = hero_reward_map[hero_name] / float(gain_team_a + gain_team_b)
+                reward_hero = hero_reward_map[hero_name] / float(gain_team_a + gain_team_b) if (gain_team_a + gain_team_b) > 0 else 0
                 reward_map[hero_name] = reward_hero
 
             reward_range.append(reward_map)
@@ -427,10 +427,10 @@ class LineModel:
         # 根据衰减系数来得到总的奖励值
         final_reward_map = {}
         for hero_name in hero_names:
-            fianl_reward_hero = 0
+            final_reward_hero = 0
             for reward_map in reversed(reward_range):
-                fianl_reward_hero = fianl_reward_hero * LineModel.REWARD_GAMMA + reward_map[hero_name]
-            final_reward_map[reward_hero] = fianl_reward_hero
+                final_reward_hero = final_reward_hero * LineModel.REWARD_GAMMA + reward_map[hero_name]
+            final_reward_map[hero_name] = final_reward_hero
 
         return final_reward_map
 

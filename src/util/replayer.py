@@ -389,7 +389,7 @@ if __name__ == "__main__":
 
     line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 173504:
+        if prev_state is not None and int(prev_state.tick) > 42504:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -397,20 +397,29 @@ if __name__ == "__main__":
         if cur_state.tick == StateUtil.TICK_PER_STATE:
             print("clear")
             prev_stat = None
-        elif prev_stat is not None and prev_stat.tick + StateUtil.TICK_PER_STATE > cur_state.tick:
+        elif prev_stat is not None and prev_stat.tick >= cur_state.tick:
             print ("clear")
             prev_stat = None
 
         state_info = StateUtil.update_state_log(prev_state, cur_state)
         state_logs.append(state_info)
 
-        rsp_str = line_trainer.build_response(state_info, prev_state, model)
-        print(rsp_str)
-
-        state_json = JSON.dumps(state_info, cls=ComplexEncoder)
-        print(state_json)
+        # 测试对线模型
+        # rsp_str = line_trainer.build_response(state_info, prev_state, model)
+        # print(rsp_str)
+        #
+        # state_json = JSON.dumps(state_info, cls=ComplexEncoder)
+        # print(state_json)
 
         prev_state = state_info
 
-    # model.save('line_model_' + str(datetime.now()).replace(' ', '') + '.model')
+    # 测试计算奖励值
+    state_logs_with_reward = LineModel.update_rewards(state_logs)
+    for state_with_reward in state_logs_with_reward:
+        if len(state_with_reward.actions) > 0:
+            model.remember(state_with_reward)
+
+    model.replay(100)
+
+    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
     print(len(state_logs))
