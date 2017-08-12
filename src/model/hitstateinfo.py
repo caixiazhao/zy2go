@@ -8,7 +8,8 @@ class HitStateInfo(object):
         self.skill = skill
 
     def encode(self):
-        return {'atker': self.atker, 'tgt': self.tgt, 'skill': self.skill}
+        json_map = {'atker': self.atker, 'tgt': self.tgt, 'skill': self.skill}
+        return dict((k, v) for k, v in json_map.items() if v is not None)
 
     @staticmethod
     def decode(obj):

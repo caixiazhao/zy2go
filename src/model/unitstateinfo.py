@@ -61,16 +61,15 @@ class UnitStateInfo(object):
                     'att': self.att, 'vis1': self.vis1, 'vis2': self.vis2,
                     'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen,
                     'magpen': self.magpen,
-                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock,
-                    'buff': self.buffs,
+                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock
                     }
-        return json_map
+        return dict((k, v) for k, v in json_map.items() if v is not None)
 
     @staticmethod
     def decode(obj, unit_name):
         unit_name = unit_name
         state = obj['state'] if 'state' in obj else None
-        cfg_id = obj['cfg_id'] if 'cfg_id' in obj else None
+        cfg_id = obj['cfgID'] if 'cfgID' in obj else None
         pos = PosStateInfo.decode(obj['pos']) if 'pos' in obj else None
         fwd = FwdStateInfo.decode(obj['fwd']) if 'fwd' in obj else None
         hp = obj['hp'] if 'hp' in obj else None

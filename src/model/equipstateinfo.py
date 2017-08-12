@@ -11,6 +11,5 @@ class EquipStateInfo:
         return EquipStateInfo(name, id, num)
 
     def encode(self):
-        json_map = {'NAME':self.name,'ID': self.id, 'NUN': self.num}
-        #json_map = {'ID': self.id, 'NUN': self.num}
-        return json_map
+        json_map = {'ID': self.id, 'NUM': self.num}
+        return dict((k, v) for k, v in json_map.items() if v is not None)

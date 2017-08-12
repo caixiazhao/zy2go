@@ -108,7 +108,7 @@ class HeroStateInfo:
             json_map[equip.name] = equip.encode()
         for skill in self.skills:
             json_map[skill.skill_name] = skill.encode()
-        return json_map
+        return dict((k, v) for k, v in json_map.items() if v is not None)
 
     @staticmethod
     def decode_add_skill(obj, skill_id):

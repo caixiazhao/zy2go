@@ -30,9 +30,10 @@ class CmdAction(object):
         return CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
 
     def encode(self):
-        json_map = {'hero_name': self.hero_name, 'action': self.action, 'skillid':self.skillid, 'tgtid': self.tgtid, \
-                    'itemid':self.itemid, 'output_index':self.output_index, 'reward':self.reward}
-        json_map['tgtpos'] = [pi.encode() for pi in self.tgtpos]
-        json_map['fwd'] = [fi.encode() for fi in self.fwd]
-
-        return json_map
+        json_map = {'hero_name': self.hero_name, 'action': self.action, 'skillid': self.skillid, 'tgtid': self.tgtid, \
+                    'itemid':self.itemid, 'output_index': self.output_index, 'reward': self.reward}
+        if self.tgtpos is not None:
+            json_map['tgtpos'] = self.tgtpos.encode()
+        if self.fwd is not None:
+            json_map['fwd'] = self.fwd.encode()
+        return dict((k, v) for k, v in json_map.items() if v is not None)

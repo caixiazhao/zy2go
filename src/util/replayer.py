@@ -17,6 +17,7 @@ from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from model.stateinfo import StateInfo
 from train.linemodel import LineModel
 from util.jsonencoder import ComplexEncoder
 from util.linetrainer import LineTrainer
@@ -369,10 +370,11 @@ class Replayer:
 
 
 if __name__ == "__main__":
-    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    #path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
+    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")
+    state_file = open('/Users/sky4star/Github/zy2go/battle_logs/state.log', 'a')
     lines = file.readlines()
 
     # for line in lines:
@@ -384,12 +386,12 @@ if __name__ == "__main__":
     replayer = Replayer()
 
     model = LineModel(240,48)
-    model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
     # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
 
     line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 42504:
+        if prev_state is not None and int(prev_state.tick) > 76030:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -405,11 +407,13 @@ if __name__ == "__main__":
         state_logs.append(state_info)
 
         # 测试对线模型
-        # rsp_str = line_trainer.build_response(state_info, prev_state, model)
-        # print(rsp_str)
-        #
-        # state_json = JSON.dumps(state_info, cls=ComplexEncoder)
-        # print(state_json)
+        rsp_str = line_trainer.build_response(state_info, prev_state, model)
+        print(rsp_str)
+
+        # 将结果记录到文件
+        state_json = state_info.encode()
+        decoded = StateInfo.decode(state_json)
+        state_file.write(str(state_json))
 
         prev_state = state_info
 

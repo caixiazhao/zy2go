@@ -117,8 +117,7 @@ class StateInfo:
         json_map['hitinfos'] = [hi.encode() for hi in self.hit_infos]
         json_map['dmginfos'] = [di.encode() for di in self.dmg_infos]
         json_map['actions'] = [ac.encode() for ac in self.actions]
-        return json_map
-
+        return dict((k, v) for k, v in json_map.items() if v is not None)
 
     @staticmethod
     def decode(obj):

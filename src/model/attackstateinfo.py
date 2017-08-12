@@ -19,4 +19,4 @@ class AttackStateInfo(object):
 
     def encode(self):
         json_map = {'atker': self.atker, 'defer': self.defer, 'tgtpos':self.tgtpos, 'skill': self.skill}
-        return json_map
+        return dict((k, v) for k, v in json_map.items() if v is not None)

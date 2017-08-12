@@ -20,4 +20,4 @@ class DmgStateInfo(object):
 
     def encode(self):
         json_map = {'atker': self.atker, 'tgt': self.tgt, 'skillslot': self.skillslot, 'dmg': self.dmg}
-        return json_map
+        return dict((k, v) for k, v in json_map.items() if v is not None)

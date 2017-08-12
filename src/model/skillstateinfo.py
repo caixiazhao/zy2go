@@ -13,7 +13,7 @@ class SkillStateInfo(object):
 
     def encode(self):
         json_map = {'ID': self.skill_id, 'MaxCD': self.max_cd, 'CD': self.cd, 'Cost': self.cost, 'canuse': self.canuse, 'up': self.up}
-        return json_map
+        return dict((k, v) for k, v in json_map.items() if v is not None)
 
     def merge(self, delta):
         skill_name = delta.skill_name if delta.skill_name is not None else self.skill_name

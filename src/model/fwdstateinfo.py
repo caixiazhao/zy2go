@@ -12,8 +12,8 @@ class FwdStateInfo(object):
         # need parse str
         str_pieces = obj.replace("(", "").replace(")", "").replace(" ", "").split(",")
         x = str_pieces[0]
-        y = str_pieces[2]
-        z = str_pieces[1]
+        y = str_pieces[1]
+        z = str_pieces[2]
         return FwdStateInfo(x, y, z)
 
     def encode(self):

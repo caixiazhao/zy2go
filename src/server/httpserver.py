@@ -93,7 +93,7 @@ class S(BaseHTTPRequestHandler):
 
         #todo: 根据10帧的双方血量金钱变化，更新state里的reward（仅更新模型控制部分 or 也更新玩家控制部分），并保存state
         #下面这段还没改
-        state_json = JSON.dumps(state_info, cls=ComplexEncoder)
+        state_json = str(state_info.encode())
         self.state_file.write(strftime("%Y-%m-%d %H:%M:%S", time) + " -- " + state_json + "\n")
         self.state_file.flush()
         
