@@ -84,18 +84,30 @@ class LineModel:
 
             # 这里应该是选择reward更大的一方作为训练对象
             # 默认只有两个英雄
-            action_index = 0 if state_info.actions[0].reward > state_info.actions[1].reward else 1
-            hero_name = state_info.actions[action_index].hero_name
-            rival_hero=state_info.actions[1-action_index].hero_name
+            max_action = None
+            for action in state_info.actions:
+                if max_action is None:
+                    max_action = action
+                elif max_action.reward < action.reward:
+                    max_action = action
+            if max_action.reward <= 0:
+                continue
+
+            hero_name = max_action.hero_name
+            # TODO rival_hero 怎么定义？
+            rival_hero=max_action.hero_name
             line_input = Line_input(state_info, hero_name,rival_hero)
             state = line_input.gen_input()
+            state_input = np.array([state])
 
             # 得到模型预测结果
-            target = self.model.predict(state)
+            target = self.model.predict(state_input)
+
+            # 将不合理的选择都置为0
+            action = self.select_actions(target, state_info, hero_name, rival_hero)
 
             # 修改其中我们选择的行为
             # TODO 是否应该将超出范围的英雄的结果置成0？
-            # TODO 以及超过范e围的情况？
             chosen_action = state_info.actions[action_index]
             target[0][chosen_action.output_index] = chosen_action.reward
 
@@ -104,6 +116,96 @@ class LineModel:
         if self.epsilon > self.e_min:
             self.epsilon *= self.e_decay
 
+    def remove_unaval_actions(self, acts, stateinformation, hero_name, rival_hero):
+        for i in range(len(acts)):
+            hero = stateinformation.get_hero(hero_name)
+            selected = i
+            if selected < 8:  # move
+                if not hero.movelock:
+                    # 英雄移动限制
+                    acts[selected] = 0
+                    print("移动受限，放弃移动" + str(hero.movelock))
+                    continue
+            elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
+                if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):
+                    # 普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
+                    # 所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
+                    # 被控制住
+                    acts[selected] = 0
+                    print("普攻受限，放弃普攻")
+                    continue
+                if selected == 8:  # 敌方塔
+                    tower = self.get_tower_temp(stateinformation)
+                    dist = StateUtil.cal_distance(hero.pos, tower.pos)
+                    if dist > self.att_dist:
+                        # if dist>StateUtil.ATTACK_UNIT_RADIUS:
+                        # 在攻击范围外
+                        acts[selected] = 0
+                        print("塔太远，放弃普攻")
+                        continue
+                elif selected == 9:  # 敌方英雄
+                    tgtid = rival_hero
+                    rival_info = stateinformation.get_hero(rival_hero)
+                    dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
+                    if dist > self.att_dist:
+                        # if dist>StateUtil.ATTACK_HERO_RADIUS:
+                        acts[selected] = 0
+                        print("英雄太远，放弃普攻")
+                        continue
+                    # 对方英雄死亡时候忽略这个目标
+                    elif rival_info.hp <= 0:
+                        acts[selected] = 0
+                        continue
+                else:  # 小兵
+                    creeps = StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
+                    n = selected - 10
+                    if n >= len(creeps):
+                        # 没有这么多小兵
+                        acts[selected] = 0
+                        print("没有这么多兵，模型选错了")
+                        continue
+                    dist = StateUtil.cal_distance(hero.pos, creeps[n].pos)
+                    if dist > self.att_dist:
+                        # if dist > StateUtil.ATTACK_UNIT_RADIUS:
+                        acts[selected] = 0
+                        print("小兵太远，放弃普攻")
+                        continue
+            elif selected < 48:  # skill1
+                skillid = (selected-18)/10+1
+                if hero.skills[skillid].canuse != True:
+                    # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
+                    acts[selected] = 0
+                    print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(hero.skills[skillid].canuse) + " tick=" + str(
+                        stateinformation.tick))
+                    continue
+                if hero.skills[skillid].cost > hero.mp:
+                    # mp不足
+                    acts[selected] = 0
+                    print("mp不足，放弃施法" + str(skillid))
+                    continue
+                if hero.skills[skillid].cd > 0:
+                    # 技能未冷却
+                    acts[selected] = 0
+                    print("技能cd中，放弃施法" + str(skillid))
+                    continue
+                [tgtid, tgtpos] = self.choose_skill_target(selected - 18 - (skillid-1)*10, stateinformation, skillid, hero_name, hero.pos,
+                                                           rival_hero)
+                if tgtid == -1:
+                    acts[selected] = 0
+                    print("目标不符合施法要求")
+                    continue
+            elif selected == 48:  # 回城
+                if hero.skills[6].canuse != True:
+                    print("技能受限，放弃回城")
+                    # 不能回城
+                    acts[selected] = 0
+                    continue
+                if hero.skills[6].cd > 0:
+                    # 技能未冷却
+                    ("技能cd中，放弃回城")
+                    acts[selected] = 0
+                    continue
+        return acts
 
     def select_actions(self, acts, stateinformation, hero_name, rival_hero):
         #这样传stateinformation太拖慢运行速度了，后面要改
@@ -112,8 +214,12 @@ class LineModel:
         acts=acts[0]
         acts=list(acts)
         for i in range(len(acts)):
+            acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
             maxQ = max(acts)
 
+            if maxQ <= 0:
+                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                return action
             selected = acts.index(maxQ)
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
@@ -124,170 +230,35 @@ class LineModel:
                 print("随机跳了一个操作")
                 continue
             if selected < 8:  #move
-                if hero.movelock == False:
-                    #英雄移动限制
-                    acts[selected] = 0
-                    print("移动受限，放弃移动"+str(hero.movelock))
-
-                    continue
                 fwd = StateUtil.mov(selected)
-
-                #生成action所需的参数：CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
                 return action
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
-                if hero.skills[0].canuse!=True and (hero.skills[0].cd==0 or hero.skills[0].cd==None):
-                    #普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
-                    #所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
-                    #被控制住
-                    acts[selected]=0
-                    print("普攻受限，放弃普攻")
-                    continue
                 if selected==8:#敌方塔
-                    tower=self.get_tower_temp(stateinformation)
-                    dist=StateUtil.cal_distance(hero.pos, tower.pos)
-                    if dist>self.att_dist:
-                    # if dist>StateUtil.ATTACK_UNIT_RADIUS:
-                        # 在攻击范围外
-                        acts[selected]=0
-                        print("塔太远，放弃普攻")
-                        continue
-                    tgtid=tower.unit_name
+                    tower = self.get_tower_temp(stateinformation)
+                    tgtid = tower.unit_name
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
                 elif selected==9:#敌方英雄
                     tgtid = rival_hero
-                    rival_info = stateinformation.get_hero(rival_hero)
-                    dist=StateUtil.cal_distance(hero.pos,rival_info.pos)
-                    if dist>self.att_dist:
-                    # if dist>StateUtil.ATTACK_HERO_RADIUS:
-                        acts[selected]=0
-                        print("英雄太远，放弃普攻")
-                        continue
-                    # 对方英雄死亡时候忽略这个目标
-                    elif rival_info.hp <= 0:
-                        acts[selected] = 0
-                        continue
-                    print('attack rival hero %s %s' % (rival_hero, str(dist)))
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
                 else:#小兵
                     creeps=StateUtil.get_nearby_enemy_units(stateinformation,hero_name)
                     n=selected-10
-                    if n>=len(creeps):
-                        #没有这么多小兵
-                        acts[selected]=0
-                        print("没有这么多兵，模型选错了")
-                        continue
-                    dist=StateUtil.cal_distance(hero.pos,creeps[n].pos)
-                    if dist > self.att_dist:
-                    # if dist > StateUtil.ATTACK_UNIT_RADIUS:
-                        acts[selected]=0
-                        print("小兵太远，放弃普攻")
-                        continue
-                    print('attack unit %s %s' % (creeps[n].unit_name, str(dist)))
                     tgtid=creeps[n].unit_name
                     action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
-            elif selected<28: #skill1
-                if hero.skills[1].canuse!=True:
-                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    acts[selected]=0
-                    print("技能受限，放弃施法1"+" hero.skills[1].canuse="+str(hero.skills[1].canuse)+" tick="+str(stateinformation.tick))
-                    continue
-                if hero.skills[1].cost>hero.mp:
-                    #mp不足
-                    acts[selected]=0
-                    print("mp不足，放弃施法1")
-                    continue
-                if hero.skills[1].cd>0:
-                    #技能未冷却
-                    acts[selected]=0
-                    print("技能cd中，放弃施法1")
-                    continue
-                skillid=1
-                [tgtid, tgtpos]=self.choose_skill_target(selected-18,stateinformation,1,hero_name,hero.pos,rival_hero)
-                if tgtid==-1:
-                    #目标在施法范围外
-                    acts[selected]=0
-                    print("目标太远，放弃施法1")
-                    continue
-                # todo: 异常情况处理：
-                if tgtpos==None:
-                    fwd=None
+            elif selected<48: #skill
+                skillid = (selected - 18) / 10 + 1
+                [tgtid, tgtpos]=self.choose_skill_target(selected-18-(skillid-1)*10,stateinformation,skillid,hero_name,hero.pos,rival_hero)
+                if tgtpos is None:
+                    fwd = None
                 else:
                     fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST,str(skillid),tgtid, tgtpos, fwd, None, selected, None)
                 return action
-            elif selected<38: #skill2
-                if hero.skills[2].canuse!=True:
-                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    print("技能受限，放弃施法2"+" hero.skills[2].canuse="+str(hero.skills[2].canuse)+" tick="+str(stateinformation.tick))
-                    acts[selected]=0
-                    continue
-                if hero.skills[2].cost>hero.mp:
-                    #mp不足
-                    ("mp不足，放弃施法2")
-                    acts[selected]=0
-                    continue
-                if hero.skills[2].cd>0:
-                    #技能未冷却
-                    ("技能cd中，放弃施法2")
-                    acts[selected]=0
-                    continue
-                skillid = 2
-                [tgtid,tgtpos] = self.choose_skill_target(selected - 28,stateinformation,2,hero_name,hero.pos,rival_hero)
-                if tgtid==-1:
-                    #目标在施法范围外
-                    ("目标太远，放弃施法2")
-                    acts[selected]=0
-                    continue
-                if tgtpos==None:
-                    fwd=None
-                else:
-                    fwd = tgtpos.fwd(hero.pos)
-                action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), tgtid, tgtpos, fwd, None, selected, None)
-                return action
-            elif selected<48: #skill3
-                if hero.skills[3].canuse!=True:
-                    #被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    print("技能受限，放弃大招"+" hero.skills[3].canuse="+str(hero.skills[3].canuse)+" tick="+str(stateinformation.tick))
-                    acts[selected]=0
-                    continue
-                if hero.skills[3].cost>hero.mp:
-                    #mp不足
-                    ("mp不足，放弃大招")
-                    acts[selected]=0
-                    continue
-                if hero.skills[3].cd>0:
-                    #技能未冷却
-                    ("技能cd中，放弃大招")
-                    acts[selected]=0
-                    continue
-                skillid = 3
-                [tgtid,tgtpos] = self.choose_skill_target(selected - 38,stateinformation,3,hero_name,hero.pos,rival_hero)
-                if tgtid==-1:
-                    # 目标在施法范围外
-                    ("目标太远，放弃大招")
-                    acts[selected]=0
-                    continue
-                if tgtpos==None:
-                    fwd=None
-                else:
-                    fwd = tgtpos.fwd(hero.pos)
-                action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), tgtid, tgtpos, fwd, None, selected, None)
-                return action
             elif selected==48:#回城
-                if hero.skills[6].canuse!=True:
-                    print("技能受限，放弃回城")
-                    #不能回城
-                    acts[selected] = 0
-                    continue
-                if hero.skills[6].cd > 0:
-                    #技能未冷却
-                    ("技能cd中，放弃回城")
-                    acts[selected] = 0
-                    continue
                 skillid = 6
                 action = CmdAction(hero_name, CmdActionEnum.CAST, str(skillid), hero_name, None, None, None, selected, None)
                 return action
@@ -295,27 +266,23 @@ class LineModel:
                 print("轮到了49号行为-hold")
                 action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                 return action
-        action=CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
-        print(str(i)+"跳出了循环，选择了hold")
-        return action
 
     def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero):
         if selected==0:
             if self.skill_tag[skill-1]==0:
                 return [-1,None]
-            #tgtid =hero_name
             tgtid=hero_name
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
-            #tgtpos=pos
             tgtpos=None
         elif selected==1:
             rival = stateinformation.get_hero(rival_hero)
             if StateUtil.cal_distance(rival.pos, pos) > self.skilldist[skill - 1]:
-                # print "技能攻击不到对方 %s %s %s" % (rival_hero, StateUtil.cal_distance(rival.pos, pos), self.skilldist[skill - 1])
+                print ("技能攻击不到对方 %s %s %s" % (rival_hero, StateUtil.cal_distance(rival.pos, pos), self.skilldist[skill - 1]))
                 tgtid = -1
                 tgtpos = None
             # 对方英雄死亡时候忽略这个目标
             elif rival.hp <= 0:
+                print ("技能攻击不了对方，对方已经死亡")
                 tgtid = -1
                 tgtpos = None
             else:
@@ -326,11 +293,14 @@ class LineModel:
             n=selected-2
             if n >= len(creeps):
                 # 没有这么多小兵
+                print ("技能不能攻击，没有指定的小兵")
                 return [-1, None]
             elif StateUtil.cal_distance(pos,creeps[n].pos)>self.skilldist[skill-1]:
+                print ("技能不能攻击，小兵距离过远")
                 tgtid=-1
                 tgtpos=None
             elif creeps[n].hp <= 0:
+                print ("技能不能攻击，小兵已经死亡")
                 tgtid = -1
                 tgtpos = None
             else:
@@ -388,14 +358,13 @@ class LineModel:
     def cal_target_4_line(state_infos, state_idx, hero_names):
         prev_state = state_infos[state_idx]
 
+        # 首先计算每个英雄的获得情况
         reward_range = []
         for i in range(1, 11):
             reward_map = {}
             cur_state = state_infos[state_idx + i]
 
-            # 将传入的英雄分为两个阵容，计算两个阵营之间的奖励比率
-            gain_team_a = 0
-            gain_team_b = 0
+            # 计算每一回合每个英雄的获得情况
             hero_reward_map = {}
             for hero_name in hero_names:
                 prev_hero = prev_state.get_hero(hero_name)
@@ -411,26 +380,32 @@ class LineModel:
                 gold_delta = int(cur_hero.gold) - int(prev_hero.gold)
 
                 gain = gold_delta * (1 + hp_delta)
-                if cur_hero.team == 0:
-                    gain_team_a += gain
-                else:
-                    gain_team_b += gain
-
                 hero_reward_map[hero_name] = gain
-
-            for hero_name in hero_names:
-                reward_hero = hero_reward_map[hero_name] / float(gain_team_a + gain_team_b) if (gain_team_a + gain_team_b) > 0 else 0
-                reward_map[hero_name] = reward_hero
-
-            reward_range.append(reward_map)
+            reward_range.append(hero_reward_map)
 
         # 根据衰减系数来得到总的奖励值
         final_reward_map = {}
         for hero_name in hero_names:
-            final_reward_hero = 0
-            for reward_map in reversed(reward_range):
-                final_reward_hero = final_reward_hero * LineModel.REWARD_GAMMA + reward_map[hero_name]
-            final_reward_map[hero_name] = final_reward_hero
+            final_reward_map[hero_name] = 0
+        for reward_map in reversed(reward_range):
+            for hero_name in hero_names:
+                final_reward_map[hero_name] = final_reward_map[hero_name] * LineModel.REWARD_GAMMA + reward_map[hero_name]
 
+        # 对比两个阵营的获得情况（可以针对1v1，1v2以及2v2）
+        # TODO,1v2需不需要特殊处理
+        gain_team_a = 0.0
+        gain_team_b = 0.0
+        for hero_name in hero_names:
+            cur_hero = cur_state.get_hero(hero_name)
+            if cur_hero.team == 0:
+                gain_team_a += final_reward_map[hero_name]
+            else:
+                gain_team_b += final_reward_map[hero_name]
+        for hero_name in hero_names:
+            cur_hero = cur_state.get_hero(hero_name)
+            if cur_hero.team == 0:
+                final_reward_map[hero_name] = gain_team_a / float(gain_team_a + gain_team_b) if (gain_team_a + gain_team_b) > 0 else 0
+            else:
+                final_reward_map[hero_name] = gain_team_b / float(gain_team_a + gain_team_b) if (gain_team_a + gain_team_b) > 0 else 0
         return final_reward_map
 

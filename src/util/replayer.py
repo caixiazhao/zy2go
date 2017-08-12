@@ -368,62 +368,77 @@ class Replayer:
 
             prev_state = state_info
 
+def train_line_model(state_path, model_path):
+    state_file = open(state_path, "r")
+    model = LineModel(240,48)
+    model.load(model_path)
+
+    lines = state_file.readlines()
+    for line in lines:
+        state_info = StateUtil.parse_state_log(line)
+        if len(state_info.actions) > 0:
+            model.remember(state_info)
+    model.replay(100)
+    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
+
 
 if __name__ == "__main__":
-    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
-    #todo: change the path
-    file = open(path, "r")
-    state_file = open('/Users/sky4star/Github/zy2go/battle_logs/state.log', 'a')
-    lines = file.readlines()
-
+    train_line_model()
+    # # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
+    # path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
+    # #todo: change the path
+    # file = open(path, "r")
+    # state_file = open('/Users/sky4star/Github/zy2go/battle_logs/state.log', 'a')
+    # lines = file.readlines()
+    #
+    # # for line in lines:
+    # #     bd_json = json.loads(line)
+    # #     battle_detail = BattleRoundDetail.decode(bd_json)
+    # #     model.remember(battle_detail)
+    # state_logs = []
+    # prev_state = None
+    # replayer = Replayer()
+    #
+    # model = LineModel(240,48)
+    # # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
+    # # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
+    #
+    # line_trainer = LineTrainer()
     # for line in lines:
-    #     bd_json = json.loads(line)
-    #     battle_detail = BattleRoundDetail.decode(bd_json)
-    #     model.remember(battle_detail)
-    state_logs = []
-    prev_state = None
-    replayer = Replayer()
-
-    model = LineModel(240,48)
-    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
-    # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
-
-    line_trainer = LineTrainer()
-    for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 76030:
-            i = 1
-
-        cur_state = StateUtil.parse_state_log(line)
-
-        if cur_state.tick == StateUtil.TICK_PER_STATE:
-            print("clear")
-            prev_stat = None
-        elif prev_stat is not None and prev_stat.tick >= cur_state.tick:
-            print ("clear")
-            prev_stat = None
-
-        state_info = StateUtil.update_state_log(prev_state, cur_state)
-        state_logs.append(state_info)
-
-        # 测试对线模型
-        rsp_str = line_trainer.build_response(state_info, prev_state, model)
-        print(rsp_str)
-
-        # 将结果记录到文件
-        state_json = state_info.encode()
-        decoded = StateInfo.decode(state_json)
-        state_file.write(str(state_json))
-
-        prev_state = state_info
-
-    # 测试计算奖励值
-    state_logs_with_reward = LineModel.update_rewards(state_logs)
-    for state_with_reward in state_logs_with_reward:
-        if len(state_with_reward.actions) > 0:
-            model.remember(state_with_reward)
-
-    model.replay(100)
-
-    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
-    print(len(state_logs))
+    #     if prev_state is not None and int(prev_state.tick) > 76030:
+    #         i = 1
+    #
+    #     cur_state = StateUtil.parse_state_log(line)
+    #
+    #     if cur_state.tick == StateUtil.TICK_PER_STATE:
+    #         print("clear")
+    #         prev_stat = None
+    #     elif prev_stat is not None and prev_stat.tick >= cur_state.tick:
+    #         print ("clear")
+    #         prev_stat = None
+    #
+    #     state_info = StateUtil.update_state_log(prev_state, cur_state)
+    #     state_logs.append(state_info)
+    #
+    #     # 测试对线模型
+    #     rsp_str = line_trainer.build_response(state_info, prev_state, model)
+    #     print(rsp_str)
+    #
+    #     # 将结果记录到文件
+    #     state_json = state_info.encode()
+    #     decoded = StateInfo.decode(state_json)
+    #     state_file.write(str(state_json))
+    #     state_file.flush()
+    #
+    #     prev_state = state_info
+    #
+    # # 测试计算奖励值
+    # state_logs_with_reward = LineModel.update_rewards(state_logs)
+    # for state_with_reward in state_logs_with_reward:
+    #     if len(state_with_reward.actions) > 0:
+    #         model.remember(state_with_reward)
+    #
+    # model.replay(100)
+    #
+    # model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
+    # print(len(state_logs))
