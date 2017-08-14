@@ -95,21 +95,30 @@ class LineModel:
 
             hero_name = max_action.hero_name
             # TODO rival_hero 怎么定义？
-            rival_hero=max_action.hero_name
-            line_input = Line_input(state_info, hero_name,rival_hero)
+            # 暂时将1v1的rival_hero 定义为对面英雄
+            for hero in state_info.heros:
+                if hero.hero_name != hero_name:
+                    rival_hero = hero.hero_name
+                    break
+
+            line_input = Line_input(state_info, hero_name, rival_hero)
             state = line_input.gen_input()
             state_input = np.array([state])
 
             # 得到模型预测结果
-            target = self.model.predict(state_input)
+            actions = self.model.predict(state_input)
 
             # 将不合理的选择都置为0
-            action = self.select_actions(target, state_info, hero_name, rival_hero)
+            actions_list = list(actions[0])
+            target = self.remove_unaval_actions(actions_list, state_info, hero_name, rival_hero)
+
+            # 测试代码，可以在model相同，没有随机的情况下检查模型挑选的action是否和我们记录的相同
+            # target = self.select_actions(target, state_info, hero_name, rival_hero)
 
             # 修改其中我们选择的行为
             # TODO 是否应该将超出范围的英雄的结果置成0？
-            chosen_action = state_info.actions[action_index]
-            target[0][chosen_action.output_index] = chosen_action.reward
+            chosen_action = state_info.get_hero_action(hero_name)
+            target[chosen_action.output_index] = chosen_action.reward
 
             x[i], y[i] = state, target
         self.model.fit(x, y, batch_size=batch_size, epochs=1, verbose=0)
@@ -211,10 +220,9 @@ class LineModel:
         #这样传stateinformation太拖慢运行速度了，后面要改
         #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
-        acts=acts[0]
-        acts=list(acts)
+        acts = list(acts[0])
+        acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
         for i in range(len(acts)):
-            acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
             maxQ = max(acts)
 
             if maxQ <= 0:

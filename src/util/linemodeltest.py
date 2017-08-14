@@ -4,7 +4,7 @@ from util.stateutil import StateUtil
 if __name__ == "__main__":
     path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle2.log"
     file = open(path, "r")
-    model1 = LineModel(240, 48)
+    model1 = LineModel(240, 49)
     lines = file.readlines()
     prestateinfo=None
     for line in lines:

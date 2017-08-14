@@ -36,6 +36,12 @@ class StateInfo:
                 return hero
         return None
 
+    def get_hero_action(self, hero_name):
+        for action in self.actions:
+            if action.hero_name == hero_name:
+                return action
+        return None
+
     def get_hero_pos(self, name):
         for hero in self.heros:
             if hero.hero_name == name:
