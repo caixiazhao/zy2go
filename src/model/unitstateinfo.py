@@ -65,6 +65,12 @@ class UnitStateInfo(object):
                     }
         return dict((k, v) for k, v in json_map.items() if v is not None)
 
+    def is_enemy_visible(self):
+        if self.team == 0:
+            return self.vis1
+        else:
+            return self.vis2
+
     @staticmethod
     def decode(obj, unit_name):
         unit_name = unit_name

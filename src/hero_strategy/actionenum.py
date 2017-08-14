@@ -14,3 +14,4 @@ class ActionEnum:
     near_enemy_tower = 12
     be_attacked = 13
     town_ing = 14
+    line_model = 15

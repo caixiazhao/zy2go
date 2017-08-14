@@ -44,13 +44,21 @@ class LineTrainer:
             near_enemy_units = StateUtil.get_nearby_enemy_units(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
             nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
 
+            # 回城相关逻辑
+            # 如果在回城中且没有被打断则继续回城，什么也不用返回
+            if prev_state_info is not None:
+                prev_hero = prev_state_info.get_hero(hero.hero_name)
+                if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing and prev_hero.hp <= hero.hp \
+                        and not StateUtil.if_hero_at_basement(hero):
+                    print('回城中，继续回城')
+                    continue
+
             # 处在少血状态是，且周围没有地方单位的情况下选择回城
             if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
                 if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
                     print('策略层：回城')
                     # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
                     if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
-                        prev_hero = prev_state_info.get_hero(hero.hero_name)
                         if prev_hero.hp > hero.hp:
                             town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, None, None, None, None, None, None)
                             action_str = StateUtil.build_command(town_action)
@@ -66,9 +74,9 @@ class LineTrainer:
                     continue
 
             # 处在泉水之中的时候设置策略层为吃线
-            if StateUtil.if_hero_at_basement(hero) and hero.hp == hero.maxhp:
-                print("策略层：因为在泉水附近所以开始吃线")
-                self.hero_strategy[hero.hero_name] = ActionEnum.line_1
+            if StateUtil.if_hero_at_basement(hero):
+                if hero.hp < hero.maxhp:
+                    continue
 
             # 开始根据策略决定当前的行动
             # 对线情况下，首先拿到兵线，朝最前方的兵线移动
@@ -78,20 +86,21 @@ class LineTrainer:
             near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
             nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
             if len(near_enemy_heroes) == 0 and len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0:
+                self.hero_strategy[hero.hero_name] = ActionEnum.line_1
                 print("策略层：因为附近没有指定兵线的敌人所以开始吃线")
                 # 跟兵线
-                if hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.line_1:
-                    front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
-                    if front_soldier is None:
-                        action_str = StateUtil.build_action_command(hero.hero_name, 'HOLD', {})
-                        action_strs.append(action_str)
-                    else:
-                        # 得到最前方的兵线位置
-                        move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_soldier.pos, None, None, None, None)
-                        action_str = StateUtil.build_command(move_action)
-                        action_strs.append(action_str)
+                front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
+                if front_soldier is None:
+                    action_str = StateUtil.build_action_command(hero.hero_name, 'HOLD', {})
+                    action_strs.append(action_str)
+                else:
+                    # 得到最前方的兵线位置
+                    move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_soldier.pos, None, None, None, None)
+                    action_str = StateUtil.build_command(move_action)
+                    action_strs.append(action_str)
             else:
                 # 使用模型进行决策
+                self.hero_strategy[hero.hero_name] = ActionEnum.line_model
                 enemies = []
                 enemies.extend((hero.hero_name for hero in near_enemy_heroes))
                 enemies.extend((unit.unit_name for unit in near_enemy_units))
@@ -104,6 +113,11 @@ class LineTrainer:
                 action = line_model.get_action(state_info, hero.hero_name, rival_hero)
                 action_str = StateUtil.build_command(action)
                 action_strs.append(action_str)
+
+                # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
+                if action.action == CmdActionEnum.CAST and action.skillid == 6:
+                    print("英雄$s释放了回城" % hero_name)
+                    self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 
                 # 保存action信息到状态帧中
                 state_info.actions.append(action)

@@ -405,7 +405,7 @@ def replay_battle_log(log_path, model_path):
 
     line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 76030:
+        if prev_state is not None and int(prev_state.tick) > 68508:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -431,6 +431,9 @@ def replay_battle_log(log_path, model_path):
         if len(state_with_reward.actions) > 0:
             model.remember(state_with_reward)
 
+        if int(state_with_reward.tick) > 68508:
+            i = 1
+
         # 将结果记录到文件
         state_encode = state_with_reward.encode()
         state_json = JSON.dumps(state_encode)
@@ -444,8 +447,8 @@ def replay_battle_log(log_path, model_path):
 
 
 if __name__ == "__main__":
-    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
-                     '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
-    # replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
-    #                   '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
+    # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
+    #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
+    replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
+                      '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
 

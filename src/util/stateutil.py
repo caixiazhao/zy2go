@@ -18,7 +18,7 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 13  # 13.5
     ATTACK_UNIT_RADIUS = 9  # 10
-    LINE_MODEL_RADIUS = 13
+    LINE_MODEL_RADIUS = 10
 
     ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10120": 6000, "10130": 3500,
                            "10200": 2000, "10210": 8000, "10220": 5000, "10230": 6000}
@@ -102,6 +102,8 @@ class StateUtil:
     def get_units_in_line(units, line_index):
         units_in_line = []
         for unit in units:
+            if unit is None:
+                continue
             line_pos = StateUtil.if_in_line(unit, line_index)
             if line_pos >= 0:
                 units_in_line.append(unit)

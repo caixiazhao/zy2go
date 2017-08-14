@@ -30,6 +30,8 @@ from util.linetrainer import LineTrainer
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 
+import os
+
 
 class S(BaseHTTPRequestHandler):
     # static variable，目前只支持同一时间处理一场比赛
@@ -74,7 +76,7 @@ class S(BaseHTTPRequestHandler):
 
         # 构造反馈结果
         # 注：这里帧状态得到了更新，添加了行为信息
-        rsp_str = self.line_trainer.build_response(state_info, S.prev_stat, self.model)
+        rsp_str = self.line_trainer.build_response(state_info, S.prev_stat, self.model, ['28'])
         # 简单的脚本测试物攻和法攻
         # rsp_str = StateUtil.build_action_response(state_info)
         #todo：这样更新的state都没有reward，reward是否需要在后续操作中单独更新
@@ -93,7 +95,7 @@ class S(BaseHTTPRequestHandler):
 
         #todo: 根据10帧的双方血量金钱变化，更新state里的reward（仅更新模型控制部分 or 也更新玩家控制部分），并保存state
         #下面这段还没改
-        state_json = str(state_info.encode())
+        state_json = JSON.dumps(state_info.encode())
         self.state_file.write(strftime("%Y-%m-%d %H:%M:%S", time) + " -- " + state_json + "\n")
         self.state_file.flush()
         
@@ -116,10 +118,12 @@ class S(BaseHTTPRequestHandler):
         self._set_headers()
         self.wfile.write("copy that! " + post_data)
 
-    log_file = open('httpd.log', 'a')
-    state_file = open('state.txt', 'a')
+    save_dir = 'model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+    os.makedirs(save_dir)
+    log_file = open(save_dir + '/httpd.log', 'a')
+    state_file = open(save_dir + '/state.log', 'a')
     model = LineModel(240, 49)
-    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
+    model.save(save_dir + 'line_model.model')
     line_trainer = LineTrainer()
 
     def log_message(self, format, *args):
