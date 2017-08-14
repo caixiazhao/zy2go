@@ -180,7 +180,7 @@ class LineModel:
                         print("小兵太远，放弃普攻")
                         continue
             elif selected < 48:  # skill1
-                skillid = (selected-18)/10+1
+                skillid =int( (selected-18)/10+1)
                 if hero.skills[skillid].canuse != True:
                     # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
                     acts[selected] = 0
@@ -258,7 +258,7 @@ class LineModel:
                     action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
             elif selected<48: #skill
-                skillid = (selected - 18) / 10 + 1
+                skillid = int((selected - 18) / 10 + 1)
                 [tgtid, tgtpos]=self.choose_skill_target(selected-18-(skillid-1)*10,stateinformation,skillid,hero_name,hero.pos,rival_hero)
                 if tgtpos is None:
                     fwd = None
