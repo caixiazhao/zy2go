@@ -73,11 +73,15 @@ class LineTrainer:
             # 开始根据策略决定当前的行动
             # 对线情况下，首先拿到兵线，朝最前方的兵线移动
             # 如果周围有危险（敌方单位）则启动对线模型
-            if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
-                print("策略层：因为附近没有敌人所以开始吃线")
+            # 如果周围有小兵或者塔，需要他们都是在指定线上的小兵或者塔
+            line_index = 1
+            near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
+            nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
+            if len(near_enemy_heroes) == 0 and len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0:
+                print("策略层：因为附近没有指定兵线的敌人所以开始吃线")
                 # 跟兵线
                 if hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.line_1:
-                    front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, 1, hero.team)
+                    front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
                     if front_soldier is None:
                         action_str = StateUtil.build_action_command(hero.hero_name, 'HOLD', {})
                         action_strs.append(action_str)

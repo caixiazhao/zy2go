@@ -98,6 +98,15 @@ class StateUtil:
                                                                              len(soldiers), 0 if frontest is None else frontest.pos.x))
         return frontest
 
+    @staticmethod
+    def get_units_in_line(units, line_index):
+        units_in_line = []
+        for unit in units:
+            line_pos = StateUtil.if_in_line(unit, line_index)
+            if line_pos >= 0:
+                units_in_line.append(unit)
+        return units_in_line
+
     # 得到兵线位置，小兵数量
     # 兵线编号，从左到右为0-2
     # 逻辑过于复杂，可能因为一个兵线格子过长，计算中点时候导致离真实的两波小兵都很远
@@ -247,11 +256,6 @@ class StateUtil:
                     nearest_enemy_tower=unit
                     max_distance=distance
         return nearest_enemy_tower
-
-    @staticmethod
-    def get_nearby_monsters(state_info, hero_id):
-        # TODO 考虑是否可见vis1表示下路阵营是否可见
-        return None
 
     @staticmethod
     def if_near_tower(state_info, hero_state, distance = NEARBY_TOWER_RADIUS):
