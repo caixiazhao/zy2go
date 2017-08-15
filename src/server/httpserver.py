@@ -122,7 +122,8 @@ class S(BaseHTTPRequestHandler):
     os.makedirs(save_dir)
     log_file = open(save_dir + '/httpd.log', 'a')
     state_file = open(save_dir + '/state.log', 'a')
-    model = LineModel(240, 49)
+    model = LineModel(240, 50)
+    #model.load('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/line_model.model')
     model.save(save_dir + '/line_model.model')
     line_trainer = LineTrainer()
 

@@ -476,8 +476,8 @@ if __name__ == "__main__":
 
 
 
-    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/httpd.log',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/line_model.model',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/state.log')
-    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
-                    '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
+    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/httpd.log',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/line_model.model',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/state.log')
+    train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/state.log',
+                    'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/line_model.model')
