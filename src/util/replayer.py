@@ -432,7 +432,7 @@ def replay_battle_log(log_path, model_path,state_path):
                                                                     StateUtil.LINE_MODEL_RADIUS)
             near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
             nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
-            if len(near_enemy_heroes) == 0 and len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0:
+            if len(near_enemy_heroes) != 0 or len(near_enemy_units_in_line) != 0 or len(nearest_enemy_tower_in_line) != 0:
                 player_action=Replayer.guess_player_action(prev_state,state_info,"27")
                 action_str = StateUtil.build_command(player_action)
                 print(action_str)
@@ -476,8 +476,8 @@ if __name__ == "__main__":
 
 
 
-    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/httpd.log',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/line_model.model',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/state.log')
-    train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/state.log',
-                    'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15162926.975949/line_model.model')
+    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/httpd.log',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/line_model.model',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/state.log')
+    # train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/state.log',
+    #                 'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/line_model.model')
