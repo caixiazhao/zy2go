@@ -3,7 +3,7 @@ from src.util.stateutil import StateUtil
 from util.jsonencoder import ComplexEncoder
 import json as JSON
 if __name__ == "__main__":
-    path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/forguessAction.log"
+    path = "C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/httpd.log"
     #path = "/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log"
     #todo: change the path
     file = open(path, "r")

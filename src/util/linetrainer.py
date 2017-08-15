@@ -9,10 +9,13 @@ from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
 from util.stateutil import StateUtil
-import sys
-
-reload(sys)
-sys.setdefaultencoding('utf8')
+# import sys
+#
+# import imp
+# imp.reload(sys)
+# #python 3 version
+# #reload(sys)
+# sys.setdefaultencoding('utf8')
 
 class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3

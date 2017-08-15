@@ -178,7 +178,7 @@ class StateUtil:
     @staticmethod
     def parse_state_log(json_str):
         # print(json_str)
-        # json_str = json_str[23:]
+        json_str = json_str[23:]
         # todo maybe becasu python3, the time before the { should be cut off
         state_json = JSON.loads(json_str)
         state_info = StateInfo.decode(state_json)
@@ -212,7 +212,7 @@ class StateUtil:
         return nearby_enemies
 
     @staticmethod
-    def get_nearby_friend_units(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
+    def get_nearby_friend_units(state_info, hero_id, max_distance=ATTACK_HERO_RADIUS):
         hero = state_info.get_hero(hero_id)
         friend_unit_team = hero.team
         friend_units = StateUtil.get_units_in_team(state_info, friend_unit_team)
@@ -228,7 +228,7 @@ class StateUtil:
         return nearby_friend_units
 
     @staticmethod
-    def get_nearby_enemy_units(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
+    def get_nearby_enemy_units(state_info, hero_id, max_distance=ATTACK_HERO_RADIUS):
         hero = state_info.get_hero(hero_id)
         enemy_unit_team = 1 - hero.team
         enemy_units = StateUtil.get_units_in_team(state_info, enemy_unit_team)
@@ -237,14 +237,14 @@ class StateUtil:
         for unit in enemy_units:
             # 排除掉塔
             # 排除掉野怪
-            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp > 0:
+            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp >= 0:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_enemy_units.append(unit)
         return nearby_enemy_units
 
     @staticmethod
-    def get_nearest_enemy_tower(state_info, hero_id, max_distance=ATTACK_UNIT_RADIUS):
+    def get_nearest_enemy_tower(state_info, hero_id, max_distance=ATTACK_HERO_RADIUS):
         hero = state_info.get_hero(hero_id)
         enemy_unit_team = 1 - hero.team
         enemy_units = StateUtil.get_units_in_team(state_info, enemy_unit_team)

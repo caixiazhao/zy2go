@@ -43,17 +43,17 @@ class Replayer:
         #攻击：检查hit，damage，attack
         #检查pos变化
 
-        for temphero in state_info.heros:
-            if temphero.hero_name==hero_name:
-                hero_current=temphero
-            else:
-                hero_rival_current=temphero
         for temphero in prev_state_info.heros:
             if temphero.hero_name==hero_name:
                 hero_prev=temphero
+            else:
+                hero_rival_prev=temphero
+        for temphero in state_info.heros:
+            if temphero.hero_name==hero_name:
+                hero_current=temphero
 
-        if len(state_info.attack_infos)!=0 : #有角色进行了攻击或回城
-            for attack in state_info.attack_infos:
+        if len(prev_state_info.attack_infos)!=0 : #有角色进行了攻击或回城
+            for attack in prev_state_info.attack_infos:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
                     skill=attack.skill
                     skillid=attack.skill%100
@@ -73,7 +73,7 @@ class Replayer:
                     if skillid==0: #普攻，不会以自己为目标
                         if tgtid1<27 and tgtid1!= 0: #打塔
                             output_index=8
-                        elif tgtid==hero_rival_current.hero_name: #普通攻击敌方英雄
+                        elif tgtid==hero_rival_prev.hero_name: #普通攻击敌方英雄
                             output_index=9
                         elif tgtid1!=0:#普通攻击敌方小兵
                             creeps=StateUtil.get_nearby_enemy_units(prev_state_info,hero_name)
@@ -88,7 +88,7 @@ class Replayer:
                                     tgtid = str(hit.tgt)
                                     if int(tgtid)<27: #打塔
                                         output_index=8
-                                    elif tgtid==hero_rival_current.hero_name:#敌方英雄
+                                    elif tgtid==hero_rival_prev.hero_name:#敌方英雄
                                         output_index=9
                                     else:#小兵
                                         creeps=StateUtil.get_nearby_enemy_units(prev_state_info,hero_name)
@@ -135,10 +135,10 @@ class Replayer:
 
                         if tgtid==hero_name or (tgtid=='0' and Replayer.skill_tag[skillid]==1):#对自身施法:部分技能无任何目标，tgt为0
                             #todo:
-                            tgtpos=hero_current.pos
+                            tgtpos=hero_prev.pos
                             output_index=8+skillid*10
-                        elif tgtid==hero_rival_current.hero_name:#对敌方英雄施法
-                            tgtpos=hero_rival_current.pos
+                        elif tgtid==hero_rival_prev.hero_name:#对敌方英雄施法
+                            tgtpos=hero_rival_prev.pos
                             output_index=9+skillid*10
                         elif tgtid1>27:#对小兵施法
                             creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
@@ -152,7 +152,7 @@ class Replayer:
                             for hit in state_info.hit_infos:
                                 if hit.atker == int(hero_name) and hit.skill == skill:
                                     tgtid = str(hit.tgt)
-                                    if tgtid == hero_rival_current.hero_name:  # 敌方英雄
+                                    if tgtid == hero_rival_prev.hero_name:  # 敌方英雄
                                         output_index = 9+skillid*10
                                     else:  # 小兵
                                         creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
@@ -371,7 +371,7 @@ class Replayer:
 
 def train_line_model(state_path, model_path):
     state_file = open(state_path, "r")
-    model = LineModel(240, 49)
+    model = LineModel(240, 50)
     model.load(model_path)
 
     lines = state_file.readlines()
@@ -383,12 +383,12 @@ def train_line_model(state_path, model_path):
     model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
 
 
-def replay_battle_log(log_path, model_path):
+def replay_battle_log(log_path, model_path,state_path):
     # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
     path = log_path
     # todo: change the path
     file = open(path, "r")
-    state_file = open('/Users/sky4star/Github/zy2go/battle_logs/state.log', 'a')
+    state_file = open(state_path, 'a')
     lines = file.readlines()
 
     # for line in lines:
@@ -399,7 +399,7 @@ def replay_battle_log(log_path, model_path):
     prev_state = None
     replayer = Replayer()
 
-    model = LineModel(240, 49)
+    model = LineModel(240, 50)
     # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
     # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
 
@@ -412,18 +412,40 @@ def replay_battle_log(log_path, model_path):
 
         if cur_state.tick == StateUtil.TICK_PER_STATE:
             print("clear")
-            prev_stat = None
-        elif prev_stat is not None and prev_stat.tick >= cur_state.tick:
+            prev_state = None
+        elif prev_state is not None and prev_state.tick >= cur_state.tick:
             print ("clear")
             prev_stat = None
 
         state_info = StateUtil.update_state_log(prev_state, cur_state)
-        state_logs.append(state_info)
+        #这里就附上了模型的action
+        #state_logs.append(state_info)
+
+        #玩家action
+        if prev_state != None:
+            hero=prev_state.get_hero("27")
+            line_index = 1
+            near_enemy_heroes = StateUtil.get_nearby_enemy_heros(prev_state, hero.hero_name,
+                                                                 StateUtil.LINE_MODEL_RADIUS)
+            near_enemy_units = StateUtil.get_nearby_enemy_units(prev_state, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
+            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(prev_state, hero.hero_name,
+                                                                    StateUtil.LINE_MODEL_RADIUS)
+            near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
+            nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
+            if len(near_enemy_heroes) == 0 and len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0:
+                player_action=Replayer.guess_player_action(prev_state,state_info,"27")
+                action_str = StateUtil.build_command(player_action)
+                print(action_str)
+                prev_state.actions.append(player_action)
+        if prev_state !=None:
+            state_logs.append(prev_state)
 
         # 测试对线模型
         rsp_str = line_trainer.build_response(state_info, prev_state, model)
         print(rsp_str)
         prev_state = state_info
+    if prev_state!=None:
+        state_logs.append(prev_state)
 
     # 测试计算奖励值
     state_logs_with_reward = LineModel.update_rewards(state_logs)
@@ -449,6 +471,13 @@ def replay_battle_log(log_path, model_path):
 if __name__ == "__main__":
     # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
     #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
-    replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
-                      '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
+    #replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
+    #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
 
+
+
+    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/httpd.log',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/line_model.model',
+                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15104611.115933/state.log')
+    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
+                    '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
