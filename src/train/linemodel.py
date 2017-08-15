@@ -12,8 +12,10 @@ import math
 #from model.action import Action
 #from train.actioncommandenum import ActionCommandEnum
 from model.cmdaction import CmdAction
+from model.skillcfginfo import SkillTargetEnum
 from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
+from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from model.fwdstateinfo import FwdStateInfo
 
@@ -35,10 +37,6 @@ class LineModel:
 
         #todo:英雄1,2普攻距离为2，后续需修改
         self.att_dist=2
-        #todo:以下仅为英雄1技能距离，后续需将这些信息加入到skillinfo中
-        self.skilldist=[8,6,5]
-        #todo:一下仅为英雄1的技能对自己可用情况，后续应该整合到skillinfo
-        self.skill_tag=[0,0,1]
 
 
     @property
@@ -286,20 +284,28 @@ class LineModel:
                 return action
 
     def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero):
+        hero_info = stateinformation.get_hero(hero_name)
+        skill_info = SkillUtil.get_skill_info(hero_info.cfg_id, skill)
         if selected==0:
-            if self.skill_tag[skill-1]==0:
+            # 施法目标为自己
+            # 首先判断施法目标是不是只限于敌方英雄
+            if skill_info.cast_target == SkillTargetEnum.viral:
                 return [-1,None]
             tgtid=hero_name
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
             tgtpos=None
         elif selected==1:
+            # 攻击对方英雄
+            # 首先判断施法目标是不是只限于自己
+            if skill_info.cast_target == SkillTargetEnum.self:
+                return [-1, None]
             rival = stateinformation.get_hero(rival_hero)
             if not rival.is_enemy_visible():
                 print ("敌方英雄不可见")
                 tgtid = -1
                 tgtpos = None
-            elif StateUtil.cal_distance(rival.pos, pos) > self.skilldist[skill - 1]:
-                print ("技能攻击不到对方 %s %s %s" % (rival_hero, StateUtil.cal_distance(rival.pos, pos), self.skilldist[skill - 1]))
+            elif StateUtil.cal_distance(rival.pos, pos) > skill_info.cast_distance:
+                print ("技能攻击不到对方 %s %s %s" % (rival_hero, StateUtil.cal_distance(rival.pos, pos), skill_info.cast_distance))
                 tgtid = -1
                 tgtpos = None
             # 对方英雄死亡时候忽略这个目标
@@ -321,7 +327,7 @@ class LineModel:
                 print ("敌方小兵不可见")
                 tgtid = -1
                 tgtpos = None
-            elif StateUtil.cal_distance(pos,creeps[n].pos)>self.skilldist[skill-1]:
+            elif StateUtil.cal_distance(pos,creeps[n].pos) > skill_info.cast_distance:
                 print ("技能不能攻击，小兵距离过远")
                 tgtid=-1
                 tgtpos=None

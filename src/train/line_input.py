@@ -1,5 +1,7 @@
 # -*- coding: utf8 -*-
 import numpy as np
+
+from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 
 
@@ -66,6 +68,7 @@ class Line_input:
         #返回总信息向量大小=2*68+8+16*6=240
 
     #TODO 需要更多注释
+    # 英雄信息向量大小13+1+3*18
     def gen_input_hero(self,hero):
         heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.z, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
                   1000+hero.attspeed, int(hero.movelock), hero.team]
@@ -81,32 +84,31 @@ class Line_input:
             heroInfo.append(int(hero.vis1))
         else:
             heroInfo.append(0)
-        skill1=self.gen_input_skill(hero.skills[1])
-        skill2=self.gen_input_skill(hero.skills[2])
-        skill3=self.gen_input_skill(hero.skills[3])
-        heroInfo=heroInfo+skill1+skill2+skill3
-        return heroInfo
-        #英雄信息向量大小13+1+3*18
+        skill_info1 = SkillUtil.get_skill_info(hero.cfg_id, 1)
+        skill_info2 = SkillUtil.get_skill_info(hero.cfg_id, 2)
+        skill_info3 = SkillUtil.get_skill_info(hero.cfg_id, 3)
 
-    def gen_input_skill(self,skill):
-        skillid=skill.skill_id
-        skill_info=[]
-        for i in range(len(self.skills)):
-            if skillid==self.skills[i][0]:
-                skill_info=self.skills[i]
-        if skill.cost==None:
-            skill.cost=0
-        skill_info=skill_info+[skill.cost]
-        if skill.cd!=None:
-            skill_info.append(int(skill.cd))
-        else:
-            skill_info.append(skill.max_cd)
+        skill_input1 = self.gen_input_skill(skill_info1, hero.skills[1])
+        skill_input2 = self.gen_input_skill(skill_info2, hero.skills[2])
+        skill_input3 = self.gen_input_skill(skill_info3, hero.skills[3])
+        heroInfo=heroInfo+skill_input1+skill_input2+skill_input3
+        return heroInfo
+
+    # 技能信息向量大小=15+3
+    def gen_input_skill(self, skill_cfg_info, skill):
+        skill_input = [skill_cfg_info.instant_dmg, skill_cfg_info.sustained_dmg, skill_cfg_info.restore,
+            skill_cfg_info.defend_bonus, skill_cfg_info.attack_bonus, skill_cfg_info.restore_bonus,
+            skill_cfg_info.move_bonus, skill_cfg_info.defend_weaken, skill_cfg_info.attack_weaken,
+            skill_cfg_info.move_weaken, skill_cfg_info.stun, skill_cfg_info.blink, skill_cfg_info.dmg_range,
+            skill_cfg_info.cast_distance, skill_cfg_info.cast_target]
+
+        skill_input = skill_input+[skill.cost]
+        skill_input.append(skill.max_cd)
         if skill.canuse== None:
-            skill_info.append(0)
+            skill_input.append(0)
         else:
-            skill_info.append(int(skill.canuse))
-        return skill_info
-        #技能信息向量大小=15+3
+            skill_input.append(int(skill.canuse))
+        return skill_input
 
 
     def gen_input_building(self,building):
