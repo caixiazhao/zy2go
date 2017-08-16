@@ -209,6 +209,7 @@ class StateUtil:
                 distance = StateUtil.cal_distance(hero.pos, enemy.pos)
                 if distance < max_distance:
                     nearby_enemies.append(enemy)
+        nearby_enemies.sort(key=lambda h: int(h.hero_name), reverse=True)
         return nearby_enemies
 
     @staticmethod
@@ -225,6 +226,7 @@ class StateUtil:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_friend_units.append(unit)
+        nearby_friend_units.sort(key=lambda u: int(u.unit_name), reverse=True)
         return nearby_friend_units
 
     @staticmethod
@@ -241,6 +243,7 @@ class StateUtil:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_enemy_units.append(unit)
+        nearby_enemy_units.sort(key=lambda u: int(u.unit_name), reverse=True)
         return nearby_enemy_units
 
     @staticmethod
