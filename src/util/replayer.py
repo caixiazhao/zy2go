@@ -17,10 +17,12 @@ from hero_strategy.actionenum import ActionEnum
 from hero_strategy.herostrategy import HeroStrategy
 from hero_strategy.strategyaction import StrategyAction
 from hero_strategy.strategyrecords import StrategyRecords
+from model.skillcfginfo import SkillCfgInfo
 from model.stateinfo import StateInfo
 from train.linemodel import LineModel
 from util.jsonencoder import ComplexEncoder
 from util.linetrainer import LineTrainer
+from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
@@ -56,21 +58,22 @@ class Replayer:
             for attack in prev_state_info.attack_infos:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
                     skill=attack.skill
-                    skillid=attack.skill%100
+
+                    # 看十位来决定技能id
+                    skillid=attack.skill%100/10
                     tgtid = str(attack.defer)
                     tgtpos=attack.tgtpos
-                    if tgtid==None or tgtid=='None':
-                        #attackinfo里没有tgtid只有tgtpos
+                    if tgtid is None or tgtid == 'None':
+                        # attackinfo里没有tgtid只有tgtpos
                         tgtid1=0
                     else:
                         #print("tgtid=")
                         #print(tgtid)
                         tgtid1=int(tgtid)
-                    if skillid==0:#回城
+                    if attack.skill == 10000:#回城
                         action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48, None)
                         return action
-                    skillid=skillid//10
-                    if skillid==0: #普攻，不会以自己为目标
+                    if skillid == 0: #普攻，不会以自己为目标
                         if tgtid1<27 and tgtid1!= 0: #打塔
                             output_index=8
                         elif tgtid==hero_rival_prev.hero_name: #普通攻击敌方英雄
@@ -196,7 +199,7 @@ class Replayer:
                 else:
                 #英雄没有进攻也没有施法
                     if hero_current.pos.x!=hero_prev.pos.x or hero_current.pos.z!= hero_prev.pos.z or hero_current.pos.y!=hero_prev.pos.y:#移动
-                        fwd=Replayer.get_fwd(hero_prev.pos,hero_current.pos)
+                        fwd = hero_current.pos.fwd(hero_prev.pos)
                         [fwd,output_index]=Replayer.get_closest_fwd(fwd)
                         action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
                         return action
@@ -205,7 +208,7 @@ class Replayer:
                         return action
         else: #没有角色进行攻击或使用技能，英雄在移动或hold
             if hero_current.pos.x != hero_prev.pos.x or hero_current.pos.z != hero_prev.pos.z or hero_current.pos.y != hero_prev.pos.y:  # 移动
-                fwd = Replayer.get_fwd(hero_prev.pos, hero_current.pos)
+                fwd = hero_current.pos.fwd(hero_prev.pos)
                 [fwd, output_index] = Replayer.get_closest_fwd(fwd)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
                 return action
@@ -258,16 +261,16 @@ class Replayer:
         return [tgtid,index]
 
 
-    @staticmethod
-    def get_fwd(pos1, pos2):
-        x = pos2.x - pos1.x
-        y = pos2.y - pos1.y
-        z = pos2.z - pos1.z
-        a = (x * x + y * y + z * z) / 1000000
-        x = x / math.sqrt(a)
-        y = y / math.sqrt(a)
-        z = z / math.sqrt(a)
-        return FwdStateInfo(x, y, z)
+    # @staticmethod
+    # def get_fwd(pos1, pos2):
+    #     x = pos2.x - pos1.x
+    #     y = pos2.y - pos1.y
+    #     z = pos2.z - pos1.z
+    #     a = (x * x + y * y + z * z) / 1000000
+    #     x = x / math.sqrt(a)
+    #     y = y / math.sqrt(a)
+    #     z = z / math.sqrt(a)
+    #     return FwdStateInfo(x, y, z)
 
     @staticmethod
     def get_closest_fwd(fwd):
@@ -379,33 +382,21 @@ def train_line_model(state_path, model_path):
         state_info = StateUtil.parse_state_log(line)
         if len(state_info.actions) > 0:
             model.remember(state_info)
-    model.replay(100)
+    model.replay(1000)
     model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
 
 
-def replay_battle_log(log_path, model_path,state_path):
-    # path = "C:/Users/Administrator/Desktop/zy2go/battle_logs/httpd.log"
-    path = log_path
-    # todo: change the path
-    file = open(path, "r")
-    state_file = open(state_path, 'a')
-    lines = file.readlines()
+# 根据包含了模型决策的state日志，继续计算我方英雄的行为以及双方的奖励值
+def cal_state_log_action_reward(state_path, output_path):
+    state_file = open(state_path, "r")
+    output = open(output_path, 'w')
+    lines = state_file.readlines()
 
-    # for line in lines:
-    #     bd_json = json.loads(line)
-    #     battle_detail = BattleRoundDetail.decode(bd_json)
-    #     model.remember(battle_detail)
     state_logs = []
     prev_state = None
-    replayer = Replayer()
 
-    model = LineModel(240, 50)
-    # model.load('C:/Users/Administrator/Desktop/zy2go/src/server/line_model_.model')
-    # model.load('/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-07 17:06:40.404176.model')
-
-    line_trainer = LineTrainer()
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) > 68508:
+        if prev_state is not None and int(prev_state.tick) >= 248556:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -415,15 +406,11 @@ def replay_battle_log(log_path, model_path,state_path):
             prev_state = None
         elif prev_state is not None and prev_state.tick >= cur_state.tick:
             print ("clear")
-            prev_stat = None
+            prev_state = None
 
-        state_info = StateUtil.update_state_log(prev_state, cur_state)
-        #这里就附上了模型的action
-        #state_logs.append(state_info)
-
-        #玩家action
-        if prev_state != None:
-            hero=prev_state.get_hero("27")
+        # 玩家action
+        if prev_state is not None:
+            hero = prev_state.get_hero("27")
             line_index = 1
             near_enemy_heroes = StateUtil.get_nearby_enemy_heros(prev_state, hero.hero_name,
                                                                  StateUtil.LINE_MODEL_RADIUS)
@@ -432,39 +419,74 @@ def replay_battle_log(log_path, model_path,state_path):
                                                                     StateUtil.LINE_MODEL_RADIUS)
             near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
             nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
-            if len(near_enemy_heroes) != 0 or len(near_enemy_units_in_line) != 0 or len(nearest_enemy_tower_in_line) != 0:
-                player_action=Replayer.guess_player_action(prev_state,state_info,"27")
+            if len(near_enemy_heroes) != 0 or len(near_enemy_units_in_line) != 0 or len(
+                    nearest_enemy_tower_in_line) != 0:
+                player_action = Replayer.guess_player_action(prev_state, cur_state, "27")
                 action_str = StateUtil.build_command(player_action)
-                print(action_str)
+                print('玩家行为分析：' + str(action_str) + ' tick:' + str(prev_state.tick) + ' prev_pos: ' +
+                      hero.pos.to_string() + ', cur_pos: ' + cur_state.get_hero(hero.hero_name).pos.to_string())
                 prev_state.actions.append(player_action)
-        if prev_state !=None:
+        if prev_state is not None:
             state_logs.append(prev_state)
 
-        # 测试对线模型
-        rsp_str = line_trainer.build_response(state_info, prev_state, model)
-        print(rsp_str)
-        prev_state = state_info
-    if prev_state!=None:
+        prev_state = cur_state
+
+    if prev_state is not None:
         state_logs.append(prev_state)
 
     # 测试计算奖励值
     state_logs_with_reward = LineModel.update_rewards(state_logs)
     for state_with_reward in state_logs_with_reward:
-        if len(state_with_reward.actions) > 0:
-            model.remember(state_with_reward)
-
-        if int(state_with_reward.tick) > 68508:
-            i = 1
-
         # 将结果记录到文件
         state_encode = state_with_reward.encode()
         state_json = JSON.dumps(state_encode)
+        output.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + state_json + "\n")
+        output.flush()
+
+    print(len(state_logs))
+
+
+# 从自由2客户端发送的JSON数据中得到模型选择的Action，
+# 注意，如果要准确还原模型当时的选择，需要将随机系数设为0
+def replay_battle_log(log_path, state_path, model_path=None):
+    path = log_path
+    file = open(path, "r")
+    state_file = open(state_path, 'w')
+    lines = file.readlines()
+
+    state_logs = []
+    prev_state = None
+    model = LineModel(240, 50)
+    if model_path is not None:
+        model.load(model_path)
+
+    line_trainer = LineTrainer()
+    for line in lines:
+        if prev_state is not None and int(prev_state.tick) > 248556:
+            i = 1
+
+        cur_state = StateUtil.parse_state_log(line)
+        if cur_state.tick == StateUtil.TICK_PER_STATE:
+            print("clear")
+            prev_state = None
+        elif prev_state is not None and prev_state.tick >= cur_state.tick:
+            print ("clear")
+            prev_state = None
+        state_info = StateUtil.update_state_log(prev_state, cur_state)
+
+        # 测试对线模型
+        rsp_str = line_trainer.build_response(state_info, prev_state, model)
+        print(rsp_str)
+        prev_state = state_info
+        state_logs.append(state_info)
+
+    # 测试计算奖励值
+    for state in state_logs:
+        # 将结果记录到文件
+        state_encode = state.encode()
+        state_json = JSON.dumps(state_encode)
         state_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + state_json + "\n")
         state_file.flush()
-
-    model.replay(100)
-
-    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
     print(len(state_logs))
 
 
@@ -473,11 +495,12 @@ if __name__ == "__main__":
     #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-11141336.087441.model')
     #replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
     #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
+    
+    # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/httpd.log',
+    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/pve_state.log',
+    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model')
+    cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state.log',
+                                '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log')
+    # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/pve1_state.log',
+    #                 '/Users/sky4star/Github/zy2go/battle_logs/line_model.model')
 
-
-
-    replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/httpd.log',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/line_model.model',
-                      'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/state.log')
-    # train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/state.log',
-    #                 'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-15165312.973512/line_model.model')
