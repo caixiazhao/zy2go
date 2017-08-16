@@ -411,7 +411,8 @@ class LineModel:
                 #TODO 这里需要考虑装备情况
                 gold_delta = int(cur_hero.gold) - int(prev_hero.gold)
 
-                gain = gold_delta * (1 + hp_delta)
+                # 放大金币变化情况，否则默认每两帧之间只有2-3的变化
+                gain = gold_delta * (1 + hp_delta) * 100
                 hero_reward_map[hero_name] = gain
             reward_range.append(hero_reward_map)
 
