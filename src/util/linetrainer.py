@@ -109,7 +109,7 @@ class LineTrainer:
                 enemies.extend((unit.unit_name for unit in near_enemy_units))
                 if nearest_enemy_tower is not None:
                     enemies.append(nearest_enemy_tower.unit_name)
-                print('对线模型决策，因为周围有敌人：' + ' ,'.join(enemies))
+                # print('对线模型决策，因为周围有敌人 ' + ' ,'.join(enemies))
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'

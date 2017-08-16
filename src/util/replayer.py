@@ -32,11 +32,10 @@ from time import gmtime, strftime
 from datetime import datetime
 
 class Replayer:
-    skill_tag = [0, 0, 1]
-    #todo:
     @staticmethod
     # 推测玩家在每一帧中的行为
     # 注：移动方向的推测怎么算
+    # TODO 没有解决朝指定点释放的问题，action中的output_index没法指定。另外目前模型也学不会这个场景
     def guess_player_action(prev_state_info, state_info, hero_name):
         #针对每一帧，结合后一帧信息，判断英雄在该帧的有效操作
         #仅对于一对一线上模型有效
@@ -135,9 +134,7 @@ class Replayer:
                         return action
 
                     else: #使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
-
-                        if tgtid==hero_name or (tgtid=='0' and Replayer.skill_tag[skillid]==1):#对自身施法:部分技能无任何目标，tgt为0
-                            #todo:
+                        if tgtid==hero_name: #or (tgtid=='0' and Replayer.skill_tag[skillid]==1):#对自身施法:部分技能无任何目标，tgt为0
                             tgtpos=hero_prev.pos
                             output_index=8+skillid*10
                         elif tgtid==hero_rival_prev.hero_name:#对敌方英雄施法
@@ -157,12 +154,14 @@ class Replayer:
                                     tgtid = str(hit.tgt)
                                     if tgtid == hero_rival_prev.hero_name:  # 敌方英雄
                                         output_index = 9+skillid*10
+                                        break
                                     else:  # 小兵
                                         creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
                                         n = len(creeps)
                                         for i in range(n):
                                             if creeps[i].unit_name == tgtid:
                                                 output_index = i + 10+skillid*10
+                                                break
                             # if tgtid == 0:  # 这一帧没有对应的hit，在下一帧找
                             #     for hit in next_state_info.hit_infos:
                             #         if hit.atker == int(hero_name) and hit.skill == skill:
@@ -372,7 +371,7 @@ class Replayer:
             prev_state = state_info
 
 
-def train_line_model(state_path, model_path):
+def train_line_model(state_path, model_path, output_model_path):
     state_file = open(state_path, "r")
     model = LineModel(240, 50)
     model.load(model_path)
@@ -381,14 +380,11 @@ def train_line_model(state_path, model_path):
     for line in lines:
         state_info = StateUtil.parse_state_log(line)
         if len(state_info.actions) > 0:
-            flag=0
-            for action in state_info.actions:
-                if action.reward==None:
-                    flag=flag+1
-            if flag==0:
-                model.remember(state_info)
-    model.replay(300)
-    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
+            model.remember(state_info)
+    for i in range(30):
+        model.replay(1)
+        print ("___________________________________ train ___________________________________")
+    model.save(output_model_path)
 
 
 # 根据包含了模型决策的state日志，继续计算我方英雄的行为以及双方的奖励值
@@ -401,7 +397,7 @@ def cal_state_log_action_reward(state_path, output_path):
     prev_state = None
 
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) >= 60522:
+        if prev_state is not None and int(prev_state.tick) >= 240504:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -519,11 +515,11 @@ if __name__ == "__main__":
     #replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
     #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
     
-    # replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/httpd.log',
-    #                   'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state.log',
-    #                   'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/line_model.model')
-    # cal_state_log_action_reward('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state.log',
-    #                             'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log')
-    train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log',
-                    'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/line_model.model')
-    # test1("C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log")
+    # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/httpd.log',
+    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/pve_state.log',
+    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model')
+    # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state.log',
+    #                             '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log')
+    train_line_model('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log',
+                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model',
+                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/replayed_line_model.model')

@@ -108,15 +108,24 @@ class LineModel:
 
             # 将不合理的选择都置为0
             actions_list = list(actions[0])
+            actions_detail = ' '.join(str("%.4f" % float(act)) for act in actions_list)
+            # target = actions_list
             target = self.remove_unaval_actions(actions_list, state_info, hero_name, rival_hero)
 
             # 测试代码，可以在model相同，没有随机的情况下检查模型挑选的action是否和我们记录的相同
-            # target = self.select_actions(target, state_info, hero_name, rival_hero)
+            # target_action = self.select_actions(target, state_info, hero_name, rival_hero)
+            maxQ = max(target)
+            target_action = target.index(maxQ)
+            print ('model select action ' + str(target_action))
 
             # 修改其中我们选择的行为
             # TODO 是否应该将超出范围的英雄的结果置成0？
             chosen_action = state_info.get_hero_action(hero_name)
             target[chosen_action.output_index] = chosen_action.reward
+            target_detail = ' '.join(str("%.4f" % float(act)) for act in target)
+
+            print ("replay detail: selected: %s \n    action array:%s \n    target array:%s\n\n" %
+                   (str(chosen_action.output_index),  actions_detail, target_detail))
 
             x[i], y[i] = state, target
         self.model.fit(x, y, batch_size=batch_size, epochs=1, verbose=0)
@@ -408,8 +417,11 @@ class LineModel:
 
                 # 得到金币变化，如果是消灭了对方小兵，或者英雄，金币上会有个显著的变化
                 # 对于死亡，相应的对方会有个金币的提升，暂时不考虑击杀被击杀的额外惩罚了吧
+                # 给死亡英雄一个惩罚值
                 #TODO 这里需要考虑装备情况
                 gold_delta = int(cur_hero.gold) - int(prev_hero.gold)
+                if cur_hero.hp <= 0:
+                    gold_delta = 0
 
                 # 放大金币变化情况，否则默认每两帧之间只有2-3的变化
                 gain = gold_delta * (1 + hp_delta) * 100
