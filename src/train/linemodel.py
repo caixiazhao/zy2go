@@ -197,7 +197,7 @@ class LineModel:
                     print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(hero.skills[skillid].canuse) + " tick=" + str(
                         stateinformation.tick))
                     continue
-                if hero.skills[skillid].cost > hero.mp:
+                if hero.skills[skillid].cost==None or hero.skills[skillid].cost > hero.mp:
                     # mp不足
                     acts[selected] = 0
                     print("mp不足，放弃施法" + str(skillid))
