@@ -60,7 +60,7 @@ class Replayer:
                     skill=attack.skill
 
                     # 看十位来决定技能id
-                    skillid=attack.skill%100/10
+                    skillid=int(attack.skill%100/10)
                     tgtid = str(attack.defer)
                     tgtpos=attack.tgtpos
                     if tgtid is None or tgtid == 'None':
@@ -381,8 +381,13 @@ def train_line_model(state_path, model_path):
     for line in lines:
         state_info = StateUtil.parse_state_log(line)
         if len(state_info.actions) > 0:
-            model.remember(state_info)
-    model.replay(1000)
+            flag=0
+            for action in state_info.actions:
+                if action.reward==None:
+                    flag=flag+1
+            if flag==0:
+                model.remember(state_info)
+    model.replay(300)
     model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
 
 
@@ -396,7 +401,7 @@ def cal_state_log_action_reward(state_path, output_path):
     prev_state = None
 
     for line in lines:
-        if prev_state is not None and int(prev_state.tick) >= 248556:
+        if prev_state is not None and int(prev_state.tick) >= 60522:
             i = 1
 
         cur_state = StateUtil.parse_state_log(line)
@@ -438,7 +443,10 @@ def cal_state_log_action_reward(state_path, output_path):
     state_logs_with_reward = LineModel.update_rewards(state_logs)
     for state_with_reward in state_logs_with_reward:
         # 将结果记录到文件
+        if state_with_reward.tick>60522:
+            i=1
         state_encode = state_with_reward.encode()
+        print(state_encode)
         state_json = JSON.dumps(state_encode)
         output.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + state_json + "\n")
         output.flush()
@@ -489,6 +497,21 @@ def replay_battle_log(log_path, state_path, model_path=None):
         state_file.flush()
     print(len(state_logs))
 
+# def test1(state_path):
+#     state_file = open(state_path, "r")
+#
+#     lines = state_file.readlines()
+#
+#     for line in lines:
+#         state_info = StateUtil.parse_state_log(line)
+#         if len(state_info.actions)>0:
+#             for action in state_info.actions :
+#                 if action.reward==None:
+#                     print(action.encode())
+#                     print(state_info.tick)
+#                     print(state_info.encode())
+
+
 
 if __name__ == "__main__":
     # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/battlestate1.log',
@@ -496,11 +519,11 @@ if __name__ == "__main__":
     #replay_battle_log('/Users/sky4star/Github/zy2go/battle_logs/autobattle3.log',
     #                  '/Users/sky4star/Github/zy2go/src/server/line_model_2017-08-14185336.317081.model')
     
-    # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/httpd.log',
-    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/pve_state.log',
-    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model')
-    cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state.log',
-                                '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log')
-    # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/pve1_state.log',
-    #                 '/Users/sky4star/Github/zy2go/battle_logs/line_model.model')
-
+    # replay_battle_log('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/httpd.log',
+    #                   'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state.log',
+    #                   'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/line_model.model')
+    # cal_state_log_action_reward('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state.log',
+    #                             'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log')
+    train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log',
+                    'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/line_model.model')
+    # test1("C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-16152213.130151/state_with_reward.log")
