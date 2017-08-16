@@ -102,12 +102,12 @@ class Line_input:
             skill_cfg_info.move_weaken, skill_cfg_info.stun, skill_cfg_info.blink, skill_cfg_info.dmg_range,
             skill_cfg_info.cast_distance, skill_cfg_info.cast_target]
 
-        skill_input = skill_input+[skill.cost]
-        skill_input.append(skill.max_cd)
-        if skill.canuse== None:
-            skill_input.append(0)
-        else:
-            skill_input.append(int(skill.canuse))
+        skill_cost = skill.cost if skill.cost is not None else 0
+        skill_max_cd = skill.max_cd if skill.max_cd is not None else 0
+        skill_canuse = int(skill.canuse) if skill.canuse is not None else 0
+        skill_input.append(skill_cost)
+        skill_input.append(skill_max_cd)
+        skill_input.append(skill_canuse)
         return skill_input
 
 
