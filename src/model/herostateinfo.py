@@ -103,6 +103,7 @@ class HeroStateInfo:
                     'att': self.att, 'gold': self.gold, 'Hprec': self.hprec, 'vis1': self.vis1, 'vis2': self.vis2,
                     'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen, 'magpen': self.magpen,
                     'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock, 'buff': self.buffs,
+                    'team': self.team
                     }
         for equip in self.equips:
             json_map[equip.name] = equip.encode()

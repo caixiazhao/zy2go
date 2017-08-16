@@ -61,7 +61,8 @@ class UnitStateInfo(object):
                     'att': self.att, 'vis1': self.vis1, 'vis2': self.vis2,
                     'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen,
                     'magpen': self.magpen,
-                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock
+                    'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock,
+                    'team': self.team
                     }
         return dict((k, v) for k, v in json_map.items() if v is not None)
 
