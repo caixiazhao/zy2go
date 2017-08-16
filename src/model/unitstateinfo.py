@@ -51,7 +51,7 @@ class UnitStateInfo(object):
         vis1 = delta.vis1 if delta.vis1 is not None else self.vis1
         vis2 = delta.vis2 if delta.vis2 is not None else self.vis2
         vis3 = delta.vis3 if delta.vis3 is not None else self.vis3
-        team = self.team if self.team is not None else self.team    # team信息的合并和其它的不同，会根据prev来决定，而不是根据delta
+        team = self.team if self.team is not None else delta.team    # team信息的合并和其它的不同，会根据prev来决定，而不是根据delta
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
                              attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
 
@@ -95,6 +95,6 @@ class UnitStateInfo(object):
         vis1 = obj['vis1'] if 'vis1' in obj else None
         vis2 = obj['vis2'] if 'vis2' in obj else None
         vis3 = obj['vis3'] if 'vis3' in obj else None
-        team = None if pos is None else (0 if pos.x < 0 else 1)
+        team = obj['team'] if 'team' in obj else (None if pos is None else (0 if pos.x < 0 else 1))
         return UnitStateInfo(unit_name, state, cfg_id, pos, fwd, hp, maxhp, speed, moving, chrtype, att,
                              attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
