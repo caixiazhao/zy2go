@@ -484,7 +484,9 @@ class LineModel:
                 for i in range(1, 8):
                     next_state = state_infos[state_idx + i]
                     next_hero = next_state.get_hero(hero_name)
-                    next_hero_action = next_state.get_action(hero_name)
+                    if next_state is None:
+                        next_state = None
+                    next_hero_action = next_state.get_hero_action(hero_name)
                     if next_hero_action is None or cur_hero_action.action != CmdActionEnum.CAST or cur_hero_action.skillid == 6:
                         go_town_break = True
                         break

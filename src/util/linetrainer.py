@@ -122,7 +122,7 @@ class LineTrainer:
 
                 # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
                 if action.action == CmdActionEnum.CAST and action.skillid == 6:
-                    print("英雄$s释放了回城" % hero_name)
+                    print("英雄%s释放了回城" % hero_name)
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 
                 # 保存action信息到状态帧中
