@@ -52,7 +52,8 @@ class Replayer:
         for temphero in state_info.heros:
             if temphero.hero_name==hero_name:
                 hero_current=temphero
-
+        if state_info.tick>508002:
+            i=1
         if len(prev_state_info.attack_infos)!=0 : #有角色进行了攻击或回城
             for attack in prev_state_info.attack_infos:
                 if attack.atker==int(hero_name): #英雄进行了攻击或回城
@@ -380,11 +381,17 @@ def train_line_model(state_path, model_path, output_model_path):
     for line in lines:
         state_info = StateUtil.parse_state_log(line)
         if len(state_info.actions) > 0:
-            model.remember(state_info)
+            #去掉最后几帧没有reward的情况
+            flag=0
+            for action in state_info.actions:
+                if action.reward==None:
+                    flag=flag+1
+            if flag==0:
+                model.remember(state_info)
     for i in range(30):
         model.replay(1)
         print ("___________________________________ train ___________________________________")
-    model.save(output_model_path)
+    model.save('line_model_' + str(datetime.now()).replace(' ', '').replace(':', '') + '.model')
 
 
 # 根据包含了模型决策的state日志，继续计算我方英雄的行为以及双方的奖励值
@@ -518,8 +525,8 @@ if __name__ == "__main__":
     # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/httpd.log',
     #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/pve_state.log',
     #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model')
-    # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state.log',
-    #                             '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log')
-    train_line_model('/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/state_with_reward.log',
-                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/line_model.model',
-                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-16152038.500300/replayed_line_model.model')
+    cal_state_log_action_reward('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-17170846.055517/state.log',
+                                'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-17170846.055517/state_with_reward.log')
+    # train_line_model('C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-17161219.320807/state_with_reward.log',
+    #                  'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-17161219.320807/line_model.model',
+    #                  'C:/Users/Administrator/Desktop/zy2go/src/server/model_2017-08-17161219.320807/replayed_line_model.model')

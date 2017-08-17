@@ -22,7 +22,7 @@ class CmdAction(object):
         action = obj['action']
         skillid = obj['skillid'] if 'skillid' in obj else None
         tgtid = obj['tgtid'] if 'tgtid' in obj else None
-        tgtpos = obj['tgtpos'] if 'tgtpos' in obj else None
+        tgtpos = PosStateInfo.decode(obj['tgtpos']) if 'tgtpos' in obj else None
         fwd = FwdStateInfo.decode(obj['fwd']) if 'fwd' in obj else None
         itemid = obj['itemid'] if 'itemid' in obj else None
         output_index = obj['output_index'] if 'output_index' in obj else None

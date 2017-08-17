@@ -58,7 +58,7 @@ class LineModel:
         #
         # predictions = Dense(self.action_size, activation='softmax')(dropped_3)
         # model = Model(inputs=battle_information, outputs=predictions)
-        # model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
+
         dense_1 = Dense(512, activation='relu')(battle_information)
         dropped_1 = Dropout(0.15)(dense_1)
         dense_2 = Dense(256, activation='relu')(dropped_1)
@@ -70,6 +70,7 @@ class LineModel:
 
         predictions = Dense(self.action_size, activation='tanh')(dropped_3)
         model = Model(inputs=battle_information, outputs=predictions)
+        model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
         return model
 
     def load(self, name):
