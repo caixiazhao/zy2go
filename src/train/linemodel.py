@@ -23,8 +23,7 @@ from model.fwdstateinfo import FwdStateInfo
 class LineModel:
     REWARD_GAMMA = 0.9
 
-
-    def __init__(self, statesize, actionsize):
+    def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
         self.action_size = actionsize #50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
         self.memory = collections.deque()
@@ -34,6 +33,7 @@ class LineModel:
         self.e_min = 0.05
         self.learning_rate = 0.01
         self.model = self._build_model
+        self.heros = heros
 
         #todo:英雄1,2普攻距离为2，后续需修改
         self.att_dist=2
@@ -80,7 +80,18 @@ class LineModel:
         self.model.save_weights(name)
 
     def remember(self, state_info):
-        self.memory.append(state_info)
+        # 必须具有指定英雄的action以及reward
+        actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None]
+        if len(actions) > 0:
+            self.memory.append(state_info)
+
+    def if_replay(self, learning_batch):
+        if len(self.memory) > 0 and len(self.memory) % learning_batch == 0:
+            return True
+        return False
+
+    def get_memory_size(self):
+        return len(self.memory)
 
     def replay(self, batch_size):
         batch_size = min(batch_size, len(self.memory))
@@ -92,10 +103,12 @@ class LineModel:
             sample_index = minibatch[i]
             state_info = self.memory[sample_index]
 
+            # 只学习从这个模型出去的英雄的行为，或者是真实玩家行为
             # 这里应该是选择reward更大的一方作为训练对象
             # 默认只有两个英雄
             max_action = None
-            for action in state_info.actions:
+            actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None]
+            for action in actions:
                 if max_action is None:
                     max_action = action
                 elif max_action.reward < action.reward:
@@ -398,16 +411,20 @@ class LineModel:
 
     # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
     @staticmethod
-    def update_rewards(state_infos):
-        for i in range(len(state_infos) - 11):
-            state_info = state_infos[i]
-            hero_names = ['27', '28']
-            reward_map = LineModel.cal_target_4_line(state_infos, i, hero_names)
-            for hero_name in hero_names:
-                reward = reward_map[hero_name]
-                state_info.add_rewards(hero_name, reward)
-            print("rewards: %s, tick: %s" % (str(reward_map), state_info.tick))
+    def update_rewards(state_infos, reward_delay, hero_names):
+        for i in range(len(state_infos) - reward_delay):
+            state_infos[i] = LineModel.update_state_rewards(state_infos, i, hero_names)
         return state_infos
+
+    @staticmethod
+    def update_state_rewards(state_infos, state_index, hero_names):
+        state_info = state_infos[state_index]
+        reward_map = LineModel.cal_target_4_line(state_infos, state_index, hero_names)
+        for hero_name in hero_names:
+            reward = reward_map[hero_name]
+            state_info.add_rewards(hero_name, reward)
+        print("rewards: %s, tick: %s" % (str(reward_map), state_info.tick))
+        return state_info
 
     # 计算对线情况下每次行动的效果反馈
     # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值

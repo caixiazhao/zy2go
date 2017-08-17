@@ -4,10 +4,15 @@
 # 对线模型训练中控制英雄(们)的行为
 
 import json as JSON
+import os
+from time import gmtime, strftime
+from datetime import datetime
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
+from train.linemodel import LineModel
+from util.replayer import Replayer
 from util.stateutil import StateUtil
 # import sys
 #
@@ -19,9 +24,125 @@ from util.stateutil import StateUtil
 
 class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
+    REWARD_DELAY_STATE_NUM = 11
 
-    def __init__(self):
+    def __init__(self, model1_heros, model2_heros=None, real_heros=None):
         self.hero_strategy = {}
+        self.state_cache = []
+        self.model1_heros = model1_heros
+        self.model2_heros = model2_heros
+        self.real_heros = real_heros
+
+        self.all_heros = []
+        self.all_heros.extend(model1_heros)
+        self.all_heros.extend(model2_heros)
+        self.all_heros.extend(real_heros)
+
+        # 创建存储文件路径
+        save_dir = 'C:/Users/YangLei/Documents/GitHub/zy2go/battlelogs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        os.makedirs(save_dir)
+        self.state_file = open(save_dir + '/state.log', 'w')
+        self.state_reward_file = open(save_dir + '/state_reward.log', 'w')
+
+        # 创建模型，决定有几个模型，以及是否有真人玩家
+        # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
+        heros = list(model1_heros)
+        if real_heros is not None:
+            heros.extend(real_heros)
+        self.model1 = LineModel(240, 50, heros)
+        self.model1_save_header = save_dir + '/line_model_1_v'
+        if model2_heros is not None:
+            heros = list(model2_heros)
+            if real_heros is not None:
+                heros.extend(real_heros)
+            self.model2 = LineModel(240, 50, heros)
+            self.model2_save_header = save_dir + '/line_model_2_v'
+
+    # 负责整个对线模型的训练
+    # 包括：模型选择动作，猜测玩家行为（如果有玩家），得到行为奖励值，训练行为，保存结果
+    def train_line_model(self, raw_state_info):
+        prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
+
+        # 根据之前帧更新当前帧信息，变成完整的信息
+        if raw_state_info.tick <= StateUtil.TICK_PER_STATE:
+            print("clear")
+            self.state_cache.clear()
+        elif prev_state_info is not None and prev_state_info.tick >= raw_state_info.tick:
+            print ("clear %s %s" % (prev_state_info.tick, raw_state_info.tick))
+            self.state_cache.clear()
+        state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
+
+        # 首先得到模型的选择，同时会将选择action记录到当前帧中
+        action_strs = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
+        if self.model2_heros is not None:
+            actions_model2 = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
+            action_strs.extend(actions_model2)
+
+        # 缓存
+        self.state_cache.append(state_info)
+        self.save_state_log(state_info)
+
+        # 更新玩家行为以及奖励值，有一段时间延迟
+        state_with_reward = self.update_state(self.all_heros, self.real_heros)
+        if state_with_reward is not None:
+            self.save_reward_log(state_with_reward)
+            self.model1.remember(state_with_reward)
+
+            # 学习
+            if self.model1.if_replay(30):
+                self.model1.replay(30)
+                self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
+            if self.model2 is not None:
+                # TODO 过滤之后放入相应的模型
+                self.model2.remember(state_with_reward)
+
+                # 学习
+                if self.model2.if_replay(30):
+                    self.model2.replay(30)
+                    self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
+
+        # 返回结果给游戏端
+        rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
+        rsp_str = JSON.dumps(rsp_obj)
+        return rsp_str
+
+    def save_reward_log(self, state_with_reward):
+        state_encode = state_with_reward.encode()
+        state_json = JSON.dumps(state_encode)
+        self.state_reward_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + state_json + "\n")
+        self.state_reward_file.flush()
+
+    def save_state_log(self, state_info):
+        state_encode = state_info.encode()
+        state_json = JSON.dumps(state_encode)
+        self.state_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + state_json + "\n")
+        self.state_file.flush()
+
+    # 根据缓存帧计算奖励值然后保存当前帧
+    # 注意：model_heros应该是所有需要模型学习的英雄，real_heros为其中真人的英雄
+    def update_state(self, model_heros, real_heros=None):
+        if len(self.state_cache) > LineTrainer.REWARD_DELAY_STATE_NUM:
+            state_info = self.state_cache[0]
+            next_state = self.state_cache[1]
+
+            # 如果有必要的话，更新这一帧中真人玩家的行为信息
+            if real_heros is not None:
+                for hero_name in real_heros:
+                    hero_action = Replayer.guess_player_action(state_info, next_state, hero_name)
+                    state_info.add_action(hero_action)
+                    action_str = StateUtil.build_command(state_info)
+                    print('玩家行为分析：' + str(action_str) + ' tick:' + str(state_info.tick))
+
+            # 更新开头一帧的奖励值
+            state_with_reward = LineModel.update_state_rewards(self.state_cache, 0, model_heros)
+
+            # 从缓存中删除
+            del self.state_cache[0]
+
+            # 将中间结果写入文件
+            self.save_reward_log(state_with_reward)
+            return state_with_reward
+        return None
 
     # 双方英雄集中到中路中间区域，进行对线
     # 一方英雄回城之后，负责等他满血后回到对战区
@@ -127,7 +248,8 @@ class LineTrainer:
 
                 # 保存action信息到状态帧中
                 state_info.add_action(action)
-        rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
-        rsp_str = JSON.dumps(rsp_obj)
-        return rsp_str
+        return action_strs
+        # rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
+        # rsp_str = JSON.dumps(rsp_obj)
+        # return rsp_str
 
