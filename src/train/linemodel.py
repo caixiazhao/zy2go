@@ -47,18 +47,29 @@ class LineModel:
         #TODO:模型可能需要的地图信息，暂时忽略了
         battle_information=Input(shape=(240,))
         # 输入的英雄，建筑和小兵的各类属性信息
-        dense_1=Dense(512,activation='relu')(battle_information)
-        dropped_1=Dropout(0.15)(dense_1)
-        dense_2=Dense(256,activation='relu')(dropped_1)
-        dropped_2=Dropout(0.15)(dense_2)
+        # dense_1=Dense(512,activation='relu')(battle_information)
+        # dropped_1=Dropout(0.25)(dense_1)
+        # dense_2=Dense(256,activation='relu')(dropped_1)
+        # dropped_2=Dropout(0.25)(dense_2)
+        # reshaped = Reshape((256, 1))(dropped_2)
+        # lstm=LSTM(128)(reshaped)
+        # dense_3 = Dense(64, activation='relu')(lstm)
+        # dropped_3 = Dropout(0.25)(dense_3)
+        #
+        # predictions = Dense(self.action_size, activation='softmax')(dropped_3)
+        # model = Model(inputs=battle_information, outputs=predictions)
+        # model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
+        dense_1 = Dense(512, activation='relu')(battle_information)
+        dropped_1 = Dropout(0.15)(dense_1)
+        dense_2 = Dense(256, activation='relu')(dropped_1)
+        dropped_2 = Dropout(0.15)(dense_2)
         reshaped = Reshape((256, 1))(dropped_2)
-        lstm=LSTM(128)(reshaped)
-        dense_3 = Dense(64, activation='relu')(lstm)
+        lstm = LSTM(128)(reshaped)
+        dense_3 = Dense(64, activation='tanh')(dropped_2)
         dropped_3 = Dropout(0.15)(dense_3)
 
-        predictions = Dense(self.action_size, activation='softmax')(dropped_3)
+        predictions = Dense(self.action_size, activation='tanh')(dropped_3)
         model = Model(inputs=battle_information, outputs=predictions)
-        model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
         return model
 
     def load(self, name):
