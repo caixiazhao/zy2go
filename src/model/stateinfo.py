@@ -87,6 +87,13 @@ class StateInfo:
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units,
                          delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions)
 
+    def add_action(self, action):
+        for i, act in enumerate(self.actions):
+            if act.hero_name == action.hero_name:
+                self.actions[i] = action
+                return
+        self.actions.append(action)
+
     def add_rewards(self, hero_name, reward):
         for action in self.actions:
             if action.hero_name == hero_name:

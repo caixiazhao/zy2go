@@ -56,6 +56,9 @@ class LineTrainer:
                     print('回城中，继续回城')
                     continue
 
+            if hero.hp <= 0:
+                continue
+
             # 处在少血状态是，且周围没有地方单位的情况下选择回城
             if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
                 if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
@@ -123,7 +126,7 @@ class LineTrainer:
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 
                 # 保存action信息到状态帧中
-                state_info.actions.append(action)
+                state_info.add_action(action)
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str

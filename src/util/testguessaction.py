@@ -40,7 +40,7 @@ if __name__ == "__main__":
              player_action=rp.guess_player_action(prev_state,state_info,"27")
              action_str = StateUtil.build_command(player_action)
              print(action_str)
-             prev_state.actions.append(player_action)
+             prev_state.add_action(player_action)
 
 
         state_logs.append(state_info)
