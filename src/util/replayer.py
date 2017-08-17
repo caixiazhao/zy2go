@@ -150,32 +150,42 @@ class Replayer:
                         elif tgtid1==0:#attacinfo里没有目标，从hit里找目标
                             # todo::::
                             tgtid = 0
-                            for hit in state_info.hit_infos:
+                            for hit in prev_state_info.hit_infos:
                                 if hit.atker == int(hero_name) and hit.skill == skill:
                                     tgtid = str(hit.tgt)
                                     if tgtid == hero_rival_prev.hero_name:  # 敌方英雄
                                         output_index = 9+skillid*10
-                                        break
-                                    else:  # 小兵
+                                        action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
+                                                           tgtpos, None, None, output_index, None)
+                                        return action
+                                else:  # 小兵
                                         creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
                                         n = len(creeps)
                                         for i in range(n):
                                             if creeps[i].unit_name == tgtid:
                                                 output_index = i + 10+skillid*10
-                                                break
-                            # if tgtid == 0:  # 这一帧没有对应的hit，在下一帧找
-                            #     for hit in next_state_info.hit_infos:
-                            #         if hit.atker == int(hero_name) and hit.skill == skill:
-                            #             tgtid = str(hit.tgt)
-                            #             if tgtid == hero_rival_current.hero_name:  # 敌方英雄
-                            #                 output_index = 9 + skillid * 10
-                            #             else:  # 小兵
-                            #                 creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
-                            #                 n = len(creeps)
-                            #                 for i in range(n):
-                            #                     if creeps[i].unit_name == tgtid:
-                            #                         output_index = i + 10 + skillid * 10
-                            if tgtid == 0:  # 任然没有hit，技能空放
+                                                action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
+                                                                   tgtpos, None, None, output_index, None)
+                                                return action
+                            if tgtid == 0:  # 这一帧没有对应的hit，在下一帧找
+                                for hit in state_info.hit_infos:
+                                    if hit.atker == int(hero_name) and hit.skill == skill:
+                                        tgtid = str(hit.tgt)
+                                        if tgtid == hero_rival_prev.hero_name:  # 敌方英雄
+                                            output_index = 9 + skillid * 10
+                                            action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
+                                                               tgtpos, None, None, output_index, None)
+                                            return action
+                                    else:  # 小兵
+                                            creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
+                                            n = len(creeps)
+                                            for i in range(n):
+                                                if creeps[i].unit_name == tgtid:
+                                                    output_index = i + 10 + skillid * 10
+                                                    action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
+                                                                       tgtpos, None, None, output_index, None)
+                                                    return action
+                        if tgtid == 0:  # 任然没有hit，技能空放
                                 if tgtpos != None:
                                     # attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
                                     [tgtid, output_index] = Replayer.get_closest_tgt(prev_state_info, hero_name, tgtpos, 1)
