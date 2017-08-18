@@ -22,6 +22,7 @@ from model.fwdstateinfo import FwdStateInfo
 
 class LineModel:
     REWARD_GAMMA = 0.9
+    REWARD_DELAY_STATE_NUM = 11
 
     def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
@@ -63,8 +64,8 @@ class LineModel:
         dropped_1 = Dropout(0.15)(dense_1)
         dense_2 = Dense(256, activation='relu')(dropped_1)
         dropped_2 = Dropout(0.15)(dense_2)
-        reshaped = Reshape((256, 1))(dropped_2)
-        lstm = LSTM(128)(reshaped)
+        # reshaped = Reshape((256, 1))(dropped_2)
+        # lstm = LSTM(128)(reshaped)
         dense_3 = Dense(64, activation='tanh')(dropped_2)
         dropped_3 = Dropout(0.15)(dense_3)
 
@@ -80,8 +81,8 @@ class LineModel:
         self.model.save_weights(name)
 
     def remember(self, state_info):
-        # 必须具有指定英雄的action以及reward
-        actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None]
+        # 必须具有指定英雄的action以及reward，还要是有效reward（不为0）
+        actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None and a.reward != 0]
         if len(actions) > 0:
             self.memory.append(state_info)
 
@@ -164,7 +165,7 @@ class LineModel:
             if selected < 8:  # move
                 if not hero.movelock:
                     # 英雄移动限制
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("移动受限，放弃移动" + str(hero.movelock))
                     continue
             elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
@@ -172,7 +173,7 @@ class LineModel:
                     # 普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
                     # 所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
                     # 被控制住
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("普攻受限，放弃普攻")
                     continue
                 if selected == 8:  # 敌方塔
@@ -181,7 +182,7 @@ class LineModel:
                     # if dist > self.att_dist:
                     if dist>StateUtil.ATTACK_UNIT_RADIUS:
                         # 在攻击范围外
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("塔太远，放弃普攻")
                         continue
                 elif selected == 9:  # 敌方英雄
@@ -190,18 +191,18 @@ class LineModel:
                     dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
                     # 英雄不可见
                     if not rival_info.is_enemy_visible():
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("英雄不可见")
                         continue
                     # 英雄太远，放弃普攻
                     # if dist > self.att_dist:
                     if dist>StateUtil.ATTACK_HERO_RADIUS:
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("英雄太远，放弃普攻")
                         continue
                     # 对方英雄死亡时候忽略这个目标
                     elif rival_info.hp <= 0:
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("对方英雄死亡")
                         continue
                 else:  # 小兵
@@ -210,51 +211,56 @@ class LineModel:
                     # 小兵不可见
                     if n >= len(creeps):
                         # 没有这么多小兵
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("没有这么多兵，模型选错了")
                         continue
                     if not creeps[n].is_enemy_visible():
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("小兵不可见")
                         continue
                     dist = StateUtil.cal_distance(hero.pos, creeps[n].pos)
                     # if dist > self.att_dist:
                     if dist > StateUtil.ATTACK_UNIT_RADIUS:
-                        acts[selected] = 0
+                        acts[selected] = -1
                         if debug: print("小兵太远，放弃普攻")
                         continue
+                    print ('英雄%s可以攻击到小兵%s，英雄位置%s，小兵位置%s，距离%s' % (hero.hero_name, creeps[n].unit_name,
+                                        hero.pos.to_string(), creeps[n].pos.to_string(), str(dist)))
             elif selected < 48:  # skill1
                 skillid =int( (selected-18)/10+1)
                 if hero.skills[skillid].canuse != True:
                     # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(hero.skills[skillid].canuse) + " tick=" + str(
                         stateinformation.tick))
                     continue
                 if hero.skills[skillid].cost==None or hero.skills[skillid].cost > hero.mp:
                     # mp不足
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("mp不足，放弃施法" + str(skillid))
                     continue
                 if hero.skills[skillid].cd > 0:
                     # 技能未冷却
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("技能cd中，放弃施法" + str(skillid))
                     continue
                 [tgtid, tgtpos] = self.choose_skill_target(selected - 18 - (skillid-1)*10, stateinformation, skillid, hero_name, hero.pos,
                                                            rival_hero, debug)
                 if tgtid == -1:
-                    acts[selected] = 0
+                    acts[selected] = -1
                     if debug: print("目标不符合施法要求")
                     continue
             elif selected == 48:  # 回城
+                #暂时屏蔽回城
+                acts[selected] = -1
+                continue
                 if hero.skills[6].canuse != True:
                     if debug: print("技能受限，放弃回城")
-                    acts[selected] = 0
+                    acts[selected] = -1
                     continue
                 if hero.skills[6].cd > 0:
                     ("技能cd中，放弃回城")
-                    acts[selected] = 0
+                    acts[selected] = -1
                     continue
         return acts
 
@@ -274,7 +280,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0:
+            if random.random()<0.3:
                 #随机策略，选择跳过当前最优解
                 acts[selected]=0
                 print("随机跳了一个操作")
@@ -397,30 +403,34 @@ class LineModel:
         # 这样传stateinformation太拖慢运行速度了，后面要改
         line_input = Line_input(stateinformation, hero_name, rival_hero)
         state_input = line_input.gen_input()
-        input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
+        # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
+        # print(input_detail)
 
         state_input=np.array([state_input])
         actions=self.model.predict(state_input)
-        action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
+        # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
 
         action=self.select_actions(actions,stateinformation,hero_name, rival_hero)
 
-        print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
-               (str(action.output_index), input_detail, action_detail))
+        # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
+        #        (str(action.output_index), input_detail, action_detail))
         return action
 
     # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
     @staticmethod
-    def update_rewards(state_infos, reward_delay, hero_names):
-        for i in range(len(state_infos) - reward_delay):
+    def update_rewards(state_infos, hero_names=None):
+        for i in range(len(state_infos) - LineModel.REWARD_DELAY_STATE_NUM):
             state_infos[i] = LineModel.update_state_rewards(state_infos, i, hero_names)
         return state_infos
 
     @staticmethod
-    def update_state_rewards(state_infos, state_index, hero_names):
+    def update_state_rewards(state_infos, state_index, hero_names=None):
         state_info = state_infos[state_index]
-        reward_map = LineModel.cal_target_4_line(state_infos, state_index, hero_names)
-        for hero_name in hero_names:
+        cal_heros = hero_names
+        if hero_names is None:
+            cal_heros = [h.hero_name for h in state_info.heros]
+        reward_map = LineModel.cal_target_4_line(state_infos, state_index, cal_heros)
+        for hero_name in cal_heros:
             reward = reward_map[hero_name]
             state_info.add_rewards(hero_name, reward)
         print("rewards: %s, tick: %s" % (str(reward_map), state_info.tick))

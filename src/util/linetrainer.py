@@ -10,6 +10,7 @@ from datetime import datetime
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
+from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
 from train.linemodel import LineModel
 from util.replayer import Replayer
@@ -22,11 +23,11 @@ from util.stateutil import StateUtil
 # #reload(sys)
 # sys.setdefaultencoding('utf8')
 
+
 class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
-    REWARD_DELAY_STATE_NUM = 11
 
-    def __init__(self, model1_heros, model2_heros=None, real_heros=None):
+    def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None):
         self.hero_strategy = {}
         self.state_cache = []
         self.model1_heros = model1_heros
@@ -35,12 +36,15 @@ class LineTrainer:
 
         self.all_heros = []
         self.all_heros.extend(model1_heros)
-        self.all_heros.extend(model2_heros)
-        self.all_heros.extend(real_heros)
+        if model2_heros is not None:
+            self.all_heros.extend(model2_heros)
+        if real_heros is not None:
+            self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        save_dir = 'C:/Users/YangLei/Documents/GitHub/zy2go/battlelogs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
         os.makedirs(save_dir)
+        self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
         self.state_reward_file = open(save_dir + '/state_reward.log', 'w')
 
@@ -50,37 +54,45 @@ class LineTrainer:
         if real_heros is not None:
             heros.extend(real_heros)
         self.model1 = LineModel(240, 50, heros)
+        if model1_path is not None:
+            self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
         if model2_heros is not None:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
             self.model2 = LineModel(240, 50, heros)
+            if model2_path is not None:
+                self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'
 
     # 负责整个对线模型的训练
     # 包括：模型选择动作，猜测玩家行为（如果有玩家），得到行为奖励值，训练行为，保存结果
-    def train_line_model(self, raw_state_info):
+    def train_line_model(self, raw_state_str):
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
+
+        # 解析客户端发送的请求
+        obj = JSON.loads(raw_state_str)
+        raw_state_info = StateInfo.decode(obj)
 
         # 根据之前帧更新当前帧信息，变成完整的信息
         if raw_state_info.tick <= StateUtil.TICK_PER_STATE:
             print("clear")
-            self.state_cache.clear()
+            self.state_cache = []
         elif prev_state_info is not None and prev_state_info.tick >= raw_state_info.tick:
             print ("clear %s %s" % (prev_state_info.tick, raw_state_info.tick))
-            self.state_cache.clear()
+            self.state_cache = []
         state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
-
-        # 首先得到模型的选择，同时会将选择action记录到当前帧中
-        action_strs = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
-        if self.model2_heros is not None:
-            actions_model2 = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
-            action_strs.extend(actions_model2)
 
         # 缓存
         self.state_cache.append(state_info)
         self.save_state_log(state_info)
+
+        # 首先得到模型的选择，同时会将选择action记录到当前帧中
+        action_strs = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
+        if self.model2_heros is not None:
+            actions_model2 = self.build_response(state_info, prev_state_info, self.model2, self.model2_heros)
+            action_strs.extend(actions_model2)
 
         # 更新玩家行为以及奖励值，有一段时间延迟
         state_with_reward = self.update_state(self.all_heros, self.real_heros)
@@ -89,22 +101,29 @@ class LineTrainer:
             self.model1.remember(state_with_reward)
 
             # 学习
-            if self.model1.if_replay(30):
-                self.model1.replay(30)
+            if self.model1.if_replay(50):
+                print ('开始模型训练')
+                self.model1.replay(50)
                 self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
+                print ('结束模型训练')
+
             if self.model2 is not None:
                 # TODO 过滤之后放入相应的模型
                 self.model2.remember(state_with_reward)
 
                 # 学习
-                if self.model2.if_replay(30):
-                    self.model2.replay(30)
+                if self.model2.if_replay(50):
+                    self.model2.replay(50)
                     self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
+
+    def save_raw_log(self, raw_log_str):
+        self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
+        self.raw_log_file.flush()
 
     def save_reward_log(self, state_with_reward):
         state_encode = state_with_reward.encode()
@@ -121,7 +140,7 @@ class LineTrainer:
     # 根据缓存帧计算奖励值然后保存当前帧
     # 注意：model_heros应该是所有需要模型学习的英雄，real_heros为其中真人的英雄
     def update_state(self, model_heros, real_heros=None):
-        if len(self.state_cache) > LineTrainer.REWARD_DELAY_STATE_NUM:
+        if len(self.state_cache) > LineModel.REWARD_DELAY_STATE_NUM:
             state_info = self.state_cache[0]
             next_state = self.state_cache[1]
 
@@ -227,6 +246,7 @@ class LineTrainer:
                     action_strs.append(action_str)
             else:
                 # 使用模型进行决策
+                print("使用对线模型决定英雄%s的行动" % hero.hero_name)
                 self.hero_strategy[hero.hero_name] = ActionEnum.line_model
                 enemies = []
                 enemies.extend((hero.hero_name for hero in near_enemy_heroes))
