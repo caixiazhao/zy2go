@@ -57,6 +57,8 @@ class LineTrainer:
         if model1_path is not None:
             self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
+        self.model1.save(self.model1_save_header + '0')
+
         if model2_heros is not None:
             heros = list(model2_heros)
             if real_heros is not None:
@@ -65,15 +67,22 @@ class LineTrainer:
             if model2_path is not None:
                 self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'
+            self.model2.save(self.model2_save_header + '0')
+        else:
+            self.model2 = None
 
     # 负责整个对线模型的训练
     # 包括：模型选择动作，猜测玩家行为（如果有玩家），得到行为奖励值，训练行为，保存结果
     def train_line_model(self, raw_state_str):
+        self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
+
+        if raw_state_info.tick >= 127512:
+            debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
         if raw_state_info.tick <= StateUtil.TICK_PER_STATE:
@@ -84,18 +93,20 @@ class LineTrainer:
             self.state_cache = []
         state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
 
-        # 缓存
-        self.state_cache.append(state_info)
-        self.save_state_log(state_info)
-
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = self.build_response(state_info, prev_state_info, self.model1, self.model1_heros)
         if self.model2_heros is not None:
             actions_model2 = self.build_response(state_info, prev_state_info, self.model2, self.model2_heros)
             action_strs.extend(actions_model2)
 
+        # 缓存
+        self.state_cache.append(state_info)
+        self.save_state_log(state_info)
+
         # 更新玩家行为以及奖励值，有一段时间延迟
-        state_with_reward = self.update_state(self.all_heros, self.real_heros)
+        reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
+        print 'reward_state_idx: ' + str(reward_state_idx)
+        state_with_reward = self.update_state(self.all_heros, reward_state_idx, self.real_heros)
         if state_with_reward is not None:
             self.save_reward_log(state_with_reward)
             self.model1.remember(state_with_reward)
@@ -113,8 +124,10 @@ class LineTrainer:
 
                 # 学习
                 if self.model2.if_replay(50):
+                    print ('开始模型训练')
                     self.model2.replay(50)
                     self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
+                    print ('结束模型训练')
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
@@ -139,10 +152,10 @@ class LineTrainer:
 
     # 根据缓存帧计算奖励值然后保存当前帧
     # 注意：model_heros应该是所有需要模型学习的英雄，real_heros为其中真人的英雄
-    def update_state(self, model_heros, real_heros=None):
-        if len(self.state_cache) > LineModel.REWARD_DELAY_STATE_NUM:
-            state_info = self.state_cache[0]
-            next_state = self.state_cache[1]
+    def update_state(self, model_heros, state_index, real_heros=None):
+        if state_index > 0:
+            state_info = self.state_cache[state_index]
+            next_state = self.state_cache[state_index+1]
 
             # 如果有必要的话，更新这一帧中真人玩家的行为信息
             if real_heros is not None:
@@ -153,10 +166,7 @@ class LineTrainer:
                     print('玩家行为分析：' + str(action_str) + ' tick:' + str(state_info.tick))
 
             # 更新开头一帧的奖励值
-            state_with_reward = LineModel.update_state_rewards(self.state_cache, 0, model_heros)
-
-            # 从缓存中删除
-            del self.state_cache[0]
+            state_with_reward = LineModel.update_state_rewards(self.state_cache, state_index, model_heros)
 
             # 将中间结果写入文件
             self.save_reward_log(state_with_reward)
@@ -206,13 +216,13 @@ class LineTrainer:
                     # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
                     if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
                         if prev_hero.hp > hero.hp:
-                            town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, None, None, None, None, None, None)
+                            town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
                             action_str = StateUtil.build_command(town_action)
                             action_strs.append(action_str)
                     # 检查英雄当前状态，如果不在回城，则将状态设置为正在回城，开始回城
                     elif self.hero_strategy[hero.hero_name] != ActionEnum.town_ing:
                         self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
-                        town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, None, None, None, None, None, None)
+                        town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
                         action_str = StateUtil.build_command(town_action)
                         action_strs.append(action_str)
 
@@ -231,9 +241,10 @@ class LineTrainer:
             line_index = 1
             near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
             nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
-            if len(near_enemy_heroes) == 0 and len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0:
+            if len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0 and (len(near_enemy_heroes) == 0 or
+                    StateUtil.if_in_line(hero, line_index, 4000) == -1):
                 self.hero_strategy[hero.hero_name] = ActionEnum.line_1
-                print("策略层：因为附近没有指定兵线的敌人所以开始吃线")
+                print("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
                 # 跟兵线
                 front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
                 if front_soldier is None:

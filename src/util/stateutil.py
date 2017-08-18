@@ -16,11 +16,11 @@ class StateUtil:
     TICK_PER_STATE = 528
     NEARBY_TOWER_RADIUS = 7
     NEARBY_BASEMENT_RADIUS = 7
-    ATTACK_HERO_RADIUS = 13  # 13.5
-    ATTACK_UNIT_RADIUS = 9  # 10
+    ATTACK_HERO_RADIUS = 12  # 13.5
+    ATTACK_UNIT_RADIUS = 7  # 10
     LINE_MODEL_RADIUS = 10
 
-    ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10120": 6000, "10130": 3500,
+    ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10l120": 6000, "10130": 3500,
                            "10200": 2000, "10210": 8000, "10220": 5000, "10230": 6000}
 
     LINE_WAY_POINTS = [
@@ -63,7 +63,7 @@ class StateUtil:
     @staticmethod
     def if_unit_monster(unit_info):
         # TODO 需要两个boss的id
-        if unit_info.cfg_id == 612 or unit_info.cfg_id == 6410 or unit_info.cfg_id == 611:
+        if int(unit_info.cfg_id) == 612 or int(unit_info.cfg_id) == 6410 or int(unit_info.cfg_id) == 611:
             return True
         return False
 
@@ -161,7 +161,7 @@ class StateUtil:
     # 返回单位在兵线上的位置
     # 结果从0开始
     @staticmethod
-    def if_in_line(unit_info, line_index):
+    def if_in_line(unit_info, line_index, range=2000):
         line = StateUtil.LINE_WAY_POINTS[line_index]
         for idx, point in enumerate(line):
             if idx >= len(line) - 1:
@@ -169,8 +169,8 @@ class StateUtil:
             next_point = line[idx+1]
             bound_x1 = min(next_point.x, point.x)
             bound_x2 = max(next_point.x, point.x)
-            bound_y1 = min(next_point.z, point.z) - 2000
-            bound_y2 = max(next_point.z, point.z) + 2000
+            bound_y1 = min(next_point.z, point.z) - range
+            bound_y2 = max(next_point.z, point.z) + range
             if bound_x1 <= unit_info.pos.x <= bound_x2 and bound_y1 <= unit_info.pos.z <= bound_y2:
                 return idx
         return -1
@@ -239,7 +239,7 @@ class StateUtil:
         for unit in enemy_units:
             # 排除掉塔
             # 排除掉野怪
-            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp >= 0:
+            if int(unit.unit_name) > 26 and not StateUtil.if_unit_monster(unit) and unit.hp > 0:
                 distance = StateUtil.cal_distance(hero.pos, unit.pos)
                 if distance < max_distance:
                     nearby_enemy_units.append(unit)

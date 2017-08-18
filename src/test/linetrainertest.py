@@ -11,8 +11,8 @@ from util.stateutil import StateUtil
 def test_line_trainer(raw_log_path):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
-    line_trainer = LineTrainer(model1_heros=['27'], model2_heros=['28'], real_heros=None,
-                               model1_path='/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/replayed_line_model.model',
+    line_trainer = LineTrainer(model1_heros=['27', '28'], model2_heros=None, real_heros=None,
+                               model1_path='/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18163328.361705/line_model_1_v250',
                                model2_path=None)
     for line in lines:
         json_str = line[23:]
@@ -36,7 +36,7 @@ def train_line_model(state_path, model_path, output_model_path, heros):
                     flag = flag + 1
             if flag == 0:
                 model.remember(state_info)
-    for i in range(1):
+    for i in range(2):
         model.replay(400)
         print ("___________________________________ train ___________________________________")
     model.save(output_model_path)
@@ -150,7 +150,7 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    # test_line_trainer('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/httpd.log')
+    # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18165501.919927/raw.log')
     # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/httpd.log',
     #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/pve_state.log',
     #                   ['28'],
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     #                    '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model')
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/pve_state.log',
     #                             '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/state_with_reward.log')
-    train_line_model('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/state_with_reward.log',
-                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model',
-                     '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/replayed_line_model1.model',
-                     ['27'])
+    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18172942.607436/state_reward.log',
+                     '/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18163328.361705/line_model_1_v250',
+                     '/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18163328.361705/replayed_line_model',
+                     ['27', '28'])

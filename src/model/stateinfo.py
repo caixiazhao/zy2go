@@ -55,7 +55,6 @@ class StateInfo:
             found = self.get_hero(hero.hero_name)
             merged = found.merge(hero)
             merged_heros.append(merged)
-            #会在这返回，很奇怪
         for prev in self.heros:
             found = delta.get_hero(prev.hero_name)
             if found is None:

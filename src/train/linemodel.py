@@ -224,7 +224,7 @@ class LineModel:
                         acts[selected] = -1
                         if debug: print("小兵太远，放弃普攻")
                         continue
-                    print ('英雄%s可以攻击到小兵%s，英雄位置%s，小兵位置%s，距离%s' % (hero.hero_name, creeps[n].unit_name,
+                    print ("英雄%s可以攻击到小兵%s，英雄位置%s，小兵位置%s，距离%s" % (str(hero_name), str(creeps[n].unit_name),
                                         hero.pos.to_string(), creeps[n].pos.to_string(), str(dist)))
             elif selected < 48:  # skill1
                 skillid =int( (selected-18)/10+1)
@@ -280,7 +280,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.3:
+            if random.random()<0.1:
                 #随机策略，选择跳过当前最优解
                 acts[selected]=0
                 print("随机跳了一个操作")
@@ -443,9 +443,9 @@ class LineModel:
     # 同时反馈两个值，teama（上路）的反馈值和teamb的反馈值
     @staticmethod
     def cal_target_4_line(state_infos, state_idx, hero_names):
-        prev_state = state_infos[state_idx]
 
         # 首先计算每个英雄的获得情况
+        prev_state = state_infos[state_idx]
         reward_range = []
         for i in range(1, 11):
             reward_map = {}
@@ -473,6 +473,7 @@ class LineModel:
                 gain = gold_delta * (1 + hp_delta) * 100
                 hero_reward_map[hero_name] = gain
             reward_range.append(hero_reward_map)
+            prev_state = cur_state
 
         # 根据衰减系数来得到总的奖励值
         final_reward_map = {}
@@ -500,6 +501,39 @@ class LineModel:
                 final_reward_map[hero_name] = ((gain_team_b / float(gain_team_a + gain_team_b))-0.5)*2 if (gain_team_a + gain_team_b) > 0 else None
 
         # 特殊情况处理
+
+
+        # 进入模型选择区域后，下1/2帧立刻离开模型选择区域的，这种情况需要避免
+        if state_idx > 0:
+            prev_state = state_infos[state_idx - 1]
+            cur_state = state_infos[state_idx]
+            next_state = state_infos[state_idx + 1]
+            next_next_state = state_infos[state_idx + 2]
+
+            # 离线太远就进行惩罚
+            for hero_name in hero_names:
+                line_index = 1
+                prev_hero = prev_state.get_hero(hero_name)
+                cur_hero = cur_state.get_hero(hero_name)
+                prev_in_line = StateUtil.if_in_line(prev_hero, line_index, 4000)
+                cur_in_line = StateUtil.if_in_line(cur_hero, line_index, 4000)
+                if prev_in_line >= 0 and cur_in_line == -1:
+                    final_reward_map[hero_name] = -1
+
+            # 进入模型选择区域后，下1/2帧立刻离开模型选择区域的，这种情况需要避免
+            for hero_name in hero_names:
+                prev_hero_action = prev_state.get_hero_action(hero_name)
+                cur_hero_action = cur_state.get_hero_action(hero_name)
+                next_hero_action = next_state.get_hero_action(hero_name)
+                next_next_hero_action = next_next_state.get_hero_action(hero_name)
+
+                # 只有当前帧玩家有行动，且是移动，则我们给予一个差评
+                # TODO 如果更严谨我们应该首先判断之前是不是在回城状态中，然后被打断了
+                if prev_hero_action is None and cur_hero_action is not None and next_hero_action is None:
+                    final_reward_map[hero_name] = -1
+                elif prev_hero_action is None and cur_hero_action is not None and next_hero_action is not None and next_next_hero_action is None:
+                    final_reward_map[hero_name] = -1
+
         # 回城被打断或者自己中断回城的情况，将target置为0。这是不希望的情况
         for hero_name in hero_names:
             go_town_break = False
