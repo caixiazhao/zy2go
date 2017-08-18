@@ -9,7 +9,7 @@ class Line_input:
     #注：这个值需要小心调整，会和找附近塔的逻辑有冲突
     NEAR_TOWER_RADIUS = 20
 
-    def __init__(self, stateInformation,hero_name, rival_hero):
+    def __init__(self, stateInformation, hero_name, rival_hero):
         self.stateInformation = stateInformation
         self.hero_name = hero_name
         self.rival_hero = rival_hero
@@ -17,12 +17,16 @@ class Line_input:
             if hero.hero_name==hero_name:
                 self.team=hero.team
                 self.hero_pos=hero.pos
-        self.skills=[[10110,5,0,0,0,0,0,0,0,0,5,0,0,1,8],[10120,6,0,0,0,0,0,0,0,0,0,0,6,3,6],
-                     [10130,8,0,0,0,0,0,0,0,0,0,7,0,4,3.5],[10210,4,4,0,0,0,0,0,4,0,5,0,0,3,8],
-                     [10220,3,0,0,0,0,0,0,0,0,0,7,4,1,5],[10230,2,10,5,7,0,0,0,0,0,0,0,0,6,6]]
-        #对英雄101,102技能信息的临时编码
 
-    def gen_input(self):
+    def gen_team_input(self):
+        hero = self.stateInformation.get_hero(self.hero_name)
+        team = 1 if hero.team == 1 else 0
+        team_input = []
+        for i in range(64):
+            team_input.append(team)
+        return team_input
+
+    def gen_line_input(self):
         state=[]
 
         # 添加双方英雄信息，对线模型暂时只考虑1v1的情况

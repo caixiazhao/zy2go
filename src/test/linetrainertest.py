@@ -23,7 +23,8 @@ def test_line_trainer(raw_log_path):
 def train_line_model(state_path, model_path, output_model_path, heros):
     state_file = open(state_path, "r")
     model = LineModel(240, 50, heros)
-    model.load(model_path)
+    if model_path is not None:
+        model.load(model_path)
 
     lines = state_file.readlines()
     for line in lines:
@@ -114,13 +115,13 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
 
     state_logs = []
     prev_state = None
-    model = LineModel(240, 50)
+    model = LineModel(240, 50, hero_names)
     if model_path is not None:
         model.load(model_path)
     if save_model_path is not None:
         model.save(save_model_path)
 
-    line_trainer = LineTrainer()
+    line_trainer = LineTrainer(hero_names)
     for line in lines:
         if prev_state is not None and int(prev_state.tick) > 248556:
             i = 1
@@ -151,15 +152,16 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
 
 if __name__ == "__main__":
     # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18165501.919927/raw.log')
-    # replay_battle_log('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/httpd.log',
-    #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/pve_state.log',
+    # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
+    #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',
     #                   ['28'],
+    #                   None,
     #                   '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model',
-    #                   None)
+                      # None)
     #                    '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model')
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/pve_state.log',
     #                             '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/state_with_reward.log')
-    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18172942.607436/state_reward.log',
-                     '/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18163328.361705/line_model_1_v250',
-                     '/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18163328.361705/replayed_line_model',
+    train_line_model('C:/Users/YangLei/Documents/GitHub/zy2go/battle_logs/model_2017-08-19021148.987943/state_reward.log',
+                     None,
+                     'C:/Users/YangLei/Documents/GitHub/zy2go/battle_logs/model_2017-08-19021148.987943/replayed_line_model',
                      ['27', '28'])

@@ -1,10 +1,11 @@
 # -*- coding: utf8 -*-
 import collections
 import random
+from operator import concat
 
 import numpy as np
 from keras.engine import Input, Model
-from keras.layers import Dense, LSTM, Reshape
+from keras.layers import Dense, LSTM, Reshape, concatenate
 from keras.layers import Dropout
 from keras.optimizers import Nadam
 import math
@@ -47,6 +48,7 @@ class LineModel:
         #battle_map=Input(shape=())
         #TODO:模型可能需要的地图信息，暂时忽略了
         battle_information=Input(shape=(240,))
+        team_information = Input(shape=(64,))
         # 输入的英雄，建筑和小兵的各类属性信息
         # dense_1=Dense(512,activation='relu')(battle_information)
         # dropped_1=Dropout(0.25)(dense_1)
@@ -60,17 +62,32 @@ class LineModel:
         # predictions = Dense(self.action_size, activation='softmax')(dropped_3)
         # model = Model(inputs=battle_information, outputs=predictions)
 
+
+        # v2版本
+        # dense_1 = Dense(512, activation='relu')(battle_information)
+        # dropped_1 = Dropout(0.15)(dense_1)
+        # dense_2 = Dense(256, activation='relu')(dropped_1)
+        # dropped_2 = Dropout(0.15)(dense_2)
+        # dense_3 = Dense(64, activation='tanh')(dropped_2)
+        # dropped_3 = Dropout(0.15)(dense_3)
+
+        # 尝试阵容信息单独传入输入
+        # 尝试不同类型的选择用不同的模型来计算
         dense_1 = Dense(512, activation='relu')(battle_information)
         dropped_1 = Dropout(0.15)(dense_1)
         dense_2 = Dense(256, activation='relu')(dropped_1)
         dropped_2 = Dropout(0.15)(dense_2)
-        # reshaped = Reshape((256, 1))(dropped_2)
-        # lstm = LSTM(128)(reshaped)
         dense_3 = Dense(64, activation='tanh')(dropped_2)
-        dropped_3 = Dropout(0.15)(dense_3)
 
-        predictions = Dense(self.action_size, activation='tanh')(dropped_3)
-        model = Model(inputs=battle_information, outputs=predictions)
+        dense_3_move = concatenate([dense_3, team_information])
+        dense_4_move = Dense(8, activation='tanh')(dense_3_move)
+        dense_4_attack = Dense(10, activation='tanh')(dense_3)
+        dense_4_skill = Dense(30, activation='tanh')(dense_3)
+        dense_4_others = Dense(2, activation='tanh')(dense_3)
+
+        predictions = concatenate([dense_4_move,dense_4_attack,dense_4_skill,dense_4_others])
+
+        model = Model(inputs=[battle_information, team_information], outputs=predictions)
         model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
         return model
 
@@ -98,7 +115,8 @@ class LineModel:
         batch_size = min(batch_size, len(self.memory))
         index_range = range(len(self.memory))
         minibatch = random.sample(index_range, batch_size)
-        x = np.zeros((batch_size, self.state_size))
+        x_1 = np.zeros((batch_size, self.state_size))
+        x_2 = np.zeros((batch_size, 64))
         y = np.zeros((batch_size, self.action_size))
         for i in range(batch_size):
             sample_index = minibatch[i]
@@ -126,11 +144,13 @@ class LineModel:
                     break
 
             line_input = Line_input(state_info, hero_name, rival_hero)
-            state = line_input.gen_input()
+            state = line_input.gen_line_input()
             state_input = np.array([state])
+            team = line_input.gen_team_input()
+            team_input = np.array([team])
 
             # 得到模型预测结果
-            actions = self.model.predict(state_input)
+            actions = self.model.predict([state_input, team_input])
 
             # 将不合理的选择都置为0
             actions_list = list(actions[0])
@@ -153,8 +173,8 @@ class LineModel:
             print ("replay detail: selected: %s \n    action array:%s \n    target array:%s\n\n" %
                    (str(chosen_action.output_index),  actions_detail, target_detail))
 
-            x[i], y[i] = state, target
-        self.model.fit(x, y, batch_size=batch_size, epochs=1, verbose=0)
+            x_1[i], x_2[i], y[i] = state, team, target
+        self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
         if self.epsilon > self.e_min:
             self.epsilon *= self.e_decay
 
@@ -402,12 +422,15 @@ class LineModel:
     def get_action(self,stateinformation,hero_name, rival_hero):
         # 这样传stateinformation太拖慢运行速度了，后面要改
         line_input = Line_input(stateinformation, hero_name, rival_hero)
-        state_input = line_input.gen_input()
+        state_input = line_input.gen_line_input()
+
         # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
         # print(input_detail)
 
         state_input=np.array([state_input])
-        actions=self.model.predict(state_input)
+        team = line_input.gen_team_input()
+        team_input = np.array([team])
+        actions=self.model.predict([state_input, team_input])
         # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
 
         action=self.select_actions(actions,stateinformation,hero_name, rival_hero)

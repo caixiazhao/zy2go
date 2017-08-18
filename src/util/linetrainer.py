@@ -42,7 +42,7 @@ class LineTrainer:
             self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = 'C:/Users/YangLei/Documents/GitHub/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
         os.makedirs(save_dir)
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
@@ -105,7 +105,7 @@ class LineTrainer:
 
         # 更新玩家行为以及奖励值，有一段时间延迟
         reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
-        print 'reward_state_idx: ' + str(reward_state_idx)
+        print ('reward_state_idx: ' + str(reward_state_idx))
         state_with_reward = self.update_state(self.all_heros, reward_state_idx, self.real_heros)
         if state_with_reward is not None:
             self.save_reward_log(state_with_reward)
