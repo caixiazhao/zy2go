@@ -61,9 +61,9 @@ class S(BaseHTTPRequestHandler):
         self.wfile.write("copy that! " + post_data)
 
     # 两个模型用来相互对战，分别训练
-    line_trainer = LineTrainer(model1_heros=['27'], model2_heros=['28'], real_heros=None,
-                               model1_path='/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/replayed_line_model1.model',
-                               model2_path='/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/replayed_line_model2.model')
+    line_trainer = LineTrainer(model1_heros=['27', '28'], model2_heros=None, real_heros=None,
+                               model1_path='/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-18174504.485109/line_model_1_v100',
+                               model2_path=None)
 
     def log_message(self, format, *args):
         return
