@@ -297,11 +297,13 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.1:
-                #随机策略，选择跳过当前最优解
-                acts[selected]=0
-                print("随机跳了一个操作")
-                continue
+            if random.random()<0.2:
+                # 随机策略, 用来探索新的可能性
+                aval_actions = [act for act in acts if act > -1]
+                rdm = random.randint(0, len(aval_actions)-1)
+                rdm_q = aval_actions[rdm]
+                selected = acts.index(rdm_q)
+                print("随机选择操作 " + str(selected))
             if selected < 8:  #move
                 fwd = StateUtil.mov(selected)
                 action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
