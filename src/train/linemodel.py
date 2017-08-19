@@ -9,6 +9,7 @@ from keras.layers import Dense, LSTM, Reshape, concatenate
 from keras.layers import Dropout
 from keras.optimizers import Nadam
 import math
+import random
 
 #from model.action import Action
 #from train.actioncommandenum import ActionCommandEnum
@@ -122,20 +123,16 @@ class LineModel:
             sample_index = minibatch[i]
             state_info = self.memory[sample_index]
 
-            # 只学习从这个模型出去的英雄的行为，或者是真实玩家行为
-            # 这里应该是选择reward更大的一方作为训练对象
-            # 默认只有两个英雄
-            max_action = None
+            # 随机从指定玩家的行为中进行挑选
+            selected_action = None
             actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None]
-            for action in actions:
-                if max_action is None:
-                    max_action = action
-                elif max_action.reward < action.reward:
-                    max_action = action
-            if max_action.reward <= 0:
+            if len(actions) == 0:
+                print('skip replay tick %s ' % state_info.tick)
                 continue
+            rmd = random.randint(0, len(actions) - 1)
+            selected_action = actions[rmd]
 
-            hero_name = max_action.hero_name
+            hero_name = selected_action.hero_name
             # TODO rival_hero 怎么定义？
             # 暂时将1v1的rival_hero 定义为对面英雄
             for hero in state_info.heros:
@@ -162,7 +159,7 @@ class LineModel:
             # target_action = self.select_actions(target, state_info, hero_name, rival_hero)
             maxQ = max(target)
             target_action = target.index(maxQ)
-            print ('model select action ' + str(target_action))
+            print ('model select action %s, tick %s' % (str(target_action), state_info.tick))
 
             # 修改其中我们选择的行为
             # TODO 是否应该将超出范围的英雄的结果置成0？
@@ -170,7 +167,7 @@ class LineModel:
             target[chosen_action.output_index] = chosen_action.reward
             target_detail = ' '.join(str("%.4f" % float(act)) for act in target)
 
-            print ("replay detail: selected: %s \n    action array:%s \n    target array:%s\n\n" %
+            print("replay detail: selected: %s \n    action array:%s \n    target array:%s\n\n" %
                    (str(chosen_action.output_index),  actions_detail, target_detail))
 
             x_1[i], x_2[i], y[i] = state, team, target
@@ -456,7 +453,6 @@ class LineModel:
         for hero_name in cal_heros:
             reward = reward_map[hero_name]
             state_info.add_rewards(hero_name, reward)
-        print("rewards: %s, tick: %s" % (str(reward_map), state_info.tick))
         return state_info
 
     # 计算对线情况下每次行动的效果反馈

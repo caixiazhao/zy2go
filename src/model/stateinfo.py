@@ -97,6 +97,7 @@ class StateInfo:
         for action in self.actions:
             if action.hero_name == hero_name:
                 action.reward = reward
+                print("rewards: %s->%s, tick: %s" % (hero_name, str(reward), self.tick))
                 break
 
     def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):
