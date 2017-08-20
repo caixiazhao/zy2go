@@ -25,6 +25,7 @@ from model.fwdstateinfo import FwdStateInfo
 class LineModel:
     REWARD_GAMMA = 0.9
     REWARD_DELAY_STATE_NUM = 11
+    REWARD_RIVAL_DMG = 250
 
     def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
@@ -448,14 +449,128 @@ class LineModel:
     @staticmethod
     def update_state_rewards(state_infos, state_index, hero_names=None):
         state_info = state_infos[state_index]
-        cal_heros = hero_names
-        if hero_names is None:
-            cal_heros = [h.hero_name for h in state_info.heros]
-        reward_map = LineModel.cal_target_4_line(state_infos, state_index, cal_heros)
-        for hero_name in cal_heros:
-            reward = reward_map[hero_name]
+        for hero_name in hero_names:
+            # TODO 这些参数应该是传入的
+            line_idx = 1
+            rival_hero_name = '27' if hero_name == '28' else '28'
+            reward = LineModel.cal_target_v2(state_infos, state_index, hero_name, rival_hero_name, line_idx)
             state_info.add_rewards(hero_name, reward)
         return state_info
+
+    @staticmethod
+    # 思考设计新的行动评价标准
+    # 之前的问题在于过度依赖于和对方英雄的对比，如果两边都不是合适选择，模型并不会清楚理想情况的高度
+    # 考虑一段时间动作结果的结果是，混淆了很多行动的效果，而且不适合积累一批数据来直接训练新的模型（模型行动高度依赖后续一串行为的结果）
+    # 希望模型从反馈中学习到的情况
+    #
+	# * 训练不同的阵营的跑向不同的方向
+	# * 不要离开兵线太远
+	# * 不要离开敌方小兵太远
+	# * 击杀最后一下
+	# * 尽量压对方英雄血线
+	# * 躲避对方塔的攻击
+    # * 受到小兵攻击的情况下，回避攻击
+    # * 回城在不会被攻击的地方
+    # * 血量，金币，MP中间的平衡
+    # TODO 是不是让模型输入记录被攻击情况和受到攻击的情况，以及伤害
+    #
+    # 思路：
+    # 兵线状态下的目的：获得尽可能多的金币，尽可能的压对方英雄，寻找击杀对方英雄的机会，保持自己的血量，保持自己的MP，尽可能的推塔
+    # 优秀和拙劣选择的判断条件：
+    # * 击杀小兵获得金币 优秀
+    # * 同时击杀多个小兵 优秀
+    # * 对英雄造成伤害 优秀
+    # * 攻击到对方塔，且没有后续被攻击到 优秀
+    # * 被对方造成伤害 差评
+    # * 被对方塔攻击到 差评
+    #
+    # 设计
+    # * 计算一段时间，考虑时间系数
+    # * 英雄的金币获得情况，对比兵线上小兵，塔的死亡情况。获得所有小兵死亡基础金币为0，获得击杀小兵奖励作为1
+    # * 对比双方掉血情况，计算差值，定义为英雄伤害峰值金币，数值为累计掉血一条命作为２５０金币
+    # * 峰值为这段时间总死亡小兵×击杀奖励＋英雄伤害峰值金币　（暂时不设计为总小兵数×击杀奖励）
+    # * 零值为这段时间死亡小兵×基础奖励
+    # * 负峰值为负英雄伤害峰值金币
+    # * 击杀对方英雄直接给１
+    # * 偏离兵线直接给－１
+    # * 回城被打断直接－１
+    #
+    # 问题：
+    # * 是否应该考虑一段时间的情况，如何加到模型中
+    # * 怎么控制对MP的消耗
+    # * 是否忽略击杀英雄奖励
+    def cal_target_v2(state_infos, state_idx, hero_name, rival_hero_name, line_idx):
+        state_max_golds = []
+        state_gold_gains = []
+        state_dmg_deltas = []
+        state_score = []
+
+        # 首先计算每个英雄的获得情况
+        cur_state = state_infos[state_idx]
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        for i in range(1, 11):
+            # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
+            next_state = state_infos[state_idx + i]
+            next_hero = next_state.get_hero(hero_name)
+            dead_units = StateUtil.get_dead_units_in_line()
+            dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
+            state_max_golds.append(dead_golds)
+
+            # 如果英雄有小额金币变化，则忽略
+            gold_delta = next_hero.gold - cur_hero.gold
+            if gold_delta % 10 == 3 or gold_delta % 10 == 8:
+                gold_delta -= 3
+            state_gold_gains.append(gold_delta)
+
+            # 对面英雄死亡的情况，除非是我放击杀了最后一下，否则忽略这个奖励
+            # 击杀了最后一下择基本等于奖励值最大了
+            if gold_delta >= 250 > dead_golds:
+                gold_delta -= 250
+
+            # 计算对指定敌方英雄造成的伤害，计算接受的伤害
+            dmg = next_state.get_hero_dmg_info(hero_name, rival_hero_name)
+            self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
+            dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG)
+            state_dmg_deltas.append(dmg_delta)
+
+            state_score.append(gold_delta + dmg_delta)
+
+        # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
+        # 最大惩罚是被对方造成了一条命伤害
+        # 零分为获得了所有的死亡奖励
+        max_score = LineModel.cal_score(state_max_golds) + LineModel.REWARD_RIVAL_DMG
+        min_score = -LineModel.REWARD_RIVAL_DMG
+        mid_score = LineModel.cal_score(state_max_golds) / 2
+
+        hero_score = LineModel.cal_score(state_score)
+        reward = 0
+        if hero_score > mid_score:
+            reward = (hero_score-mid_score)/(max_score-mid_score)
+        elif hero_score < mid_score:
+            reward = -(mid_score-hero_score)/(mid_score-min_score)
+
+        # 特殊情况处理
+        # 是否离线太远，模型选择立刻离开选择范围
+        leave_line = StateUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
+        if leave_line:
+            print('离线太远，或者模型选择立刻离开选择范围')
+            reward = -1
+
+        # 是否回城被打断
+        go_town_break = StateUtil.if_return_town_break(state_infos, state_idx, hero_name)
+        if go_town_break:
+            print('回城被打断')
+            reward = -1
+
+        return reward
+
+    @staticmethod
+    def cal_score(value_list, gamma):
+        score = 0
+        for value in reversed(value_list):
+            score = value + gamma * score
+        return score
 
     # 计算对线情况下每次行动的效果反馈
     # 因为有些效果会产生持续的反馈（比如多次伤害，持续伤害，buff状态等），我们评估5s内所有的效果的一个加权值
@@ -541,7 +656,7 @@ class LineModel:
                 if prev_in_line >= 0 and cur_in_line == -1:
                     final_reward_map[hero_name] = -1
 
-            # 进入模型选择区域后，下1/2帧立刻离开模型选择区域的，这种情况需要避免
+            # 进入模型选择区域后，下1~2帧立刻离开模型选择区域的，这种情况需要避免
             for hero_name in hero_names:
                 prev_hero_action = prev_state.get_hero_action(hero_name)
                 cur_hero_action = cur_state.get_hero_action(hero_name)

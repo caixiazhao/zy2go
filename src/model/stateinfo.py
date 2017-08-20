@@ -11,6 +11,13 @@ from unitstateinfo import UnitStateInfo
 # units是需要跟之前的信息进行累加的
 # heros信息，其中一部分属性也是需要累加的
 class StateInfo:
+    def get_hero_dmg_info(self, hero_name, tgt_id):
+        total_dmg = 0
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and dmg.tgt == tgt_id:
+                total_dmg += dmg.dmg
+        return total_dmg
+
     def get_hero_attack_info(self, hero_name):
         for att in self.attack_infos:
             if att.atker == hero_name:
