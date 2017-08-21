@@ -8,8 +8,8 @@ class CmdAction(object):
     def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
         self.hero_name = hero_name
         self.action = action
-        self.skillid = skillid
-        self.tgtid = tgtid
+        self.skillid = str(skillid)
+        self.tgtid = str(tgtid)
         self.tgtpos = tgtpos
         self.fwd = fwd
         self.itemid = itemid

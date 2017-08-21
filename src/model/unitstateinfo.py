@@ -56,7 +56,7 @@ class UnitStateInfo(object):
                              attspeed, mag, attpen, magpen, attpenrate, magpenrate, movelock, vis1, vis2, vis3, team)
 
     def encode(self):
-        json_map = {'state': self.state, 'cfgID': self.cfg_id, 'pos': self.pos.encode(), 'fwd': self.fwd.encode(),
+        json_map = {'state': self.state, 'cfgID': self.cfg_id,
                     'hp': self.hp, 'maxhp': self.maxhp, 'speed': self.speed, 'moving': self.moving, 'chrtype': self.chrtype,
                     'att': self.att, 'vis1': self.vis1, 'vis2': self.vis2,
                     'vis3': self.vis3, 'attspeed': self.attspeed, 'mag': self.mag, 'attpen': self.attpen,
@@ -64,6 +64,10 @@ class UnitStateInfo(object):
                     'attpenrate': self.attpenrate, 'magpenrate': self.magpenrate, 'movelock': self.movelock,
                     'team': self.team
                     }
+        if self.pos is not None:
+            json_map['pos'] = self.pos.encode()
+        if self.fwd is not None:
+            json_map['fwd'] = self.fwd.encode()
         return dict((k, v) for k, v in json_map.items() if v is not None)
 
     def is_enemy_visible(self):

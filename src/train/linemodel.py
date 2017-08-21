@@ -25,7 +25,7 @@ from model.fwdstateinfo import FwdStateInfo
 class LineModel:
     REWARD_GAMMA = 0.9
     REWARD_DELAY_STATE_NUM = 11
-    REWARD_RIVAL_DMG = 250
+    REWARD_RIVAL_DMG = 50
 
     def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
@@ -298,7 +298,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.2:
+            if random.random()<0.3:
                 # 随机策略, 用来探索新的可能性
                 aval_actions = [act for act in acts if act > -1]
                 rdm = random.randint(0, len(aval_actions)-1)
@@ -443,18 +443,25 @@ class LineModel:
     @staticmethod
     def update_rewards(state_infos, hero_names=None):
         for i in range(len(state_infos) - LineModel.REWARD_DELAY_STATE_NUM):
+            if state_infos[i].tick >= 49038:
+                j = 1
             state_infos[i] = LineModel.update_state_rewards(state_infos, i, hero_names)
         return state_infos
 
     @staticmethod
     def update_state_rewards(state_infos, state_index, hero_names=None):
         state_info = state_infos[state_index]
+        line_idx = 1
+        if hero_names is None:
+            hero_names = [h.hero_name for h in state_info.heros]
         for hero_name in hero_names:
             # TODO 这些参数应该是传入的
-            line_idx = 1
-            rival_hero_name = '27' if hero_name == '28' else '28'
-            reward = LineModel.cal_target_v2(state_infos, state_index, hero_name, rival_hero_name, line_idx)
-            state_info.add_rewards(hero_name, reward)
+            # 只有有Action的玩家才评估行为打分
+            hero_action = state_info.get_hero_action(hero_name)
+            if hero_action is not None:
+                rival_hero_name = '27' if hero_name == '28' else '28'
+                reward = LineModel.cal_target_v2(state_infos, state_index, hero_name, rival_hero_name, line_idx)
+                state_info.add_rewards(hero_name, reward)
         return state_info
 
     @staticmethod
@@ -504,22 +511,27 @@ class LineModel:
         state_gold_gains = []
         state_dmg_deltas = []
         state_score = []
+        dead_unit_list = []
 
         # 首先计算每个英雄的获得情况
         cur_state = state_infos[state_idx]
         cur_hero = cur_state.get_hero(hero_name)
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        rival_team = cur_rival_hero.team
         for i in range(1, 11):
             # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
+            cur_hero = cur_state.get_hero(hero_name)
+            cur_rival_hero = cur_state.get_hero(rival_hero_name)
             next_state = state_infos[state_idx + i]
             next_hero = next_state.get_hero(hero_name)
-            dead_units = StateUtil.get_dead_units_in_line()
+            dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
             dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
             state_max_golds.append(dead_golds)
+            dead_unit_list.append(','.join([u.unit_name for u in dead_units]))
 
             # 如果英雄有小额金币变化，则忽略
             gold_delta = next_hero.gold - cur_hero.gold
-            if gold_delta % 10 == 3 or gold_delta % 10 == 8:
+            if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds/2) + 3:
                 gold_delta -= 3
             state_gold_gains.append(gold_delta)
 
@@ -529,21 +541,27 @@ class LineModel:
                 gold_delta -= 250
 
             # 计算对指定敌方英雄造成的伤害，计算接受的伤害
-            dmg = next_state.get_hero_dmg_info(hero_name, rival_hero_name)
+            dmg = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
             dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG)
             state_dmg_deltas.append(dmg_delta)
 
+            # 统计和更新变量
             state_score.append(gold_delta + dmg_delta)
+            cur_state = next_state
+
+        print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg_delta: %s, dead_units: %s' % (hero_name,
+              ','.join([str(s) for s in state_max_golds]), ','.join([str(s) for s in state_gold_gains]),
+              ','.join([str(s) for s in state_dmg_deltas]), ','.join(dead_unit_list)))
 
         # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
         # 最大惩罚是被对方造成了一条命伤害
         # 零分为获得了所有的死亡奖励
-        max_score = LineModel.cal_score(state_max_golds) + LineModel.REWARD_RIVAL_DMG
+        max_score = LineModel.cal_score(state_max_golds, LineModel.REWARD_GAMMA) + LineModel.REWARD_RIVAL_DMG
         min_score = -LineModel.REWARD_RIVAL_DMG
-        mid_score = LineModel.cal_score(state_max_golds) / 2
+        mid_score = LineModel.cal_score(state_max_golds, LineModel.REWARD_GAMMA) / 2
 
-        hero_score = LineModel.cal_score(state_score)
+        hero_score = LineModel.cal_score(state_score, LineModel.REWARD_GAMMA)
         reward = 0
         if hero_score > mid_score:
             reward = (hero_score-mid_score)/(max_score-mid_score)

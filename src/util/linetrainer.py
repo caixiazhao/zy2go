@@ -42,7 +42,7 @@ class LineTrainer:
             self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        save_dir = 'C:/Users/YangLei/Documents/GitHub/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
         os.makedirs(save_dir)
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
@@ -106,6 +106,8 @@ class LineTrainer:
         # 更新玩家行为以及奖励值，有一段时间延迟
         reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
         print ('reward_state_idx: ' + str(reward_state_idx))
+        if reward_state_idx == 299:
+            bd = 1
         state_with_reward = self.update_state(self.all_heros, reward_state_idx, self.real_heros)
         if state_with_reward is not None:
             self.save_reward_log(state_with_reward)
@@ -154,16 +156,16 @@ class LineTrainer:
     # 注意：model_heros应该是所有需要模型学习的英雄，real_heros为其中真人的英雄
     def update_state(self, model_heros, state_index, real_heros=None):
         if state_index > 0:
-            state_info = self.state_cache[state_index]
-            next_state = self.state_cache[state_index+1]
+            prev_state = self.state_cache[state_index - 1]
+            cur_state = self.state_cache[state_index]
 
             # 如果有必要的话，更新这一帧中真人玩家的行为信息
             if real_heros is not None:
                 for hero_name in real_heros:
-                    hero_action = Replayer.guess_player_action(state_info, next_state, hero_name)
-                    state_info.add_action(hero_action)
-                    action_str = StateUtil.build_command(state_info)
-                    print('玩家行为分析：' + str(action_str) + ' tick:' + str(state_info.tick))
+                    hero_action = Replayer.guess_player_action(prev_state, cur_state, hero_name)
+                    cur_state.add_action(hero_action)
+                    action_str = StateUtil.build_command(hero_action)
+                    print('玩家行为分析：' + str(action_str) + ' tick:' + str(cur_state.tick))
 
             # 更新开头一帧的奖励值
             state_with_reward = LineModel.update_state_rewards(self.state_cache, state_index, model_heros)

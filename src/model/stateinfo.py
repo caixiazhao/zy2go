@@ -11,7 +11,7 @@ from unitstateinfo import UnitStateInfo
 # units是需要跟之前的信息进行累加的
 # heros信息，其中一部分属性也是需要累加的
 class StateInfo:
-    def get_hero_dmg_info(self, hero_name, tgt_id):
+    def get_hero_total_dmg(self, hero_name, tgt_id):
         total_dmg = 0
         for dmg in self.dmg_infos:
             if dmg.atker == hero_name and dmg.tgt == tgt_id:
@@ -20,9 +20,16 @@ class StateInfo:
 
     def get_hero_attack_info(self, hero_name):
         for att in self.attack_infos:
-            if att.atker == hero_name:
+            if str(att.atker) == hero_name:
                 return att
         return None
+
+    def get_hero_hit_with_skill(self, hero_name, skill_id):
+        hit_infos = []
+        for hit in self.hit_infos:
+            if hit.atker == int(hero_name) and hit.skill == skill_id:
+                hit_infos.append(hit)
+        return hit_infos
 
     def get_hero_be_attacked_info(self, hero_name):
         hitted = []
@@ -56,6 +63,10 @@ class StateInfo:
         return None
 
     def merge(self, delta):
+
+        if int(delta.tick) >= 438042:
+            db = 1
+
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
@@ -70,24 +81,23 @@ class StateInfo:
         # 合并单位信息
         merged_units = []
         for unit in delta.units:
-
-                found = False
-                for prev_unit in self.units:
-                    if unit.unit_name == prev_unit.unit_name:
-                        merged = prev_unit.merge(unit)
-                        merged_units.append(merged)
-                        self.units
-                        found = True
-                if not found:
+            prev_unit = self.get_unit(unit.unit_name)
+            if prev_unit is not None:
+                # 如果hp变成了0或者状态为out，则不再添加它
+                # 事实上，hp=0，之后可能有几帧的延迟才会变成out，以前者为准
+                if prev.hp != 0 and prev.state != 'out':
+                    merged = prev_unit.merge(unit)
+                    merged_units.append(merged)
+            else:
+                # 因为死亡延迟的问题，这里我们需要判断"新的"单位是否有stat=in这个信息
+                if unit.state is not None and unit.state == 'in':
                     merged_units.append(unit)
         for prev in self.units:
-            # 如果状态为out则表示这个单位已经被销毁，不再加入列表中
-            if prev.state != 'out':
-                found = False
-                for merged in merged_units:
-                    if prev.unit_name == merged.unit_name:
-                        found = True
-                if not found:
+            cur_unit = delta.get_unit(prev.unit_name)
+            if cur_unit is None:
+                # 如果hp变成了0或者状态为out，则不再添加它
+                # 事实上，hp=0，之后可能有几帧的延迟才会变成out，以前者为准
+                if prev.hp != 0 and prev.state != 'out':
                     merged_units.append(prev)
 
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units,

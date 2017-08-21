@@ -120,8 +120,8 @@ class StateUtil:
         return False
 
     @staticmethod
-    def if_unit_tower(unit_info):
-        if int(unit_info.unit_name) <= 26:
+    def if_unit_tower(unit_name):
+        if 26 >= int(unit_name) > 0:
             return True
         return False
 
@@ -141,7 +141,7 @@ class StateUtil:
             # 我们还是以ｈｐ＝０作为死亡的信息吧
             if unit.hp <= 0 and unit.team == team_id:
                 if StateUtil.if_in_line(unit, line_index) > 0:
-                    result.append(unit.unit_name)
+                    result.append(unit)
         return result
 
     @staticmethod
@@ -151,15 +151,18 @@ class StateUtil:
             return 25
         if int(unit_cfgid) == 912:
             return 20
+        if int(unit_cfgid) == 913:
+            return 50
         if int(unit_name) < 27:
             return 200
         else:
-            print("unknow value unit %s cfg %s" % (unit_name, unit_cfgid)
+            print("unknow value unit %s cfg %s" % (unit_name, unit_cfgid))
+        return -1
 
     @staticmethod
     def get_frontest_soldier_in_line(state_info, line_index, team_id):
         units = StateUtil.get_units_in_team(state_info, team_id)
-        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
+        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u.unit_name)]
         soldiers_in_line = 0
         frontest = None
         for idx, soldier in enumerate(soldiers):
@@ -190,7 +193,7 @@ class StateUtil:
     @staticmethod
     def get_solider_lines(state_info, line_index, team_id):
         units = StateUtil.get_units_in_team(state_info, team_id)
-        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u)]
+        soldiers = [u for u in units if not StateUtil.if_unit_monster(u) and not StateUtil.if_unit_tower(u.unit_name)]
         line_pos_map = {}
         soldiers_in_line = 0
         for idx, soldier in enumerate(soldiers):
@@ -395,11 +398,11 @@ class StateUtil:
         if action.action == CmdActionEnum.MOVE and action.fwd is not None:
             return {"hero_id": action.hero_name, "action": 'MOVE', "fwd": action.fwd.to_string()}
         if action.action == CmdActionEnum.ATTACK and action.tgtid is not None:
-            return {"hero_id": action.hero_name, "action": 'ATTACK', "tgtid": action.tgtid}
+            return {"hero_id": action.hero_name, "action": 'ATTACK', "tgtid": str(action.tgtid)}
         if action.action == CmdActionEnum.CAST and action.skillid is not None:
             command = {"hero_id": action.hero_name, "action": 'CAST', "skillid": str(action.skillid)}
             if action.tgtid is not None:
-                command['tgtid'] = action.tgtid
+                command['tgtid'] = str(action.tgtid)
             if action.tgtpos is not None:
                 command['tgtpos'] = action.tgtpos.to_string()
             if action.fwd:
