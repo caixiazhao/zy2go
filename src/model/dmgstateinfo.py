@@ -12,8 +12,8 @@ class DmgStateInfo(object):
 
     @staticmethod
     def decode(obj):
-        atker = obj['atker']
-        tgt = obj['tgt'] if 'tgt' in obj else None
+        atker = str(obj['atker'])
+        tgt = str(obj['tgt']) if 'tgt' in obj else None
         skillslot = obj['skillslot'] if 'skillslot' in obj else None
         dmg = obj['dmg']
         return DmgStateInfo(atker, tgt, skillslot, dmg)

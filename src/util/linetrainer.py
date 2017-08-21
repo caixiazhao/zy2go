@@ -42,7 +42,7 @@ class LineTrainer:
             self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = 'C:/Users/YangLei/Documents/GitHub/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
         os.makedirs(save_dir)
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
@@ -158,11 +158,12 @@ class LineTrainer:
         if state_index > 0:
             prev_state = self.state_cache[state_index - 1]
             cur_state = self.state_cache[state_index]
+            next_state = self.state_cache[state_index + 1]
 
             # 如果有必要的话，更新这一帧中真人玩家的行为信息
             if real_heros is not None:
                 for hero_name in real_heros:
-                    hero_action = Replayer.guess_player_action(prev_state, cur_state, hero_name)
+                    hero_action = Replayer.guess_player_action(prev_state, cur_state, hero_name, next_state, '27', '28')
                     cur_state.add_action(hero_action)
                     action_str = StateUtil.build_command(hero_action)
                     print('玩家行为分析：' + str(action_str) + ' tick:' + str(cur_state.tick))

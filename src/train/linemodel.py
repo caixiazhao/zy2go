@@ -195,7 +195,11 @@ class LineModel:
                     if debug: print("普攻受限，放弃普攻")
                     continue
                 if selected == 8:  # 敌方塔
-                    tower = self.get_tower_temp(stateinformation)
+                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
+                    if tower is None:
+                        acts[selected] = -1
+                        if debug: print("塔太远，放弃普攻")
+                        continue
                     dist = StateUtil.cal_distance(hero.pos, tower.pos)
                     # if dist > self.att_dist:
                     if dist>StateUtil.ATTACK_UNIT_RADIUS:
@@ -311,7 +315,7 @@ class LineModel:
                 return action
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
                 if selected==8:#敌方塔
-                    tower = self.get_tower_temp(stateinformation)
+                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
                     tgtid = tower.unit_name
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
@@ -400,25 +404,6 @@ class LineModel:
                 tgtpos=creeps[n].pos
         return [tgtid,tgtpos]
 
-    def get_tower_temp(self, stateinformation):#一个临时的在中路判断哪个塔可以作为目标的函数
-        # 这样传stateinformation太拖慢运行速度了，后面要改
-        for unit in stateinformation.units:
-            if unit.unit_name=='15' and unit.state=="in":
-                return unit
-            elif unit.unit_name=='16' and unit.state=="in":
-                return unit
-            elif unit.unit_name=='17' and unit.state=="in":
-                return unit
-            elif int(unit.unit_name)>17:
-                break
-        for unit in stateinformation.units:
-            if unit.unit_name=="1" and unit.state=="in":
-                return unit
-            elif unit.unit_name=="2" and unit.state=="in":
-                return unit
-            elif unit.unit_name=="7":
-                return unit
-
     def get_action(self,stateinformation,hero_name, rival_hero):
         # 这样传stateinformation太拖慢运行速度了，后面要改
         line_input = Line_input(stateinformation, hero_name, rival_hero)
@@ -443,7 +428,7 @@ class LineModel:
     @staticmethod
     def update_rewards(state_infos, hero_names=None):
         for i in range(len(state_infos) - LineModel.REWARD_DELAY_STATE_NUM):
-            if state_infos[i].tick >= 49038:
+            if state_infos[i].tick >= 54516:
                 j = 1
             state_infos[i] = LineModel.update_state_rewards(state_infos, i, hero_names)
         return state_infos
@@ -524,6 +509,7 @@ class LineModel:
             cur_rival_hero = cur_state.get_hero(rival_hero_name)
             next_state = state_infos[state_idx + i]
             next_hero = next_state.get_hero(hero_name)
+            next_next_state = state_infos[state_idx + i]
             dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
             dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
             state_max_golds.append(dead_golds)
@@ -541,7 +527,8 @@ class LineModel:
                 gold_delta -= 250
 
             # 计算对指定敌方英雄造成的伤害，计算接受的伤害
-            dmg = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            # 伤害信息和击中信息都有延迟，在两帧之后
+            dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
             dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG)
             state_dmg_deltas.append(dmg_delta)

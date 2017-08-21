@@ -27,7 +27,7 @@ class StateInfo:
     def get_hero_hit_with_skill(self, hero_name, skill_id):
         hit_infos = []
         for hit in self.hit_infos:
-            if hit.atker == int(hero_name) and hit.skill == skill_id:
+            if hit.atker == hero_name and hit.skill == str(skill_id):
                 hit_infos.append(hit)
         return hit_infos
 
@@ -37,6 +37,12 @@ class StateInfo:
             if hit.tgt == hero_name:
                 hitted.append(hit.atker)
         return hitted
+
+    def get_obj(self, obj_name):
+        obj = self.get_hero(obj_name)
+        if obj is None:
+            obj = self.get_unit(obj_name)
+        return obj
 
     def get_unit(self, unit_name):
         for unit in self.units:
@@ -64,7 +70,7 @@ class StateInfo:
 
     def merge(self, delta):
 
-        if int(delta.tick) >= 438042:
+        if int(delta.tick) >= 47520:
             db = 1
 
         # 合并英雄信息
@@ -85,7 +91,7 @@ class StateInfo:
             if prev_unit is not None:
                 # 如果hp变成了0或者状态为out，则不再添加它
                 # 事实上，hp=0，之后可能有几帧的延迟才会变成out，以前者为准
-                if prev.hp != 0 and prev.state != 'out':
+                if prev_unit.hp != 0 and prev_unit.state != 'out':
                     merged = prev_unit.merge(unit)
                     merged_units.append(merged)
             else:
@@ -153,6 +159,9 @@ class StateInfo:
     def decode(obj):
         battleid = obj['wldstatic']['ID']
         tick = obj['wldruntime']['tick']
+
+        if int(tick) >= 55506:
+            db = 1
 
         # 忽略了第一帧中的兵线信息
 

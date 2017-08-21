@@ -16,4 +16,4 @@ class HitStateInfo(object):
         atker = obj['atker']
         tgt = obj['tgt']
         skill = obj['skill']
-        return HitStateInfo(atker, tgt, skill)
+        return HitStateInfo(str(atker), str(tgt), str(skill))

@@ -30,8 +30,10 @@ class Replayer:
     # 推测玩家在每一帧中的行为
     # 注：移动方向的推测怎么算
     # 计算逻辑应该是，查看下一帧中的attackinfo，其中记录的是当前帧玩家的行动。
+    # 这里计算的是prev_state_info中的玩家行为，也就是根据prev_state_info来计算当前状况，从state_info得到玩家在之前的实际行为，
+    # 然后根据next_state来找到hitinfo
     # TODO 没有解决朝指定点释放的问题，action中的output_index没法指定。另外目前模型也学不会这个场景
-    def guess_player_action(prev_state_info, state_info, hero_name, rival_hero_name):
+    def guess_player_action(prev_state_info, state_info, next_state_info, hero_name, rival_hero_name):
         #针对每一帧，结合后一帧信息，判断英雄在该帧的有效操作
         #仅对于一对一线上模型有效
         #技能>攻击>走位
@@ -74,15 +76,16 @@ class Replayer:
                             output_idx = i + 10
                 # attacinfo里没有目标，从hit里找目标
                 elif tgtid == 0:
-                    hit_infos = state_info.get_hero_hit_with_skill(hero_name, skill)
+                    # hitinfo 和 dmginfo都有延迟
+                    hit_infos = next_state_info.get_hero_hit_with_skill(hero_name, skill)
 
                     if len(hit_infos) > 0:
                         # 首先检查是否敌方英雄被击中，这种优先级最高
-                        if rival_hero_name in [hit.tgtid for hit in hit_infos]:
+                        if rival_hero_name in [hit.tgt for hit in hit_infos]:
                             output_idx = 9
                         else:
                             # 找到被攻击者中血量最少的，认为是目标对象
-                            tgtid_list = [state_info.get_unit(hit.tgtid) for hit in hit_infos]
+                            tgtid_list = [state_info.get_obj(hit.tgt) for hit in hit_infos]
                             tgt_unit = min(tgtid_list, key=lambda x: x.hp)
 
                             if StateUtil.if_unit_tower(tgt_unit.unit_name):
@@ -114,7 +117,7 @@ class Replayer:
                     tgtpos = prev_viral_hero.pos
                     output_idx = 9 + skillid * 10
                 # 对小兵施法
-                elif not StateUtil.if_unit_tower(tgtid):
+                elif tgtid != 0 and not StateUtil.if_unit_tower(tgtid):
                     creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
                     n = len(creeps)
                     for i in range(n):
@@ -122,15 +125,16 @@ class Replayer:
                             output_idx = i + skillid * 10 + 10
                 # attacinfo里没有目标，从hit里找目标
                 elif tgtid == 0:
-                    hit_infos = state_info.get_hero_hit_with_skill(hero_name, skill)
+                    hit_infos = next_state_info.get_hero_hit_with_skill(hero_name, skill)
 
                     if len(hit_infos) > 0:
                         # 首先检查是否敌方英雄被击中，这种优先级最高
-                        if rival_hero_name in [hit.tgtid for hit in hit_infos]:
+                        if rival_hero_name in [hit.tgt for hit in hit_infos]:
+                            tgtid = rival_hero_name
                             output_idx = 9 + skillid * 10
                         else:
                             # 找到被攻击者中血量最少的，认为是目标对象
-                            tgtid_list = [state_info.get_unit(hit.tgtid) for hit in hit_infos]
+                            tgtid_list = [state_info.get_obj(hit.tgt) for hit in hit_infos]
                             tgt_unit = min(tgtid_list, key=lambda x: x.hp)
 
                             # 从英雄附近的小兵中，检索它的编号
@@ -138,6 +142,7 @@ class Replayer:
                             creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
                             for i in range(len(creeps)):
                                 if creeps[i].unit_name == tgt_unit.unit_name:
+                                    tgtid = creeps[i].unit_name
                                     output_idx = i + 10 + skillid * 10
 
                 # 组装结果
@@ -150,14 +155,16 @@ class Replayer:
                     # attackinfo里没有攻击目标id，只有坐标，根据位置找最近的目标作为输出
                     if tgtpos != None:
                         search_radius = 1
-                        # 首先寻找目标为对方英雄
+                        # 首先寻找目标为对方英雄, 目前，如果在范围内有敌人英雄，选第一个作为主目标
                         nearby_rival_heros = StateUtil.get_nearby_enemy_heros(prev_state_info, hero_name, search_radius)
                         if len(nearby_rival_heros) > 0:
+                            tgtid = nearby_rival_heros[0].hero_name
                             output_idx = 9 + skillid * 10
                         else:
                             # 其次检查是否可以释放给自己
                             skill_info = SkillUtil.get_skill_info(prev_hero.cfg_id, skillid)
                             if skill_info.cast_target != SkillTargetEnum.viral:
+                                tgtid = hero_name
                                 output_idx = 8 + skillid * 10
                             # 最后检查是否可以释放给小兵
                             else:
@@ -166,6 +173,7 @@ class Replayer:
                                     target_unit = min(nearby_soldiers, key=lambda u: u.hp)
                                     for i in range(len(nearby_soldiers)):
                                         if nearby_soldiers[i].unit_name == target_unit.unit_name:
+                                            tgtid = nearby_soldiers[i].unit_name
                                             output_idx = i + 10 + skillid * 10
                     # 组装结果
                     if output_idx is not None:
@@ -189,17 +197,6 @@ class Replayer:
             else:  # hold
                 action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
                 return action
-
-    # @staticmethod
-    # def get_fwd(pos1, pos2):
-    #     x = pos2.x - pos1.x
-    #     y = pos2.y - pos1.y
-    #     z = pos2.z - pos1.z
-    #     a = (x * x + y * y + z * z) / 1000000
-    #     x = x / math.sqrt(a)
-    #     y = y / math.sqrt(a)
-    #     z = z / math.sqrt(a)
-    #     return FwdStateInfo(x, y, z)
 
     @staticmethod
     def get_closest_fwd(fwd):
