@@ -153,8 +153,8 @@ class LineModel:
             # 将不合理的选择都置为0
             actions_list = list(actions[0])
             actions_detail = ' '.join(str("%.4f" % float(act)) for act in actions_list)
-            # target = actions_list
-            target = self.remove_unaval_actions(actions_list, state_info, hero_name, rival_hero)
+            target = actions_list
+            # target = self.remove_unaval_actions(actions_list, state_info, hero_name, rival_hero)
 
             # 测试代码，可以在model相同，没有随机的情况下检查模型挑选的action是否和我们记录的相同
             # target_action = self.select_actions(target, state_info, hero_name, rival_hero)
@@ -294,10 +294,6 @@ class LineModel:
         acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
         for i in range(len(acts)):
             maxQ = max(acts)
-
-            if maxQ <= 0:
-                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
-                return action
             selected = acts.index(maxQ)
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
@@ -530,7 +526,7 @@ class LineModel:
             # 伤害信息和击中信息都有延迟，在两帧之后
             dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
-            dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG)
+            dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 4
             state_dmg_deltas.append(dmg_delta)
 
             # 统计和更新变量
@@ -556,9 +552,20 @@ class LineModel:
             reward = -(mid_score-hero_score)/(mid_score-min_score)
 
         # 特殊情况处理
+        # 英雄死亡直接返回-1
+        for i in range(1, 11):
+            next_state = state_infos[state_idx + i]
+            next_hero = next_state.get_hero(hero_name)
+            if next_hero.hp <= 0:
+                reward = -1
+                break
+
         # 是否离线太远，模型选择立刻离开选择范围
+        # 血量小于0.3时候允许逃跑
+        cur_state = state_infos[state_idx]
+        cur_hero = cur_state.get_hero(hero_name)
         leave_line = StateUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
-        if leave_line:
+        if leave_line and float(cur_hero.hp)/cur_hero.maxhp < 0.3:
             print('离线太远，或者模型选择立刻离开选择范围')
             reward = -1
 
