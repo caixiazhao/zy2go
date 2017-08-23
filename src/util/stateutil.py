@@ -39,20 +39,12 @@ class StateUtil:
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
-    def if_hero_leave_line(state_infos, state_idx, hero_name, line_index):
+    def if_leave_linemodel_range(state_infos, state_idx, hero_name, line_index):
         if state_idx > 0:
             prev_state = state_infos[state_idx - 1]
             cur_state = state_infos[state_idx]
             next_state = state_infos[state_idx + 1]
             next_next_state = state_infos[state_idx + 2]
-
-            # 离线太远就进行惩罚
-            prev_hero = prev_state.get_hero(hero_name)
-            cur_hero = cur_state.get_hero(hero_name)
-            prev_in_line = StateUtil.if_in_line(prev_hero, line_index, 4000)
-            cur_in_line = StateUtil.if_in_line(cur_hero, line_index, 4000)
-            if prev_in_line >= 0 and cur_in_line == -1:
-                return True
 
             # 进入模型选择区域后，下1~2帧立刻离开模型选择区域的，这种情况需要避免
             prev_hero_action = prev_state.get_hero_action(hero_name)
@@ -69,20 +61,45 @@ class StateUtil:
         return False
 
     @staticmethod
+    def if_hero_leave_line(state_infos, state_idx, hero_name, line_index):
+        if state_idx > 0:
+            prev_state = state_infos[state_idx - 1]
+            cur_state = state_infos[state_idx]
+
+            # 离线太远就进行惩罚
+            prev_hero = prev_state.get_hero(hero_name)
+            cur_hero = cur_state.get_hero(hero_name)
+            prev_in_line = StateUtil.if_in_line(prev_hero, line_index, 4000)
+            cur_in_line = StateUtil.if_in_line(cur_hero, line_index, 4000)
+            if prev_in_line >= 0 and cur_in_line == -1:
+                return True
+        return False
+
+    # 是否在高血量时候回城
+    @staticmethod
+    def if_return_town_high_hp(state_infos, state_idx, hero_name, hp_ratio):
+        cur_state = state_infos[state_idx]
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_hero_action = cur_state.get_hero_action(hero_name)
+        if cur_hero_action is not None and cur_hero_action.action == CmdActionEnum.CAST and int(cur_hero_action.skillid) == 6:
+            if float(cur_hero.hp) / cur_hero.maxhp >= hp_ratio:
+                return True
+        return False
+
+    # 是否回城被打断
+    @staticmethod
     def if_return_town_break(state_infos, state_idx, hero_name):
         go_town_break = False
         cur_state = state_infos[state_idx]
         cur_hero = cur_state.get_hero(hero_name)
         cur_hero_action = cur_state.get_hero_action(hero_name)
-        if cur_hero_action is not None and cur_hero_action.action == CmdActionEnum.CAST and cur_hero_action.skillid == 6:
+        if cur_hero_action is not None and cur_hero_action.action == CmdActionEnum.CAST and int(cur_hero_action.skillid) == 6:
             # 开始回城，这时候需要检查后面一系列帧有没有进行其它的操作，以及有没有减血（被打断的情况）
             for i in range(1, 8):
                 next_state = state_infos[state_idx + i]
                 next_hero = next_state.get_hero(hero_name)
-                if next_state is None:
-                    next_state = None
                 next_hero_action = next_state.get_hero_action(hero_name)
-                if next_hero_action is None or cur_hero_action.action != CmdActionEnum.CAST or cur_hero_action.skillid == 6:
+                if next_hero_action is None or cur_hero_action.action != CmdActionEnum.CAST or int(cur_hero_action.skillid) == 6:
                     go_town_break = True
                     break
                 elif next_hero.hp < cur_hero.hp:

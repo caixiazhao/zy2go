@@ -81,7 +81,7 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 127512:
+        if raw_state_info.tick >= 148038:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -182,6 +182,10 @@ class LineTrainer:
 
         battle_id = state_info.battleid
         tick = state_info.tick
+
+        if tick >= 139062:
+            db = 1
+
         action_strs=[]
 
         if hero_names is None:
@@ -189,10 +193,12 @@ class LineTrainer:
         for hero_name in hero_names:
             hero = state_info.get_hero(hero_name)
 
-            # 如果有可以升级的技能，直接选择第一个升级
+            # 如果有可以升级的技能，优先升级技能3
             skills = StateUtil.get_skills_can_upgrade(hero)
             if len(skills) > 0:
-                update_str = StateUtil.build_action_command(hero.hero_name, 'UPDATE', {'skillid': str(skills[0])})
+                skillid = 3 if 3 in skills else skills[0]
+                update_cmd = CmdAction(hero.hero_name, CmdActionEnum.UPDATE, skillid, None, None, None, None, None, None)
+                update_str = StateUtil.build_command(update_cmd)
                 action_strs.append(update_str)
 
             # 检查周围状况
@@ -276,7 +282,7 @@ class LineTrainer:
                 action_strs.append(action_str)
 
                 # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
-                if action.action == CmdActionEnum.CAST and action.skillid == 6:
+                if action.action == CmdActionEnum.CAST and int(action.skillid) == 6:
                     print("英雄%s释放了回城" % hero_name)
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 

@@ -181,10 +181,7 @@ class LineModel:
             hero = stateinformation.get_hero(hero_name)
             selected = i
             if selected < 8:  # move
-                if not hero.movelock:
-                    # 英雄移动限制
-                    acts[selected] = -1
-                    if debug: print("移动受限，放弃移动" + str(hero.movelock))
+                # 不再检查movelock，因为攻击硬直也会造成这个值变成false（false表示不能移动）
                     continue
             elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
                 if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):
@@ -273,9 +270,9 @@ class LineModel:
                     if debug: print("目标不符合施法要求")
                     continue
             elif selected == 48:  # 回城
-                #暂时屏蔽回城
-                acts[selected] = -1
-                continue
+                # 暂时屏蔽回城
+                # acts[selected] = -1
+                # continue
                 if hero.skills[6].canuse != True:
                     if debug: print("技能受限，放弃回城")
                     acts[selected] = -1
@@ -560,13 +557,19 @@ class LineModel:
                 reward = -1
                 break
 
-        # 是否离线太远，模型选择立刻离开选择范围
-        # 血量小于0.3时候允许逃跑
+        # 是否离线太远
         cur_state = state_infos[state_idx]
-        cur_hero = cur_state.get_hero(hero_name)
         leave_line = StateUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
-        if leave_line and float(cur_hero.hp)/cur_hero.maxhp < 0.3:
-            print('离线太远，或者模型选择立刻离开选择范围')
+        if leave_line:
+            print('离线太远')
+            reward = -1
+
+        # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
+
+        # 是否高血量回城
+        go_town_high_hp = StateUtil.if_return_town_high_hp(state_infos, state_idx, hero_name, 0.3)
+        if go_town_high_hp:
+            print('高血量回城')
             reward = -1
 
         # 是否回城被打断
