@@ -168,8 +168,8 @@ class LineModel:
             target[chosen_action.output_index] = chosen_action.reward
             target_detail = ' '.join(str("%.4f" % float(act)) for act in target)
 
-            print("replay detail: selected: %s \n    action array:%s \n    target array:%s\n\n" %
-                   (str(chosen_action.output_index),  actions_detail, target_detail))
+            print("replay detail: selected: %s, reward: %s \n    action array:%s \n    target array:%s\n\n" %
+                   (str(chosen_action.output_index), str(chosen_action.reward), actions_detail, target_detail))
 
             x_1[i], x_2[i], y[i] = state, team, target
         self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
