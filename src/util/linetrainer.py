@@ -42,7 +42,8 @@ class LineTrainer:
             self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + str(datetime.now()).replace(' ', '').replace(':', '')
+        date_str = str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
         os.makedirs(save_dir)
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
@@ -81,7 +82,7 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 148038:
+        if raw_state_info.tick >= 324060:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -212,8 +213,11 @@ class LineTrainer:
                 prev_hero = prev_state_info.get_hero(hero.hero_name)
                 if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing and prev_hero.hp <= hero.hp \
                         and not StateUtil.if_hero_at_basement(hero):
-                    print('回城中，继续回城')
-                    continue
+                    if not hero.skills[6].canuse:
+                        print('回城中，继续回城')
+                        continue
+                    else:
+                        print('回城失败')
 
             if hero.hp <= 0:
                 continue

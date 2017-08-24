@@ -8,6 +8,7 @@ from keras.engine import Input, Model
 from keras.layers import Dense, LSTM, Reshape, concatenate
 from keras.layers import Dropout
 from keras.optimizers import Nadam
+from keras.callbacks import TensorBoard
 import math
 import random
 
@@ -17,6 +18,7 @@ from model.cmdaction import CmdAction
 from model.skillcfginfo import SkillTargetEnum
 from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
+from util.rewardutil import RewardUtil
 from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from model.fwdstateinfo import FwdStateInfo
@@ -35,9 +37,9 @@ class LineModel:
         self.epsilon = 1.0  # exploration rate
         self.e_decay = .99
         self.e_min = 0.05
-        self.learning_rate = 0.01
-        self.model = self._build_model
+        self.learning_rate = 0.1
         self.heros = heros
+        self.model = self._build_model
 
         #todo:英雄1,2普攻距离为2，后续需修改
         self.att_dist=2
@@ -113,7 +115,7 @@ class LineModel:
     def get_memory_size(self):
         return len(self.memory)
 
-    def replay(self, batch_size):
+    def replay(self, batch_size, tensor_board_path=None):
         batch_size = min(batch_size, len(self.memory))
         index_range = range(len(self.memory))
         minibatch = random.sample(index_range, batch_size)
@@ -172,7 +174,15 @@ class LineModel:
                    (str(chosen_action.output_index), str(chosen_action.reward), actions_detail, target_detail))
 
             x_1[i], x_2[i], y[i] = state, team, target
-        self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
+
+        if tensor_board_path is not None:
+            tbCallBack = TensorBoard(log_dir=tensor_board_path,
+                                          histogram_freq=0, write_graph=True,
+                                          write_images=True)
+            self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=10, verbose=0, callbacks=[tbCallBack])
+        else:
+            self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
+
         if self.epsilon > self.e_min:
             self.epsilon *= self.e_decay
 
@@ -253,7 +263,7 @@ class LineModel:
                     if debug: print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(hero.skills[skillid].canuse) + " tick=" + str(
                         stateinformation.tick))
                     continue
-                if hero.skills[skillid].cost==None or hero.skills[skillid].cost > hero.mp:
+                if hero.skills[skillid].cost is not None and hero.skills[skillid].cost > hero.mp:
                     # mp不足
                     acts[selected] = -1
                     if debug: print("mp不足，放弃施法" + str(skillid))
@@ -374,6 +384,11 @@ class LineModel:
                 tgtid = rival_hero
                 tgtpos = rival.pos
         else:
+            # 对敌方小兵施法
+            if skill_info.cast_target == SkillTargetEnum.self:
+                return [-1, None]
+
+            # 寻找合适的小兵作为目标
             creeps=StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
             n=selected-2
             if n >= len(creeps):
@@ -523,7 +538,7 @@ class LineModel:
             # 伤害信息和击中信息都有延迟，在两帧之后
             dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
-            dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 4
+            dmg_delta = int(float(dmg - self_dmg*1.5) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 4
             state_dmg_deltas.append(dmg_delta)
 
             # 统计和更新变量
@@ -549,17 +564,31 @@ class LineModel:
             reward = -(mid_score-hero_score)/(mid_score-min_score)
 
         # 特殊情况处理
+
+        # 特定英雄的大招必须要打到英雄才行
+        if_cast_ultimate_skill = RewardUtil.if_cast_skill(state_infos, state_idx, hero_name, 3)
+        if if_cast_ultimate_skill:
+            if_skill_hit_rival = RewardUtil.if_skill_hit_hero(state_infos, state_idx, hero_name, 3, rival_hero_name)
+            if not if_skill_hit_rival:
+                print('特定英雄的大招必须要打到英雄才行')
+                return -1
+
+        # 被塔攻击情况下，只有杀死对方才不会有惩罚，否则最高惩罚。只看当前帧
+        hit_by_tower = RewardUtil.if_hit_by_tower(state_infos, state_idx, 0, hero_name)
+        if_rival_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 0, rival_hero_name)
+        if hit_by_tower and not if_rival_dead:
+            print('被塔攻击情况下，只有杀死对方才不会有惩罚')
+            reward = -1
+
         # 英雄死亡直接返回-1
-        for i in range(1, 11):
-            next_state = state_infos[state_idx + i]
-            next_hero = next_state.get_hero(hero_name)
-            if next_hero.hp <= 0:
-                reward = -1
-                break
+        if_hero_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 10, hero_name)
+        if if_hero_dead:
+            print('英雄死亡')
+            reward = -1
 
         # 是否离线太远
         cur_state = state_infos[state_idx]
-        leave_line = StateUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
+        leave_line = RewardUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
         if leave_line:
             print('离线太远')
             reward = -1
@@ -567,13 +596,13 @@ class LineModel:
         # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
 
         # 是否高血量回城
-        go_town_high_hp = StateUtil.if_return_town_high_hp(state_infos, state_idx, hero_name, 0.3)
+        go_town_high_hp = RewardUtil.if_return_town_high_hp(state_infos, state_idx, hero_name, 0.3)
         if go_town_high_hp:
             print('高血量回城')
             reward = -1
 
         # 是否回城被打断
-        go_town_break = StateUtil.if_return_town_break(state_infos, state_idx, hero_name)
+        go_town_break = RewardUtil.if_return_town_break(state_infos, state_idx, hero_name)
         if go_town_break:
             print('回城被打断')
             reward = -1
@@ -652,7 +681,6 @@ class LineModel:
                 final_reward_map[hero_name] = ((gain_team_b / float(gain_team_a + gain_team_b))-0.5)*2 if (gain_team_a + gain_team_b) > 0 else None
 
         # 特殊情况处理
-
 
         # 进入模型选择区域后，下1/2帧立刻离开模型选择区域的，这种情况需要避免
         if state_idx > 0:
