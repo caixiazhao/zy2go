@@ -37,7 +37,7 @@ class LineModel:
         self.epsilon = 1.0  # exploration rate
         self.e_decay = .99
         self.e_min = 0.05
-        self.learning_rate = 0.1
+        self.learning_rate = 0.01
         self.heros = heros
         self.model = self._build_model
 
@@ -77,22 +77,23 @@ class LineModel:
 
         # 尝试阵容信息单独传入输入
         # 尝试不同类型的选择用不同的模型来计算
-        dense_1 = Dense(512, activation='relu')(battle_information)
-        dropped_1 = Dropout(0.15)(dense_1)
-        dense_2 = Dense(256, activation='relu')(dropped_1)
-        dropped_2 = Dropout(0.15)(dense_2)
-        dense_3 = Dense(64, activation='tanh')(dropped_2)
+        dense_2 = Dense(512, activation='relu')(battle_information)
+        dense_3 = Dense(256, activation='relu')(dense_2)
 
-        dense_3_move = concatenate([dense_3, team_information])
-        dense_4_move = Dense(8, activation='tanh')(dense_3_move)
-        dense_4_attack = Dense(10, activation='tanh')(dense_3)
-        dense_4_skill = Dense(30, activation='tanh')(dense_3)
-        dense_4_others = Dense(2, activation='tanh')(dense_3)
+        dense_4_move = concatenate([dense_3, team_information])
+        dense_5_move = Dense(64, activation='relu')(dense_4_move)
+        dense_6_move = Dense(8, activation='linear')(dense_5_move)
+        dense_4_attack = Dense(64, activation='relu')(dense_3)
+        dense_5_attack = Dense(10, activation='linear')(dense_4_attack)
+        dense_4_skill = Dense(128, activation='relu')(dense_3)
+        dense_5_skill = Dense(30, activation='linear')(dense_4_skill)
+        dense_4_others = Dense(64, activation='relu')(dense_3)
+        dense_5_others = Dense(2, activation='linear')(dense_4_others)
 
-        predictions = concatenate([dense_4_move,dense_4_attack,dense_4_skill,dense_4_others])
+        predictions = concatenate([dense_6_move,dense_5_attack,dense_5_skill,dense_5_others])
 
         model = Model(inputs=[battle_information, team_information], outputs=predictions)
-        model.compile(loss='mse', optimizer=Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
+        model.compile(loss='mse', optimizer=Nadam(lr=self.learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
         return model
 
     def load(self, name):
@@ -115,7 +116,7 @@ class LineModel:
     def get_memory_size(self):
         return len(self.memory)
 
-    def replay(self, batch_size, tensor_board_path=None):
+    def replay(self, batch_size, fit=True, tensor_board_path=None):
         batch_size = min(batch_size, len(self.memory))
         index_range = range(len(self.memory))
         minibatch = random.sample(index_range, batch_size)
@@ -170,21 +171,24 @@ class LineModel:
             target[chosen_action.output_index] = chosen_action.reward
             target_detail = ' '.join(str("%.4f" % float(act)) for act in target)
 
+            input_detail = ' '.join(str("%f" % float(act)) for act in state)
+            print(input_detail)
             print("replay detail: selected: %s, reward: %s \n    action array:%s \n    target array:%s\n\n" %
                    (str(chosen_action.output_index), str(chosen_action.reward), actions_detail, target_detail))
 
             x_1[i], x_2[i], y[i] = state, team, target
 
-        if tensor_board_path is not None:
-            tbCallBack = TensorBoard(log_dir=tensor_board_path,
-                                          histogram_freq=0, write_graph=True,
-                                          write_images=True)
-            self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=10, verbose=0, callbacks=[tbCallBack])
-        else:
-            self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
+        if fit:
+            if tensor_board_path is not None:
+                tbCallBack = TensorBoard(log_dir=tensor_board_path,
+                                              histogram_freq=0, write_graph=True,
+                                              write_images=True)
+                self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=10, verbose=0, callbacks=[tbCallBack])
+            else:
+                self.model.fit([x_1, x_2], y, batch_size=batch_size, epochs=1, verbose=0)
 
-        if self.epsilon > self.e_min:
-            self.epsilon *= self.e_decay
+            if self.epsilon > self.e_min:
+                self.epsilon *= self.e_decay
 
     def remove_unaval_actions(self, acts, stateinformation, hero_name, rival_hero, debug=False):
         for i in range(len(acts)):
@@ -279,18 +283,8 @@ class LineModel:
                     acts[selected] = -1
                     if debug: print("目标不符合施法要求")
                     continue
-            elif selected == 48:  # 回城
-                # 暂时屏蔽回城
-                # acts[selected] = -1
-                # continue
-                if hero.skills[6].canuse != True:
-                    if debug: print("技能受限，放弃回城")
-                    acts[selected] = -1
-                    continue
-                if hero.skills[6].cd > 0:
-                    ("技能cd中，放弃回城")
-                    acts[selected] = -1
-                    continue
+            elif selected == 48:  # 撤退
+                continue
         return acts
 
     def select_actions(self, acts, stateinformation, hero_name, rival_hero):
@@ -305,7 +299,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.3:
+            if random.random()<0.6:
                 # 随机策略, 用来探索新的可能性
                 aval_actions = [act for act in acts if act > -1]
                 rdm = random.randint(0, len(aval_actions)-1)
@@ -341,9 +335,9 @@ class LineModel:
                     fwd = tgtpos.fwd(hero.pos)
                 action = CmdAction(hero_name, CmdActionEnum.CAST,skillid,tgtid, tgtpos, fwd, None, selected, None)
                 return action
-            elif selected==48:#回城
-                skillid = 6
-                action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, hero_name, None, None, None, selected, None)
+            elif selected==48:#撤退
+                retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
+                action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
                 return action
             else:#hold
                 print("轮到了49号行为-hold")
@@ -508,6 +502,10 @@ class LineModel:
 
         # 首先计算每个英雄的获得情况
         cur_state = state_infos[state_idx]
+
+        if cur_state.tick >= 132528:
+            db = True
+
         cur_hero = cur_state.get_hero(hero_name)
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
         rival_team = cur_rival_hero.team
@@ -538,7 +536,7 @@ class LineModel:
             # 伤害信息和击中信息都有延迟，在两帧之后
             dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
-            dmg_delta = int(float(dmg - self_dmg*1.5) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 4
+            dmg_delta = int(float(dmg - self_dmg*1.5) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 6
             state_dmg_deltas.append(dmg_delta)
 
             # 统计和更新变量
@@ -564,6 +562,17 @@ class LineModel:
             reward = -(mid_score-hero_score)/(mid_score-min_score)
 
         # 特殊情况处理
+
+        # 撤退的话首先将惩罚值设置为0.2吧
+        cur_state = state_infos[state_idx]
+        hero_action = cur_state.get_hero_action(hero_name)
+        if hero_action.output_index == 48:
+            if float(cur_hero.hp)/cur_hero.maxhp > 0.5:
+                print('高血量撤退')
+                reward = -1
+            else:
+                print('撤退基础惩罚')
+                reward = -0.2
 
         # 特定英雄的大招必须要打到英雄才行
         if_cast_ultimate_skill = RewardUtil.if_cast_skill(state_infos, state_idx, hero_name, 3)
@@ -594,6 +603,10 @@ class LineModel:
             reward = -1
 
         # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
+        if RewardUtil.if_leave_linemodel_range(state_infos, state_idx, hero_name, line_idx):
+            if hero_action.output_index != 48:
+                print('离开模型范围，又不是撤退')
+                reward = -1
 
         # 是否高血量回城
         go_town_high_hp = RewardUtil.if_return_town_high_hp(state_infos, state_idx, hero_name, 0.3)
@@ -607,7 +620,7 @@ class LineModel:
             print('回城被打断')
             reward = -1
 
-        return reward
+        return min(max(reward, -1), 1)
 
     @staticmethod
     def cal_score(value_list, gamma):
@@ -681,7 +694,6 @@ class LineModel:
                 final_reward_map[hero_name] = ((gain_team_b / float(gain_team_a + gain_team_b))-0.5)*2 if (gain_team_a + gain_team_b) > 0 else None
 
         # 特殊情况处理
-
         # 进入模型选择区域后，下1/2帧立刻离开模型选择区域的，这种情况需要避免
         if state_idx > 0:
             prev_state = state_infos[state_idx - 1]

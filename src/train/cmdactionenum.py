@@ -10,3 +10,4 @@ class CmdActionEnum:
     BUY = 5
     SELL = 6
     AUTO = 7
+    RETREAT = 8

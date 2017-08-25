@@ -28,6 +28,7 @@ class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
 
     def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None):
+        self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
         self.model1_heros = model1_heros
@@ -193,6 +194,7 @@ class LineTrainer:
             hero_names = [hero.hero_name for hero in state_info.heros]
         for hero_name in hero_names:
             hero = state_info.get_hero(hero_name)
+            prev_hero = prev_state_info.get_hero(hero.hero_name) if prev_state_info is not None else None
 
             # 如果有可以升级的技能，优先升级技能3
             skills = StateUtil.get_skills_can_upgrade(hero)
@@ -209,8 +211,7 @@ class LineTrainer:
 
             # 回城相关逻辑
             # 如果在回城中且没有被打断则继续回城，什么也不用返回
-            if prev_state_info is not None:
-                prev_hero = prev_state_info.get_hero(hero.hero_name)
+            if prev_hero is not None:
                 if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing and prev_hero.hp <= hero.hp \
                         and not StateUtil.if_hero_at_basement(hero):
                     if not hero.skills[6].canuse:
@@ -220,6 +221,7 @@ class LineTrainer:
                         print('回城失败')
 
             if hero.hp <= 0:
+                self.hero_strategy[hero.hero_name] = None
                 continue
 
             # 处在少血状态是，且周围没有地方单位的情况下选择回城
@@ -245,6 +247,20 @@ class LineTrainer:
             # 处在泉水之中的时候设置策略层为吃线
             if StateUtil.if_hero_at_basement(hero):
                 if hero.hp < hero.maxhp:
+                    continue
+
+            # 撤退逻辑
+            # TODO 甚至可以使用移动技能移动
+            if hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.retreat:
+                dist = StateUtil.cal_distance(hero.pos, self.retreat_pos)
+                if dist <= 2:
+                    print('到达撤退点附近')
+                    self.hero_strategy[hero.hero_name] = None
+                elif prev_hero is not None and prev_hero.pos.to_string() == hero.pos.to_string():
+                    print('英雄卡住了，取消撤退')
+                    self.hero_strategy[hero.hero_name] = None
+                else:
+                    print('仍然在撤退 ' + str(dist))
                     continue
 
             # 开始根据策略决定当前的行动
@@ -289,6 +305,12 @@ class LineTrainer:
                 if action.action == CmdActionEnum.CAST and int(action.skillid) == 6:
                     print("英雄%s释放了回城" % hero_name)
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
+
+                # 如果是选择了撤退，进行特殊标记，会影响到后续的行为
+                if action.action == CmdActionEnum.RETREAT:
+                    print("英雄%s释放了撤退，撤退点为%s" % (hero_name, action.tgtpos.to_string()))
+                    self.hero_strategy[hero.hero_name] = ActionEnum.retreat
+                    self.retreat_pos = action.tgtpos
 
                 # 保存action信息到状态帧中
                 state_info.add_action(action)

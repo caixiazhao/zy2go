@@ -20,6 +20,9 @@ class StateUtil:
     ATTACK_UNIT_RADIUS = 7  # 10
     LINE_MODEL_RADIUS = 7
 
+    BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
+    BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
+
     ATTACK_SKILL_RANGES = {"10101": 2000, "10110": 8000, "10l120": 6000, "10130": 3500,
                            "10200": 2000, "10210": 8000, "10220": 5000, "10230": 6000}
 
@@ -49,7 +52,7 @@ class StateUtil:
 
     @staticmethod
     def if_hero_at_basement(hero_info):
-        basement = PosStateInfo(75140, -80, 0) if hero_info.team == 1 else PosStateInfo(-75680, -80, 0)
+        basement = StateUtil.BASEMENT_TEAM_1 if hero_info.team == 1 else StateUtil.BASEMENT_TEAM_0
         distance = StateUtil.cal_distance(hero_info.pos, basement)
         if distance < StateUtil.NEARBY_BASEMENT_RADIUS:
             return True
@@ -287,6 +290,28 @@ class StateUtil:
         return nearest_enemy_tower
 
     @staticmethod
+    def get_tower_behind(state_info, hero, line_index):
+        towers = []
+        for unit in state_info.units:
+            if StateUtil.if_unit_tower(unit.unit_name) and unit.team == hero.team:
+                if StateUtil.if_in_line(unit, line_index):
+                    # 在英雄后面的塔
+                    if hero.team == 0 and hero.pos.x > unit.pos.x:
+                        towers.append(unit)
+                    elif hero.team == 1 and hero.pos.x < unit.pos.x:
+                        towers.append(unit)
+        if len(towers) > 0:
+            towers.sort(key=lambda t: math.fabs(hero.pos.x - t.pos.x), reverse=False)
+            near_tower = towers[0]
+            # 移动到塔后侧
+            near_tower_x = near_tower.pos.x - 2000 if hero.team == 0 else near_tower.pos.x + 2000
+            pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower.pos.z)
+            return pos
+        else:
+            basement_pos = StateUtil.BASEMENT_TEAM_1 if hero.team == 1 else StateUtil.BASEMENT_TEAM_0
+            return basement_pos
+
+    @staticmethod
     def if_near_tower(state_info, hero_state, distance = NEARBY_TOWER_RADIUS):
         for unit in state_info.units:
             if int(unit.unit_name) <= 26:
@@ -360,6 +385,8 @@ class StateUtil:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:
             return {"hero_id": action.hero_name, "action": 'HOLD'}
+        if action.action == CmdActionEnum.RETREAT:
+            return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod

@@ -68,6 +68,8 @@ class Line_input:
                 temp=np.zeros(6)
                 state=state+list(temp)
 
+        for i in range(len(state)):
+            state[i] = state[i]/float(10000)
         return state
         #返回总信息向量大小=2*68+8+16*6=240
 
