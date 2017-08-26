@@ -14,11 +14,11 @@ from train.cmdactionenum import CmdActionEnum
 class StateUtil:
     # 注：游戏并不会严格的每528返回一个值，这个只是PC情况，而且中间这个值也可能缩短
     TICK_PER_STATE = 528
-    NEARBY_TOWER_RADIUS = 7
+    NEARBY_TOWER_RADIUS = 8
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 12  # 13.5
-    ATTACK_UNIT_RADIUS = 7  # 10
-    LINE_MODEL_RADIUS = 7
+    ATTACK_UNIT_RADIUS = 8  # 10
+    LINE_MODEL_RADIUS = 8
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -33,7 +33,7 @@ class StateUtil:
          PosStateInfo(-41000, 0, -27000), PosStateInfo(-51000, 0, -13000), PosStateInfo(-56300, 0, 800)],
 
         [PosStateInfo(58100, 0, -100), PosStateInfo(45100, 0, -2000), PosStateInfo(28800, 0, 500),
-         PosStateInfo(16900, 0, 1000), PosStateInfo(-11500, 0, 300), PosStateInfo(-17400, 0, -200),
+         PosStateInfo(16900, 0, 1000), PosStateInfo(0, 0, -1000), PosStateInfo(-11500, 0, 300), PosStateInfo(-17400, 0, -200),
          PosStateInfo(-44900, 0, 2600), PosStateInfo(-56500, 0, 1700)],
 
         [PosStateInfo(56900, 0, 2600), PosStateInfo(54000, 0, 5000), PosStateInfo(54200, 0, 18400),
@@ -188,7 +188,7 @@ class StateUtil:
     # 返回单位在兵线上的位置
     # 结果从0开始
     @staticmethod
-    def if_in_line(unit_info, line_index, range=2000):
+    def if_in_line(unit_info, line_index, range=3000):
         line = StateUtil.LINE_WAY_POINTS[line_index]
         for idx, point in enumerate(line):
             if idx >= len(line) - 1:

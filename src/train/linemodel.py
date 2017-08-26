@@ -206,7 +206,7 @@ class LineModel:
                     if debug: print("普攻受限，放弃普攻")
                     continue
                 if selected == 8:  # 敌方塔
-                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
+                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
                     if tower is None:
                         acts[selected] = -1
                         if debug: print("塔太远，放弃普攻")
@@ -299,7 +299,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.6:
+            if random.random()<0.1:
                 # 随机策略, 用来探索新的可能性
                 aval_actions = [act for act in acts if act > -1]
                 rdm = random.randint(0, len(aval_actions)-1)
@@ -312,7 +312,7 @@ class LineModel:
                 return action
             elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
                 if selected==8:#敌方塔
-                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
+                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
                     tgtid = tower.unit_name
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                     return action
@@ -503,19 +503,19 @@ class LineModel:
         # 首先计算每个英雄的获得情况
         cur_state = state_infos[state_idx]
 
-        if cur_state.tick >= 132528:
+        if cur_state.tick >= 592548:
             db = True
 
         cur_hero = cur_state.get_hero(hero_name)
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
         rival_team = cur_rival_hero.team
-        for i in range(1, 11):
+        for i in range(1, 10):
             # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
             cur_hero = cur_state.get_hero(hero_name)
             cur_rival_hero = cur_state.get_hero(rival_hero_name)
             next_state = state_infos[state_idx + i]
             next_hero = next_state.get_hero(hero_name)
-            next_next_state = state_infos[state_idx + i]
+            next_next_state = state_infos[state_idx + i + 1]
             dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
             dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
             state_max_golds.append(dead_golds)
@@ -525,18 +525,27 @@ class LineModel:
             gold_delta = next_hero.gold - cur_hero.gold
             if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds/2) + 3:
                 gold_delta -= 3
-            state_gold_gains.append(gold_delta)
 
-            # 对面英雄死亡的情况，除非是我放击杀了最后一下，否则忽略这个奖励
-            # 击杀了最后一下择基本等于奖励值最大了
-            if gold_delta >= 250 > dead_golds:
-                gold_delta -= 250
+            # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
+            # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
+            # TODO 这个金币奖励值应该是个变化值，目前取的是最小值
+            if gold_delta >= 200 > dead_golds:
+                gold_delta = int(dead_golds/2)
+
+            state_gold_gains.append(gold_delta)
 
             # 计算对指定敌方英雄造成的伤害，计算接受的伤害
             # 伤害信息和击中信息都有延迟，在两帧之后
+            # 扩大自己受到伤害的惩罚
+            # 扩大对方低血量下受到伤害的奖励
+            # 扩大攻击伤害的权重
             dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            if float(cur_rival_hero.hp)/cur_rival_hero.maxhp <= 0.3:
+                dmg *= 3
             self_dmg = cur_hero.hp - next_hero.hp if cur_hero.hp > next_hero.hp else 0
-            dmg_delta = int(float(dmg - self_dmg*1.5) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG) * 6
+            self_dmg *= 1.5
+            dmg_delta = int(float(dmg - self_dmg) / cur_rival_hero.maxhp * LineModel.REWARD_RIVAL_DMG)
+            dmg_delta *= 6
             state_dmg_deltas.append(dmg_delta)
 
             # 统计和更新变量
@@ -580,17 +589,17 @@ class LineModel:
             if_skill_hit_rival = RewardUtil.if_skill_hit_hero(state_infos, state_idx, hero_name, 3, rival_hero_name)
             if not if_skill_hit_rival:
                 print('特定英雄的大招必须要打到英雄才行')
-                return -1
+                reward = -1
 
         # 被塔攻击情况下，只有杀死对方才不会有惩罚，否则最高惩罚。只看当前帧
-        hit_by_tower = RewardUtil.if_hit_by_tower(state_infos, state_idx, 0, hero_name)
-        if_rival_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 0, rival_hero_name)
-        if hit_by_tower and not if_rival_dead:
-            print('被塔攻击情况下，只有杀死对方才不会有惩罚')
-            reward = -1
+        # hit_by_tower = RewardUtil.if_hit_by_tower(state_infos, state_idx, 3, hero_name)
+        # if_rival_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 3, rival_hero_name)
+        # if hit_by_tower and not if_rival_dead:
+        #     print('被塔攻击情况下，只有杀死对方才不会有惩罚')
+        #     reward = -1
 
         # 英雄死亡直接返回-1
-        if_hero_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 10, hero_name)
+        if_hero_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 6, hero_name)
         if if_hero_dead:
             print('英雄死亡')
             reward = -1
@@ -620,6 +629,19 @@ class LineModel:
             print('回城被打断')
             reward = -1
 
+        # 特殊奖励，放在最后面
+        # 英雄击杀最后一击，直接最大奖励
+        cur_state = state_infos[state_idx]
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        next_state = state_infos[state_idx + 1]
+        next_rival = next_state.get_hero(rival_hero_name)
+        if cur_rival_hero.hp > 0 and next_rival.hp <= 0:
+            print('对线英雄%s死亡' % rival_hero_name)
+            next_next_state = state_infos[state_idx + 2]
+            dmg_hit_rival = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            if dmg_hit_rival > 0:
+                print('英雄%s对对方造成了最后一击' % hero_name)
+                reward = 1
         return min(max(reward, -1), 1)
 
     @staticmethod

@@ -34,7 +34,7 @@ class RewardUtil:
 
     @staticmethod
     def if_hero_dead(state_infos, state_idx, state_num, hero_name):
-        for i in range(1, state_num+1):
+        for i in range(1, state_num):
             state_info = state_infos[state_idx + i]
             hero_info = state_info.get_hero(hero_name)
             if hero_info.hp <= 0:
@@ -43,7 +43,7 @@ class RewardUtil:
 
     @staticmethod
     def if_hit_by_tower(state_infos, state_idx, state_num, hero_name):
-        for i in range(state_num+1):
+        for i in range(state_num):
             # hit 有延迟
             state_info = state_infos[state_idx + i + 1]
             hit_names = state_info.get_hero_be_attacked_info(hero_name)

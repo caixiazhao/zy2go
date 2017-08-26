@@ -83,7 +83,7 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 324060:
+        if raw_state_info.tick >= 1459062:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -112,6 +112,7 @@ class LineTrainer:
             bd = 1
         state_with_reward = self.update_state(self.all_heros, reward_state_idx, self.real_heros)
         if state_with_reward is not None:
+            # 将中间结果写入文件
             self.save_reward_log(state_with_reward)
             self.model1.remember(state_with_reward)
 
@@ -172,9 +173,6 @@ class LineTrainer:
 
             # 更新开头一帧的奖励值
             state_with_reward = LineModel.update_state_rewards(self.state_cache, state_index, model_heros)
-
-            # 将中间结果写入文件
-            self.save_reward_log(state_with_reward)
             return state_with_reward
         return None
 
