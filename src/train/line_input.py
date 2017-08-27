@@ -12,10 +12,11 @@ class Line_input:
     #注：这个值需要小心调整，会和找附近塔的逻辑有冲突
     NEAR_TOWER_RADIUS = 20
 
-    def __init__(self, stateInformation, hero_name, rival_hero):
+    def __init__(self, stateInformation, hero_name, rival_hero, line_idx=1):
         self.stateInformation = stateInformation
         self.hero_name = hero_name
         self.rival_hero = rival_hero
+        self.line_idx = line_idx
         for hero in stateInformation.heros:
             if hero.hero_name==hero_name:
                 self.team=hero.team
@@ -29,7 +30,7 @@ class Line_input:
             team_input.append(team)
         return team_input
 
-    # 返回总信息向量大小=2*69+9*2+16*7=260
+    # 返回总信息向量大小=2*70+9*2+16*7=270
     def gen_line_input(self):
         state=[]
 
@@ -48,7 +49,7 @@ class Line_input:
         state += rival_hero_input
 
         # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
-        nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.NEAR_TOWER_RADIUS)
+        nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
         print('训练输入信息，塔信息：' + ','.join([t.unit_name for t in nearest_towers]))
         if len(nearest_towers) == 0:
             tower_input1 = self.gen_input_building(None)
@@ -56,11 +57,12 @@ class Line_input:
         elif len(nearest_towers) == 1:
             tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
             tower_input2 = self.gen_input_building(None)
-        elif len(nearest_towers) == 2:
+        # 当玩家处在高地时候会有超过2个塔
+        elif len(nearest_towers) >= 2:
+            if len(nearest_towers) > 2:
+                print('附近发现过多的塔')
             tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
             tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
-        else:
-            print('附近发现过多的塔')
         state += tower_input1
         state += tower_input2
 
@@ -70,17 +72,17 @@ class Line_input:
         n=8
         for i in range(n):
             if i < m:
-                state=state+self.gen_input_creep(enermy_creeps[i])
+                state=state+self.gen_input_creep(enermy_creeps[i], self.stateInformation, self.hero_name)
             else:
                 temp=self.gen_input_creep(None)
                 state=state+list(temp)
-        friend_creeps=StateUtil.get_nearby_friend_units(self.stateInformation,self.hero_name)
+        friend_creeps=StateUtil.get_nearby_friend_units(self.stateInformation, self.hero_name)
         m=len(friend_creeps)
         for i in range(n):
             if i <m:
-                state=state+self.gen_input_creep(friend_creeps[i])
+                state=state+self.gen_input_creep(friend_creeps[i], self.stateInformation, self.hero_name)
             else:
-                temp=np.zeros(6)
+                temp = self.gen_input_creep(None)
                 state=state+list(temp)
 
         return state
@@ -92,12 +94,12 @@ class Line_input:
         return float(value)/10
 
     #TODO 需要更多注释
-    # 英雄信息向量大小12+3*19
+    # 英雄信息向量大小13+3*19
     def gen_input_hero(self,hero):
         if hero.state == 'out' or hero.hp <= 0:
-            return list(np.zeros(12+3*19))
+            return list(np.zeros(13+3*19))
 
-        hero_input = [int(hero.hero_name),
+        hero_input = [self.normalize_value(int(hero.hero_name)),
                   self.normalize_value(hero.pos.x),
                   self.normalize_value(hero.pos.z),
                   self.normalize_value(hero.speed),
@@ -159,7 +161,7 @@ class Line_input:
             building_info=np.zeros(9)
             building_info=list(building_info)
         else:
-            building_info=[int(building.unit_name),
+            building_info=[self.normalize_value(int(building.unit_name)),
                            self.normalize_value(building.pos.x),
                            self.normalize_value(building.pos.z),
                            self.normalize_value(building.att),

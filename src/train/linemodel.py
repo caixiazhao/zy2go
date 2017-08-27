@@ -51,7 +51,7 @@ class LineModel:
 
         #battle_map=Input(shape=())
         #TODO:模型可能需要的地图信息，暂时忽略了
-        battle_information=Input(shape=(240,))
+        battle_information=Input(shape=(self.state_size,))
         team_information = Input(shape=(64,))
         # 输入的英雄，建筑和小兵的各类属性信息
         # dense_1=Dense(512,activation='relu')(battle_information)
@@ -299,7 +299,7 @@ class LineModel:
             print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
             # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
             # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.1:
+            if random.random()<0.5:
                 # 随机策略, 用来探索新的可能性
                 aval_actions = [act for act in acts if act > -1]
                 rdm = random.randint(0, len(aval_actions)-1)

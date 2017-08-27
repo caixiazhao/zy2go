@@ -18,7 +18,7 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 12  # 13.5
     ATTACK_UNIT_RADIUS = 8  # 10
-    LINE_MODEL_RADIUS = 15
+    LINE_MODEL_RADIUS = 13
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -316,7 +316,7 @@ class StateUtil:
         towers = []
         for unit in state_info.units:
             if int(unit.unit_name) <= 26:
-                if StateUtil.if_in_line(unit, line_idx):
+                if StateUtil.if_in_line(unit, line_idx) >= 0:
                     if StateUtil.cal_distance(unit.pos, hero_state.pos) < distance:  # 根据配置得来
                         towers.append(unit)
         return towers
