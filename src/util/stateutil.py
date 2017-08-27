@@ -18,7 +18,7 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 12  # 13.5
     ATTACK_UNIT_RADIUS = 8  # 10
-    LINE_MODEL_RADIUS = 8
+    LINE_MODEL_RADIUS = 15
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -312,21 +312,14 @@ class StateUtil:
             return basement_pos
 
     @staticmethod
-    def if_near_tower(state_info, hero_state, distance = NEARBY_TOWER_RADIUS):
+    def get_near_towers_in_line(state_info, hero_state, line_idx, distance=NEARBY_TOWER_RADIUS):
+        towers = []
         for unit in state_info.units:
             if int(unit.unit_name) <= 26:
-                if StateUtil.cal_distance(unit.pos, hero_state.pos) < distance:  # 根据配置得来
-                    return unit
-        return None
-
-    @staticmethod
-    def if_self_tower(tower_state, hero_name):
-        # 英雄27-31属于阵营A，相对应的塔的x值大于0的属于阵营A，塔的编号为1-26
-        if int(hero_name) <= 31 and tower_state.pos.x > 0:
-            return True
-        if int(hero_name) > 31 and tower_state.pos.x < 0:
-            return True
-        return False
+                if StateUtil.if_in_line(unit, line_idx):
+                    if StateUtil.cal_distance(unit.pos, hero_state.pos) < distance:  # 根据配置得来
+                        towers.append(unit)
+        return towers
 
     @staticmethod
     def cal_distance(pos1, pos2):

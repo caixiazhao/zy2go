@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 import numpy as np
 
+from model.skillcfginfo import SkillTargetEnum
 from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 
 
 class Line_input:
+    NORMARLIZE = 10000
+
     #注：这个值需要小心调整，会和找附近塔的逻辑有冲突
     NEAR_TOWER_RADIUS = 20
 
@@ -26,6 +29,7 @@ class Line_input:
             team_input.append(team)
         return team_input
 
+    # 返回总信息向量大小=2*69+9*2+16*7=260
     def gen_line_input(self):
         state=[]
 
@@ -43,11 +47,22 @@ class Line_input:
         state += my_hero_input
         state += rival_hero_input
 
-        # 添加附近塔信息（1个）,搜索半径为self.NEAR_TOWER_RADIUS
-        #TODO 如果半径过大可能会有多个塔，需要处理这种情况
-        nearest_tower = StateUtil.if_near_tower(self.stateInformation, my_hero_info, self.NEAR_TOWER_RADIUS)
-        tower_input=self.gen_input_building(nearest_tower)
-        state += tower_input
+        # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
+        nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.NEAR_TOWER_RADIUS)
+        print('训练输入信息，塔信息：' + ','.join([t.unit_name for t in nearest_towers]))
+        if len(nearest_towers) == 0:
+            tower_input1 = self.gen_input_building(None)
+            tower_input2 = self.gen_input_building(None)
+        elif len(nearest_towers) == 1:
+            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
+            tower_input2 = self.gen_input_building(None)
+        elif len(nearest_towers) == 2:
+            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
+            tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
+        else:
+            print('附近发现过多的塔')
+        state += tower_input1
+        state += tower_input2
 
         # 小兵信息
         enermy_creeps=StateUtil.get_nearby_enemy_units(self.stateInformation,self.hero_name)
@@ -57,7 +72,7 @@ class Line_input:
             if i < m:
                 state=state+self.gen_input_creep(enermy_creeps[i])
             else:
-                temp=np.zeros(6)
+                temp=self.gen_input_creep(None)
                 state=state+list(temp)
         friend_creeps=StateUtil.get_nearby_friend_units(self.stateInformation,self.hero_name)
         m=len(friend_creeps)
@@ -68,28 +83,37 @@ class Line_input:
                 temp=np.zeros(6)
                 state=state+list(temp)
 
-        for i in range(len(state)):
-            state[i] = state[i]/float(10000)
         return state
-        #返回总信息向量大小=2*68+8+16*6=240
+
+    def normalize_value(self, value):
+        return float(value)/Line_input.NORMARLIZE
+
+    def normalize_skill_value(self, value):
+        return float(value)/10
 
     #TODO 需要更多注释
-    # 英雄信息向量大小13+1+3*18
+    # 英雄信息向量大小12+3*19
     def gen_input_hero(self,hero):
-        heroInfo=[int(hero.hero_name), hero.pos.x, hero.pos.z, hero.speed, hero.att, 2, hero.mag, hero.hp, hero.mp,
-                  1000+hero.attspeed, int(hero.movelock), hero.team]
-        #todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
-        if hero.state=="in":
-            heroInfo.append(1)
-        else:
-            heroInfo.append(0)
+        if hero.state == 'out' or hero.hp <= 0:
+            return list(np.zeros(12+3*19))
 
-        if hero.vis1==None and hero.vis2!=None:
-            heroInfo.append(int(hero.vis2))
-        elif hero.vis2==None and hero.vis1!=None:
-            heroInfo.append(int(hero.vis1))
-        else:
-            heroInfo.append(0)
+        hero_input = [int(hero.hero_name),
+                  self.normalize_value(hero.pos.x),
+                  self.normalize_value(hero.pos.z),
+                  self.normalize_value(hero.speed),
+                  self.normalize_value(hero.att),
+                  # todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
+                  0.2,
+                  self.normalize_value(hero.mag),
+                  self.normalize_value(hero.hp),
+                  hero.hp/float(hero.maxhp),
+                  self.normalize_value(hero.mp),
+                  self.normalize_value(1000+hero.attspeed),
+                  hero.team]
+
+        is_enemy_visible = hero.is_enemy_visible()
+        hero_input.append(int(is_enemy_visible))
+
         skill_info1 = SkillUtil.get_skill_info(hero.cfg_id, 1)
         skill_info2 = SkillUtil.get_skill_info(hero.cfg_id, 2)
         skill_info3 = SkillUtil.get_skill_info(hero.cfg_id, 3)
@@ -97,38 +121,76 @@ class Line_input:
         skill_input1 = self.gen_input_skill(skill_info1, hero.skills[1])
         skill_input2 = self.gen_input_skill(skill_info2, hero.skills[2])
         skill_input3 = self.gen_input_skill(skill_info3, hero.skills[3])
-        heroInfo=heroInfo+skill_input1+skill_input2+skill_input3
-        return heroInfo
+        hero_input=hero_input+skill_input1+skill_input2+skill_input3
+        return hero_input
 
-    # 技能信息向量大小=15+3
+    # 技能信息向量大小=16+3
     def gen_input_skill(self, skill_cfg_info, skill):
-        skill_input = [skill_cfg_info.instant_dmg, skill_cfg_info.sustained_dmg, skill_cfg_info.restore,
-            skill_cfg_info.defend_bonus, skill_cfg_info.attack_bonus, skill_cfg_info.restore_bonus,
-            skill_cfg_info.move_bonus, skill_cfg_info.defend_weaken, skill_cfg_info.attack_weaken,
-            skill_cfg_info.move_weaken, skill_cfg_info.stun, skill_cfg_info.blink, skill_cfg_info.dmg_range,
-            skill_cfg_info.cast_distance, skill_cfg_info.cast_target]
+        skill_input = [
+            self.normalize_skill_value(skill_cfg_info.instant_dmg),
+            self.normalize_skill_value(skill_cfg_info.sustained_dmg),
+            self.normalize_skill_value(skill_cfg_info.restore),
+            self.normalize_skill_value(skill_cfg_info.defend_bonus),
+            self.normalize_skill_value(skill_cfg_info.attack_bonus),
+            self.normalize_skill_value(skill_cfg_info.restore_bonus),
+            self.normalize_skill_value(skill_cfg_info.move_bonus),
+            self.normalize_skill_value(skill_cfg_info.defend_weaken),
+            self.normalize_skill_value(skill_cfg_info.attack_weaken),
+            self.normalize_skill_value(skill_cfg_info.move_weaken),
+            self.normalize_skill_value(skill_cfg_info.stun),
+            self.normalize_skill_value(skill_cfg_info.blink),
+            self.normalize_skill_value(skill_cfg_info.dmg_range),
+            self.normalize_skill_value(skill_cfg_info.cast_distance),
+            # 是否可以给自己和敌人施法
+            1 if skill_cfg_info.cast_target == SkillTargetEnum.self or skill_cfg_info.cast_target == SkillTargetEnum.both else 0,
+            1 if skill_cfg_info.cast_target == SkillTargetEnum.rival or skill_cfg_info.cast_target == SkillTargetEnum.both else 0]
 
         skill_cost = skill.cost if skill.cost is not None else 0
         skill_max_cd = skill.max_cd if skill.max_cd is not None else 0
         skill_canuse = int(skill.canuse) if skill.canuse is not None else 0
-        skill_input.append(skill_cost)
-        skill_input.append(skill_max_cd)
+        skill_input.append(self.normalize_value(skill_cost))
+        skill_input.append(self.normalize_value(skill_max_cd))
         skill_input.append(skill_canuse)
         return skill_input
 
-
-    def gen_input_building(self,building):
-        if building==None:
-            building_info=np.zeros(8)
+    # 建筑信息向量大小9个字段
+    def gen_input_building(self,building, state_info=None, hero_name=None):
+        if building is None:
+            building_info=np.zeros(9)
             building_info=list(building_info)
         else:
-            building_info=[int(building.unit_name), building.pos.x, building.pos.z, building.att, 7000, building.hp,
-                           1000+building.attspeed, building.team]
+            building_info=[int(building.unit_name),
+                           self.normalize_value(building.pos.x),
+                           self.normalize_value(building.pos.z),
+                           self.normalize_value(building.att),
+                           self.normalize_value(7000),
+                           self.normalize_value(building.hp),
+                           self.normalize_value(1000+building.attspeed),
+                           building.team]
+            # 添加是否在攻击当前英雄
+            attack_info = state_info.if_unit_attack_hero(building.unit_name, hero_name)
+            if attack_info is None:
+                building_info.append(0)
+            else:
+                building_info.append(1)
         return building_info
-        #建筑信息向量大小=8
 
+    # 单个小兵信息大小=7
+    def gen_input_creep(self, creep, state_info=None, hero_name=None):
+        if creep is None:
+            return list(np.zeros(7))
 
-    def gen_input_creep(self,creep):
-        creep_info=[creep.pos.x,creep.pos.z,creep.att,creep.hp,1000+creep.attspeed,creep.team]
+        creep_info=[self.normalize_value(creep.pos.x),
+                    self.normalize_value(creep.pos.z),
+                    self.normalize_value(creep.att),
+                    self.normalize_value(creep.hp),
+                    self.normalize_value(1000+creep.attspeed),
+                    creep.team]
+
+        # 添加是否在攻击当前英雄
+        attack_info = state_info.if_unit_attack_hero(creep.unit_name, hero_name)
+        if attack_info is None:
+            creep_info.append(0)
+        else:
+            creep_info.append(1)
         return creep_info
-        #单个小兵信息大小=6

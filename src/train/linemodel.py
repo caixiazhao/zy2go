@@ -350,7 +350,7 @@ class LineModel:
         if selected==0:
             # 施法目标为自己
             # 首先判断施法目标是不是只限于敌方英雄
-            if skill_info.cast_target == SkillTargetEnum.viral:
+            if skill_info.cast_target == SkillTargetEnum.rival:
                 return [-1,None]
             tgtid=hero_name
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题

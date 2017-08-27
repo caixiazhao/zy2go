@@ -29,6 +29,6 @@ class SkillTargetEnum:
         def __init__(self):
             pass
 
-        viral = 0
+        rival = 0
         self = 1
         both = 2

@@ -18,6 +18,12 @@ class StateInfo:
                 total_dmg += dmg.dmg
         return total_dmg
 
+    def if_unit_attack_hero(self, unit_name, hero_name):
+        for att in self.attack_infos:
+            if str(att.atker) == unit_name and str(att.defer) == hero_name:
+                return att
+        return None
+
     def get_hero_attack_info(self, hero_name):
         for att in self.attack_infos:
             if str(att.atker) == hero_name:
