@@ -55,7 +55,7 @@ class LineTrainer:
         heros = list(model1_heros)
         if real_heros is not None:
             heros.extend(real_heros)
-        self.model1 = LineModel(240, 50, heros)
+        self.model1 = LineModel(279, 50, heros)
         if model1_path is not None:
             self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
@@ -65,7 +65,7 @@ class LineTrainer:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
-            self.model2 = LineModel(240, 50, heros)
+            self.model2 = LineModel(279, 50, heros)
             if model2_path is not None:
                 self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'
@@ -110,11 +110,16 @@ class LineTrainer:
         print ('reward_state_idx: ' + str(reward_state_idx))
         if reward_state_idx == 299:
             bd = 1
-        state_with_reward = self.update_state(self.all_heros, reward_state_idx, self.real_heros)
+        state_with_reward = None
+        if reward_state_idx > 0:
+            self.guess_hero_actions(reward_state_idx, self.real_heros)
+            state_with_reward = LineModel.update_state_rewards(self.state_cache, reward_state_idx)
+
         if state_with_reward is not None:
             # 将中间结果写入文件
+            next_state_4_m = self.state_cache[reward_state_idx + 1]
             self.save_reward_log(state_with_reward)
-            self.model1.remember(state_with_reward)
+            self.model1.remember(state_with_reward, next_state_4_m)
 
             # 学习
             if self.model1.if_replay(50):
@@ -125,7 +130,7 @@ class LineTrainer:
 
             if self.model2 is not None:
                 # TODO 过滤之后放入相应的模型
-                self.model2.remember(state_with_reward)
+                self.model2.remember(state_with_reward, next_state_4_m)
 
                 # 学习
                 if self.model2.if_replay(50):
@@ -157,24 +162,18 @@ class LineTrainer:
 
     # 根据缓存帧计算奖励值然后保存当前帧
     # 注意：model_heros应该是所有需要模型学习的英雄，real_heros为其中真人的英雄
-    def update_state(self, model_heros, state_index, real_heros=None):
-        if state_index > 0:
-            prev_state = self.state_cache[state_index - 1]
-            cur_state = self.state_cache[state_index]
-            next_state = self.state_cache[state_index + 1]
+    def guess_hero_actions(self, state_index, real_heros=None):
+        prev_state = self.state_cache[state_index - 1]
+        cur_state = self.state_cache[state_index]
+        next_state = self.state_cache[state_index + 1]
 
-            # 如果有必要的话，更新这一帧中真人玩家的行为信息
-            if real_heros is not None:
-                for hero_name in real_heros:
-                    hero_action = Replayer.guess_player_action(prev_state, cur_state, next_state, hero_name, '28')
-                    cur_state.add_action(hero_action)
-                    action_str = StateUtil.build_command(hero_action)
-                    print('玩家行为分析：' + str(action_str) + ' tick:' + str(cur_state.tick))
-
-            # 更新开头一帧的奖励值
-            state_with_reward = LineModel.update_state_rewards(self.state_cache, state_index, model_heros)
-            return state_with_reward
-        return None
+        # 如果有必要的话，更新这一帧中真人玩家的行为信息
+        if real_heros is not None:
+            for hero_name in real_heros:
+                hero_action = Replayer.guess_player_action(prev_state, cur_state, next_state, hero_name, '28')
+                cur_state.add_action(hero_action)
+                action_str = StateUtil.build_command(hero_action)
+                print('玩家行为分析：' + str(action_str) + ' tick:' + str(cur_state.tick))
 
     # 双方英雄集中到中路中间区域，进行对线
     # 一方英雄回城之后，负责等他满血后回到对战区

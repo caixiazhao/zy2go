@@ -7,7 +7,7 @@ import numpy as np
 from keras.engine import Input, Model
 from keras.layers import Dense, LSTM, Reshape, concatenate
 from keras.layers import Dropout
-from keras.optimizers import Nadam
+from keras.optimizers import Nadam, Adam
 from keras.callbacks import TensorBoard
 import math
 import random
@@ -27,7 +27,7 @@ from model.fwdstateinfo import FwdStateInfo
 class LineModel:
     REWARD_GAMMA = 0.9
     REWARD_DELAY_STATE_NUM = 11
-    REWARD_RIVAL_DMG = 50
+    REWARD_RIVAL_DMG = 300
 
     def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
@@ -77,6 +77,8 @@ class LineModel:
 
         # 尝试阵容信息单独传入输入
         # 尝试不同类型的选择用不同的模型来计算
+        # dense_1 = Dense(512, activation='relu')(battle_information)
+        # dropped_1 = Dropout(0.15)(dense_1)
         dense_2 = Dense(512, activation='relu')(battle_information)
         dense_3 = Dense(256, activation='relu')(dense_2)
 
@@ -93,7 +95,7 @@ class LineModel:
         predictions = concatenate([dense_6_move,dense_5_attack,dense_5_skill,dense_5_others])
 
         model = Model(inputs=[battle_information, team_information], outputs=predictions)
-        model.compile(loss='mse', optimizer=Nadam(lr=self.learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004))
+        model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
 
     def load(self, name):
@@ -102,11 +104,11 @@ class LineModel:
     def save(self, name):
         self.model.save_weights(name)
 
-    def remember(self, state_info):
+    def remember(self, state_info, next_state_info):
         # 必须具有指定英雄的action以及reward，还要是有效reward（不为0）
         actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None and a.reward != 0]
         if len(actions) > 0:
-            self.memory.append(state_info)
+            self.memory.append((state_info, next_state_info))
 
     def if_replay(self, learning_batch):
         if len(self.memory) > 0 and len(self.memory) % learning_batch == 0:
@@ -125,10 +127,9 @@ class LineModel:
         y = np.zeros((batch_size, self.action_size))
         for i in range(batch_size):
             sample_index = minibatch[i]
-            state_info = self.memory[sample_index]
+            (state_info, next_state) = self.memory[sample_index]
 
             # 随机从指定玩家的行为中进行挑选
-            selected_action = None
             actions = [a for a in state_info.actions if a.hero_name in self.heros and a.reward is not None]
             if len(actions) == 0:
                 print('skip replay tick %s ' % state_info.tick)
@@ -165,10 +166,29 @@ class LineModel:
             target_action = target.index(maxQ)
             print ('model select action %s, tick %s' % (str(target_action), state_info.tick))
 
+            # 使用模型和奖励值算出最终的q值
+            # 得到下一帧中最好的行为
+            next_line_input = Line_input(next_state, hero_name, rival_hero)
+            next_state_input = next_line_input.gen_line_input()
+            next_state_input = np.array([next_state_input])
+            next_team = next_line_input.gen_team_input()
+            next_team_input = np.array([next_team])
+            next_actions = self.model.predict([next_state_input, next_team_input])
+            next_acts = list(next_actions[0])
+            next_acts = self.remove_unaval_actions(next_acts, next_state, hero_name, rival_hero)
+            next_max_q = max(next_acts)
+            selected = next_acts.index(next_max_q)
+
+            # 将两个分数累加
+            chosen_action = state_info.get_hero_action(hero_name)
+            final_q = chosen_action.reward + LineModel.REWARD_GAMMA * next_max_q
+            final_q = min(max(final_q, -1), 1)
+            print("当前奖励值: %s, 下一帧的选择 score:%s, index: %s, 最终结果: %s" % (
+                str(chosen_action.reward), str(next_max_q), str(selected), str(final_q)))
+
             # 修改其中我们选择的行为
             # TODO 是否应该将超出范围的英雄的结果置成0？
-            chosen_action = state_info.get_hero_action(hero_name)
-            target[chosen_action.output_index] = chosen_action.reward
+            target[chosen_action.output_index] = final_q
             target_detail = ' '.join(str("%.4f" % float(act)) for act in target)
 
             input_detail = ' '.join(str("%f" % float(act)) for act in state)
@@ -293,56 +313,57 @@ class LineModel:
         hero = stateinformation.get_hero(hero_name)
         acts = list(acts[0])
         acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
-        for i in range(len(acts)):
-            maxQ = max(acts)
-            selected = acts.index(maxQ)
-            print ("line model selected action:%s action array:%s" % (str(selected),  ' '.join(str(round(float(act), 4)) for act in acts)))
-            # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
-            # 调试阶段暂时关闭随机，方便复现所有的问题
-            if random.random()<0.5:
-                # 随机策略, 用来探索新的可能性
-                aval_actions = [act for act in acts if act > -1]
-                rdm = random.randint(0, len(aval_actions)-1)
-                rdm_q = aval_actions[rdm]
-                selected = acts.index(rdm_q)
-                print("随机选择操作 " + str(selected))
-            if selected < 8:  #move
-                fwd = StateUtil.mov(selected)
-                action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None,selected, None)
+        maxQ = max(acts)
+        selected = acts.index(maxQ)
+        print ("line model selected action:%s action array:%s" % (
+        str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
+        # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
+        # 调试阶段暂时关闭随机，方便复现所有的问题
+        if random.random() < 0.5:
+            # 随机策略, 用来探索新的可能性
+            aval_actions = [act for act in acts if act > -1]
+            rdm = random.randint(0, len(aval_actions) - 1)
+            rdm_q = aval_actions[rdm]
+            selected = acts.index(rdm_q)
+            print("随机选择操作 " + str(selected))
+        if selected < 8:  # move
+            fwd = StateUtil.mov(selected)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, selected, None)
+            return action
+        elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
+            if selected == 8:  # 敌方塔
+                tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
+                tgtid = tower.unit_name
+                action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
-            elif selected<18: #对敌英雄，塔，敌小兵1~8使用普攻
-                if selected==8:#敌方塔
-                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
-                    tgtid = tower.unit_name
-                    action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
-                    return action
-                elif selected==9:#敌方英雄
-                    tgtid = rival_hero
-                    action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
-                    return action
-                else:#小兵
-                    creeps=StateUtil.get_nearby_enemy_units(stateinformation,hero_name)
-                    n=selected-10
-                    tgtid=creeps[n].unit_name
-                    action=CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
-                    return action
-            elif selected<48: #skill
-                skillid = int((selected - 18) / 10 + 1)
-                [tgtid, tgtpos]=self.choose_skill_target(selected-18-(skillid-1)*10,stateinformation,skillid,hero_name,hero.pos,rival_hero)
-                if tgtpos is None:
-                    fwd = None
-                else:
-                    fwd = tgtpos.fwd(hero.pos)
-                action = CmdAction(hero_name, CmdActionEnum.CAST,skillid,tgtid, tgtpos, fwd, None, selected, None)
+            elif selected == 9:  # 敌方英雄
+                tgtid = rival_hero
+                action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
-            elif selected==48:#撤退
-                retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
-                action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
+            else:  # 小兵
+                creeps = StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
+                n = selected - 10
+                tgtid = creeps[n].unit_name
+                action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
-            else:#hold
-                print("轮到了49号行为-hold")
-                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
-                return action
+        elif selected < 48:  # skill
+            skillid = int((selected - 18) / 10 + 1)
+            [tgtid, tgtpos] = self.choose_skill_target(selected - 18 - (skillid - 1) * 10, stateinformation, skillid,
+                                                       hero_name, hero.pos, rival_hero)
+            if tgtpos is None:
+                fwd = None
+            else:
+                fwd = tgtpos.fwd(hero.pos)
+            action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
+            return action
+        elif selected == 48:  # 撤退
+            retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
+            action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
+            return action
+        else:  # hold
+            print("轮到了49号行为-hold")
+            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+            return action
 
     def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):
         hero_info = stateinformation.get_hero(hero_name)
@@ -430,9 +451,8 @@ class LineModel:
     @staticmethod
     def update_rewards(state_infos, hero_names=None):
         for i in range(len(state_infos) - LineModel.REWARD_DELAY_STATE_NUM):
-            if state_infos[i].tick >= 54516:
-                j = 1
             state_infos[i] = LineModel.update_state_rewards(state_infos, i, hero_names)
+            print('')
         return state_infos
 
     @staticmethod
@@ -447,9 +467,142 @@ class LineModel:
             hero_action = state_info.get_hero_action(hero_name)
             if hero_action is not None:
                 rival_hero_name = '27' if hero_name == '28' else '28'
-                reward = LineModel.cal_target_v2(state_infos, state_index, hero_name, rival_hero_name, line_idx)
+                reward = LineModel.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
                 state_info.add_rewards(hero_name, reward)
         return state_info
+
+    @staticmethod
+    def cal_target_v3(state_infos, state_idx, hero_name, rival_hero_name, line_idx):
+        # 只计算当前帧的得失，得失为金币获取情况，敌我血量变化
+        # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
+        cur_state = state_infos[state_idx]
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        rival_team = cur_rival_hero.team
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        next_state = state_infos[state_idx + 1]
+        next_hero = next_state.get_hero(hero_name)
+        next_next_state = state_infos[state_idx + 2]
+        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
+        dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
+        dead_unit_str = (','.join([u.unit_name for u in dead_units]))
+
+        # 如果英雄有小额金币变化，则忽略
+        gold_delta = next_hero.gold - cur_hero.gold
+        if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
+            gold_delta -= 3
+
+        # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
+        # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
+        # TODO 这个金币奖励值应该是个变化值，目前取的是最小值
+        if gold_delta >= 200 > dead_golds:
+            gold_delta = int(dead_golds / 2)
+
+        # 计算对指定敌方英雄造成的伤害，计算接受的伤害
+        # 伤害信息和击中信息都有延迟，在两帧之后
+        # 扩大自己受到伤害的惩罚
+        # 扩大对方低血量下受到伤害的奖励
+        # 扩大攻击伤害的权重
+        # TODO 防御型辅助型法术的定义
+        dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name) / float(cur_rival_hero.maxhp)
+        if float(cur_rival_hero.hp) / cur_rival_hero.maxhp <= 0.3:
+            dmg *= 3
+        self_hp_loss = (cur_hero.hp - next_hero.hp)/float(cur_hero.maxhp) if cur_hero.hp > next_hero.hp else 0
+        # self_hp_loss *= 1.5
+        dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
+
+        # 统计和更新变量
+        print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, dead_units: %s'
+              % (hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str))
+
+        # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
+        # 最大惩罚是被对方造成了一条命伤害
+        # 零分为获得了所有的死亡奖励
+        max_score = dead_golds + LineModel.REWARD_RIVAL_DMG / 6
+        min_score = -LineModel.REWARD_RIVAL_DMG / 6
+        mid_score = int(dead_golds / 2)
+
+        hero_score = gold_delta + dmg_delta
+        reward = 0
+        if hero_score > mid_score:
+            reward = (hero_score - mid_score) / float(max_score - mid_score)
+        elif hero_score < mid_score:
+            reward = -(mid_score - hero_score) / float(mid_score - min_score)
+
+        # 特殊情况处理
+
+        # 撤退的话首先将惩罚值设置为-0.2吧
+        cur_state = state_infos[state_idx]
+        hero_action = cur_state.get_hero_action(hero_name)
+        if hero_action.output_index == 48:
+            if float(cur_hero.hp) / cur_hero.maxhp > 0.5:
+                print('高血量撤退')
+                reward = -1
+            else:
+                print('撤退基础惩罚')
+                reward = -0.2
+
+        # 特定英雄的大招必须要打到英雄才行
+        if_cast_ultimate_skill = RewardUtil.if_cast_skill(state_infos, state_idx, hero_name, 3)
+        if if_cast_ultimate_skill:
+            if_skill_hit_rival = RewardUtil.if_skill_hit_hero(state_infos, state_idx, hero_name, 3, rival_hero_name)
+            if not if_skill_hit_rival:
+                print('特定英雄的大招必须要打到英雄才行')
+                reward = -1
+
+        # 被塔攻击情况下，只有杀死对方才不会有惩罚，否则最高惩罚。只看当前帧
+        hit_by_tower = RewardUtil.if_hit_by_tower(state_infos, state_idx, 3, hero_name)
+        if_rival_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 3, rival_hero_name)
+        if hit_by_tower and not if_rival_dead:
+            print('被塔攻击情况下，只有杀死对方才不会有惩罚')
+            reward = -1
+
+        # 英雄死亡直接返回-1
+        if_hero_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 6, hero_name)
+        if if_hero_dead:
+            print('英雄死亡')
+            reward = -1
+
+        # 是否离线太远
+        cur_state = state_infos[state_idx]
+        leave_line = RewardUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
+        if leave_line:
+            print('离线太远')
+            reward = -1
+
+        # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
+        if RewardUtil.if_leave_linemodel_range(state_infos, state_idx, hero_name, line_idx):
+            if hero_action.output_index != 48:
+                print('离开模型范围，又不是撤退')
+                reward = -1
+
+        # 是否高血量回城
+        go_town_high_hp = RewardUtil.if_return_town_high_hp(state_infos, state_idx, hero_name, 0.3)
+        if go_town_high_hp:
+            print('高血量回城')
+            reward = -1
+
+        # 是否回城被打断
+        go_town_break = RewardUtil.if_return_town_break(state_infos, state_idx, hero_name)
+        if go_town_break:
+            print('回城被打断')
+            reward = -1
+
+        # 特殊奖励，放在最后面
+        # 英雄击杀最后一击，直接最大奖励
+        cur_state = state_infos[state_idx]
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        next_state = state_infos[state_idx + 1]
+        next_rival = next_state.get_hero(rival_hero_name)
+        if cur_rival_hero.hp > 0 and next_rival.hp <= 0:
+            print('对线英雄%s死亡' % rival_hero_name)
+            next_next_state = state_infos[state_idx + 2]
+            dmg_hit_rival = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            if dmg_hit_rival > 0:
+                print('英雄%s对对方造成了最后一击' % hero_name)
+                reward = 1
+        return min(max(reward, -1), 1)
 
     @staticmethod
     # 思考设计新的行动评价标准

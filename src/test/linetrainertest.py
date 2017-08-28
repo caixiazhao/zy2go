@@ -22,13 +22,13 @@ def test_line_trainer(raw_log_path, model1_path):
 
 def train_line_model(state_path, model_path, output_model_path, heros):
     state_file = open(state_path, "r")
-    model = LineModel(240, 50, heros)
+    model = LineModel(279, 50, heros)
     if model_path is not None:
         model.load(model_path)
 
     lines = state_file.readlines()
-    for line in lines:
-        state_info = StateUtil.parse_state_log(line)
+    for idx in range(len(lines)):
+        state_info = StateUtil.parse_state_log(lines[idx])
         if len(state_info.actions) > 0:
             # 去掉最后几帧没有reward的情况
             flag = 0
@@ -36,7 +36,8 @@ def train_line_model(state_path, model_path, output_model_path, heros):
                 if action.reward == None:
                     flag = flag + 1
             if flag == 0:
-                model.remember(state_info)
+                prev_state_info = StateUtil.parse_state_log(lines[idx-1])
+                model.remember(state_info, prev_state_info)
     print("model memory size: " + str(len(model.memory)))
     for i in range(1):
         model.replay(5000, True, output_model_path + "_graph_" + str(i))
@@ -132,6 +133,7 @@ def cal_state_log_action_reward(state_path, output_path):
 
     # 测试计算奖励值
     state_logs_with_reward = LineModel.update_rewards(state_logs)
+
     for state_with_reward in state_logs_with_reward:
         # 将结果记录到文件
         state_encode = state_with_reward.encode()
@@ -152,7 +154,7 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
 
     state_logs = []
     prev_state = None
-    model = LineModel(240, 50, hero_names)
+    model = LineModel(279, 50, hero_names)
     if model_path is not None:
         model.load(model_path)
     if save_model_path is not None:
@@ -188,7 +190,7 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-23103648.324322/raw.log',
+    # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-26174431.625116/raw.log',
     #                   None)
     # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
     #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',
@@ -199,9 +201,9 @@ if __name__ == "__main__":
     #                    '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model')
     # guess_action_cal_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_rewards_0825.log')
-    # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25160920.831076/state.log',
-    #                             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25160920.831076/state_with_reward.log')
-    train_line_model('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25160920.831076/state_with_reward.log',
-                     None,
-                     '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_1_trained_0825_3',
-                     ['27'])
+    cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
+                                '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
+    # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-28125626.271779/state_with_reward.log',
+    #                  None,
+    #                  '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_2_trained_0825_test',
+    #                  ['28'])

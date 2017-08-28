@@ -16,8 +16,8 @@ class StateUtil:
     TICK_PER_STATE = 528
     NEARBY_TOWER_RADIUS = 8
     NEARBY_BASEMENT_RADIUS = 7
-    ATTACK_HERO_RADIUS = 12  # 13.5
-    ATTACK_UNIT_RADIUS = 8  # 10
+    ATTACK_HERO_RADIUS = 7  # 13.5
+    ATTACK_UNIT_RADIUS = 7  # 10
     LINE_MODEL_RADIUS = 13
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
@@ -294,7 +294,7 @@ class StateUtil:
         towers = []
         for unit in state_info.units:
             if StateUtil.if_unit_tower(unit.unit_name) and unit.team == hero.team:
-                if StateUtil.if_in_line(unit, line_index):
+                if StateUtil.if_in_line(unit, line_index) >= 0:
                     # 在英雄后面的塔
                     if hero.team == 0 and hero.pos.x > unit.pos.x:
                         towers.append(unit)

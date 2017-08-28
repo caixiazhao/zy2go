@@ -30,7 +30,7 @@ class Line_input:
             team_input.append(team)
         return team_input
 
-    # 返回总信息向量大小=2*70+9*2+16*7=270
+    # 返回总信息向量大小=2*70+9*3+16*7=270
     def gen_line_input(self):
         state=[]
 
@@ -50,21 +50,27 @@ class Line_input:
 
         # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
         nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
-        print('训练输入信息，塔信息：' + ','.join([t.unit_name for t in nearest_towers]))
+        print('训练输入信息，塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers]))
         if len(nearest_towers) == 0:
             tower_input1 = self.gen_input_building(None)
             tower_input2 = self.gen_input_building(None)
+            tower_input3 = self.gen_input_building(None)
         elif len(nearest_towers) == 1:
             tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
             tower_input2 = self.gen_input_building(None)
+            tower_input3 = self.gen_input_building(None)
         # 当玩家处在高地时候会有超过2个塔
         elif len(nearest_towers) >= 2:
-            if len(nearest_towers) > 2:
-                print('附近发现过多的塔')
             tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
             tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
+            tower_input3 = self.gen_input_building(None)
+        else:
+            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
+            tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
+            tower_input3 = self.gen_input_building(nearest_towers[2], self.stateInformation, self.hero_name)
         state += tower_input1
         state += tower_input2
+        state += tower_input3
 
         # 小兵信息
         enermy_creeps=StateUtil.get_nearby_enemy_units(self.stateInformation,self.hero_name)
