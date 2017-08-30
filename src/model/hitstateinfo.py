@@ -1,6 +1,3 @@
-from model.posstateinfo import PosStateInfo
-
-
 class HitStateInfo(object):
     def __init__(self, atker, tgt, skill):
         self.atker = atker

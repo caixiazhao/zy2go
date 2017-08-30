@@ -350,7 +350,7 @@ class LineModel:
                 return action
         elif selected < 48:  # skill
             skillid = int((selected - 18) / 10 + 1)
-            [tgtid, tgtpos] = self.choose_skill_target(selected - 18 - (skillid - 1) * 10, stateinformation, skillid,
+            [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10, stateinformation, skillid,
                                                        hero_name, hero.pos, rival_hero)
             if tgtpos is None:
                 fwd = None

@@ -1,6 +1,6 @@
 # -*- coding: utf8 -*-
-from fwdstateinfo import FwdStateInfo
-from posstateinfo import PosStateInfo
+from model.fwdstateinfo import FwdStateInfo
+from model.posstateinfo import PosStateInfo
 
 # 注：攻击的硬直也会算成movelock=false（false表示不能移动），所以这个字段参考意义不大。不能表示是否眩晕状态
 class UnitStateInfo(object):

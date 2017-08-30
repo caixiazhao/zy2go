@@ -3,7 +3,7 @@
 # 记录选择的结果行为
 # 注：skillid表示第几个skill
 from model.fwdstateinfo import FwdStateInfo
-from  model.posstateinfo import PosStateInfo
+from model.posstateinfo import PosStateInfo
 class CmdAction(object):
     def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
         self.hero_name = hero_name

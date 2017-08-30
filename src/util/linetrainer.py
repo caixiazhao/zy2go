@@ -13,6 +13,7 @@ from model.cmdaction import CmdAction
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
 from train.linemodel import LineModel
+from train.linemodel_dpn import LineModel_DQN
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 # import sys
@@ -55,21 +56,21 @@ class LineTrainer:
         heros = list(model1_heros)
         if real_heros is not None:
             heros.extend(real_heros)
-        self.model1 = LineModel(279, 50, heros)
+        self.model1 = LineModel_DQN(279, 50, heros, scope="linemodel1")
         if model1_path is not None:
             self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
-        self.model1.save(self.model1_save_header + '0')
+        # self.model1.save(self.model1_save_header + '0')
 
         if model2_heros is not None:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
-            self.model2 = LineModel(279, 50, heros)
+            self.model2 = LineModel_DQN(279, 50, heros, scope="linemodel2")
             if model2_path is not None:
                 self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'
-            self.model2.save(self.model2_save_header + '0')
+            # self.model2.save(self.model2_save_header + '0')
         else:
             self.model2 = None
 

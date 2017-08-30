@@ -6,6 +6,7 @@ from train.linemodel import LineModel
 from util.linetrainer import LineTrainer
 from util.replayer import Replayer
 from util.stateutil import StateUtil
+import baselines.common.tf_util as U
 
 
 def test_line_trainer(raw_log_path, model1_path):
@@ -190,8 +191,9 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-26174431.625116/raw.log',
-    #                   None)
+    with U.make_session(8):
+        test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25100407.804318-long/raw.log',
+                         None)
     # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
     #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',
     #                   ['28'], None, None)
@@ -203,7 +205,7 @@ if __name__ == "__main__":
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_rewards_0825.log')
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
-    train_line_model('/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log',
-                     None,
-                     '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_1_trained_0828_test',
-                     ['27'])
+    # train_line_model('/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log',
+    #                  None,
+    #                  '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_1_trained_0828_test',
+    #                  ['27'])

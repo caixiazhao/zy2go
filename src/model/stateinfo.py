@@ -1,10 +1,10 @@
 # -*- coding: utf8 -*-
-from herostateinfo import HeroStateInfo
+from model.herostateinfo import HeroStateInfo
 from model.attackstateinfo import AttackStateInfo
 from model.cmdaction import CmdAction
 from model.dmgstateinfo import DmgStateInfo
 from model.hitstateinfo import HitStateInfo
-from unitstateinfo import UnitStateInfo
+from model.unitstateinfo import UnitStateInfo
 
 
 # 注意有些信息不是完整的，
