@@ -210,7 +210,8 @@ class LineModel:
             if self.epsilon > self.e_min:
                 self.epsilon *= self.e_decay
 
-    def remove_unaval_actions(self, acts, stateinformation, hero_name, rival_hero, debug=False):
+    @staticmethod
+    def remove_unaval_actions(acts, stateinformation, hero_name, rival_hero, debug=False):
         for i in range(len(acts)):
             hero = stateinformation.get_hero(hero_name)
             selected = i
@@ -297,7 +298,7 @@ class LineModel:
                     acts[selected] = -1
                     if debug: print("技能cd中，放弃施法" + str(skillid))
                     continue
-                [tgtid, tgtpos] = self.choose_skill_target(selected - 18 - (skillid-1)*10, stateinformation, skillid, hero_name, hero.pos,
+                [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid-1)*10, stateinformation, skillid, hero_name, hero.pos,
                                                            rival_hero, debug)
                 if tgtid == -1:
                     acts[selected] = -1
@@ -307,19 +308,20 @@ class LineModel:
                 continue
         return acts
 
-    def select_actions(self, acts, stateinformation, hero_name, rival_hero):
+    @staticmethod
+    def select_actions(acts, stateinformation, hero_name, rival_hero):
         #这样传stateinformation太拖慢运行速度了，后面要改
         #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
         acts = list(acts[0])
-        acts = self.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
+        acts = LineModel.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
         maxQ = max(acts)
         selected = acts.index(maxQ)
         print ("line model selected action:%s action array:%s" % (
         str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题
-        if random.random() < 0.5:
+        if random.random() < 0.1:
             # 随机策略, 用来探索新的可能性
             aval_actions = [act for act in acts if act > -1]
             rdm = random.randint(0, len(aval_actions) - 1)
@@ -365,7 +367,8 @@ class LineModel:
             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
             return action
 
-    def choose_skill_target(self, selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):
+    @staticmethod
+    def choose_skill_target(selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):
         hero_info = stateinformation.get_hero(hero_name)
         skill_info = SkillUtil.get_skill_info(hero_info.cfg_id, skill)
         if selected==0:
@@ -536,7 +539,7 @@ class LineModel:
         cur_state = state_infos[state_idx]
         hero_action = cur_state.get_hero_action(hero_name)
         if hero_action.output_index == 48:
-            if float(cur_hero.hp) / cur_hero.maxhp > 0.5:
+            if float(cur_hero.hp) / cur_hero.maxhp > 0.7:
                 print('高血量撤退')
                 reward = -1
             else:
