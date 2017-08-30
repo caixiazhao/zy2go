@@ -201,9 +201,9 @@ if __name__ == "__main__":
     #                    '/Users/sky4star/Github/zy2go/src/server/model_2017-08-17134722.152043/line_model.model')
     # guess_action_cal_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_rewards_0825.log')
-    cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
-                                '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
-    # train_line_model('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-28125626.271779/state_with_reward.log',
-    #                  None,
-    #                  '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_2_trained_0825_test',
-    #                  ['28'])
+    # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
+    #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
+    train_line_model('/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log',
+                     None,
+                     '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_1_trained_0828_test',
+                     ['27'])
