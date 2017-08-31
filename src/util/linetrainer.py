@@ -16,6 +16,7 @@ from train.linemodel import LineModel
 from train.linemodel_dpn import LineModel_DQN
 from util.replayer import Replayer
 from util.stateutil import StateUtil
+import baselines.common.tf_util as U
 # import sys
 #
 # import imp
@@ -73,6 +74,12 @@ class LineTrainer:
             # self.model2.save(self.model2_save_header + '0')
         else:
             self.model2 = None
+
+        # 初始化tf环境
+        U.initialize()
+        self.model1.update_target()
+        if self.model2 is not None:
+            self.model2.update_target()
 
     # 负责整个对线模型的训练
     # 包括：模型选择动作，猜测玩家行为（如果有玩家），得到行为奖励值，训练行为，保存结果

@@ -93,6 +93,7 @@ The functions in this file can are used to create the following functions:
     Q' is set to Q once every 10000 updates training steps.
 
 """
+import numpy
 import tensorflow as tf
 import baselines.common.tf_util as U
 
@@ -150,11 +151,11 @@ def build_act(make_obs_ph, q_func, num_actions, scope="deepq", reuse=None):
         eps = tf.get_variable("eps", (), initializer=tf.constant_initializer(0))
 
         q_values = q_func(observations_ph.get(), num_actions, scope="q_func")
-        deterministic_actions = tf.argmax(q_values, axis=1)
+        deterministic_actions = q_values #tf.argmax(q_values, axis=1)
 
         batch_size = tf.shape(observations_ph.get())[0]
-        random_actions = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=num_actions, dtype=tf.int64)
-        chose_random = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=1, dtype=tf.float32) < eps
+        random_actions = tf.random_uniform([tf.to_int32(batch_size), num_actions], minval=0, maxval=1, dtype=tf.float32)
+        chose_random = tf.random_uniform([tf.to_int32(batch_size), num_actions], minval=0, maxval=1, dtype=tf.float32) < eps
         stochastic_actions = tf.where(chose_random, random_actions, deterministic_actions)
 
         output_actions = tf.cond(stochastic_ph, lambda: stochastic_actions, lambda: deterministic_actions)
@@ -258,10 +259,11 @@ def build_act_with_param_noise(make_obs_ph, q_func, num_actions, scope="deepq", 
             lambda: update_param_noise_threshold_ph, lambda: param_noise_threshold))
 
         # Put everything together.
-        deterministic_actions = tf.argmax(q_values_perturbed, axis=1)
+        deterministic_actions = q_values_perturbed #tf.argmax(q_values_perturbed, axis=1)
         batch_size = tf.shape(observations_ph.get())[0]
-        random_actions = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=num_actions, dtype=tf.int64)
-        chose_random = tf.random_uniform(tf.stack([batch_size]), minval=0, maxval=1, dtype=tf.float32) < eps
+        random_actions = tf.random_uniform([tf.to_int32(batch_size), num_actions], minval=0, maxval=1, dtype=tf.float32)
+        chose_random = tf.random_uniform([tf.to_int32(batch_size), num_actions], minval=0, maxval=1,
+                                         dtype=tf.float32) < eps
         stochastic_actions = tf.where(chose_random, random_actions, deterministic_actions)
 
         output_actions = tf.cond(stochastic_ph, lambda: stochastic_actions, lambda: deterministic_actions)
@@ -348,6 +350,7 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
         obs_tp1_input = U.ensure_tf_input(make_obs_ph("obs_tp1"))
         done_mask_ph = tf.placeholder(tf.float32, [None], name="done")
         importance_weights_ph = tf.placeholder(tf.float32, [None], name="weight")
+        obs_tp1_avail_flags_ph = tf.placeholder(tf.float32, [None, num_actions], name="obs_tp1_avail")
 
         # q network evaluation
         q_t = q_func(obs_t_input.get(), num_actions, scope="q_func", reuse=True)  # reuse parameters from act
@@ -363,10 +366,15 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
         # compute estimate of best possible value starting from state at t + 1
         if double_q:
             q_tp1_using_online_net = q_func(obs_tp1_input.get(), num_actions, scope="q_func", reuse=True)
-            q_tp1_best_using_online_net = tf.arg_max(q_tp1_using_online_net, 1)
+
+            # 屏蔽不可用的行为
+            q_tp1_using_online_net_avail = q_tp1_using_online_net * obs_tp1_avail_flags_ph
+            q_tp1_best_using_online_net = tf.arg_max(q_tp1_using_online_net_avail, 1)
             q_tp1_best = tf.reduce_sum(q_tp1 * tf.one_hot(q_tp1_best_using_online_net, num_actions), 1)
         else:
-            q_tp1_best = tf.reduce_max(q_tp1, 1)
+            # 屏蔽不可用的行为
+            q_tp1_avail = q_tp1 * obs_tp1_avail_flags_ph
+            q_tp1_best = tf.reduce_max(q_tp1_avail, 1)
         q_tp1_best_masked = (1.0 - done_mask_ph) * q_tp1_best
 
         # compute RHS of bellman equation
@@ -401,7 +409,8 @@ def build_train(make_obs_ph, q_func, num_actions, optimizer, grad_norm_clipping=
                 rew_t_ph,
                 obs_tp1_input,
                 done_mask_ph,
-                importance_weights_ph
+                importance_weights_ph,
+                obs_tp1_avail_flags_ph
             ],
             outputs=td_error,
             updates=[optimize_expr]

@@ -8,6 +8,7 @@ import tensorflow.contrib.layers as layers
 import baselines.common.tf_util as U
 from baselines import deepq
 from baselines.common.schedules import LinearSchedule
+from baselines.deepq import ReplayBuffer
 from baselines.deepq.simple import ActWrapper
 from train.line_input import Line_input
 from train.linemodel import LineModel
@@ -36,7 +37,7 @@ class LineModel_DQN:
 
         self.state_size = statesize
         self.action_size = actionsize  # 50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
-        self.memory = collections.deque()
+        self.memory = ReplayBuffer(50000)
         self.gamma = 0.9  # discount rate
         self.epsilon = 1.0  # exploration rate
         self.e_decay = .99
@@ -89,16 +90,19 @@ class LineModel_DQN:
                         break
 
                 cur_line_input = Line_input(cur_state, hero_name, rival_hero)
-                cur_state = cur_line_input.gen_line_input()
-                cur_state_input = np.array([cur_state])
+                cur_state_input = cur_line_input.gen_line_input()
 
                 new_line_input = Line_input(new_state, hero_name, rival_hero)
-                new_state = new_line_input.gen_line_input()
-                new_state_input = np.array([new_state])
+                new_state_input = new_line_input.gen_line_input()
 
-                done = True if cur_state.get_hero(hero_name).hp <= 0 else False
+                done = 1 if cur_state.get_hero(hero_name).hp <= 0 else 0
 
-                self.memory.append([cur_state_input, selected_action_idx, reward, new_state_input, done])
+                # 构造一个禁用action的数组
+                acts = np.ones(50, dtype=float).tolist()
+                new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
+
+                self.memory.add(cur_state_input, selected_action_idx, reward, new_state_input, float(done),
+                                new_state_action_flags)
 
     def if_replay(self, learning_batch):
         if len(self.memory) > 0 and len(self.memory) % learning_batch == 0:
@@ -110,8 +114,8 @@ class LineModel_DQN:
 
     def replay(self, batch_size):
         batch_size = min(batch_size, len(self.memory))
-        obses_t, actions, rewards, obses_tp1, dones = self.memory.sample(batch_size)
-        self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards))
+        obses_t, actions, rewards, obses_tp1, dones, new_avails = self.memory.sample(batch_size)
+        self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:
