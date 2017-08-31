@@ -1,7 +1,14 @@
 import tensorflow as tf
 import numpy as np
+import baselines.common.tf_util as U
 
 def main():
+    sess = U.make_session(8)
+    sess.__enter__()
+    U.initialize()
+    # new_variables = set(tf.global_variables()) - set()
+    # sess.run(tf.variables_initializer(new_variables))
+
     # Create a tensor of shape [2, 3] consisting of random normal values, with mean
     # -1 and standard deviation 4.
     norm = tf.random_normal([2, 3], mean=-1, stddev=4)

@@ -191,8 +191,7 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    with U.make_session(8):
-        test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25100407.804318-long/raw.log',
+    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25100407.804318-long/raw.log',
                          None)
     # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
     #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',

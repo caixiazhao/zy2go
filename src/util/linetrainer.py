@@ -76,6 +76,8 @@ class LineTrainer:
             self.model2 = None
 
         # 初始化tf环境
+        self.sess = U.make_session(8)
+        self.sess.__enter__()
         U.initialize()
         self.model1.update_target()
         if self.model2 is not None:
@@ -121,7 +123,7 @@ class LineTrainer:
         state_with_reward = None
         if reward_state_idx > 0:
             self.guess_hero_actions(reward_state_idx, self.real_heros)
-            state_with_reward = LineModel.update_state_rewards(self.state_cache, reward_state_idx)
+            state_with_reward = LineModel_DQN.update_state_rewards(self.state_cache, reward_state_idx)
 
         if state_with_reward is not None:
             # 将中间结果写入文件
@@ -133,7 +135,7 @@ class LineTrainer:
             if self.model1.if_replay(50):
                 print ('开始模型训练')
                 self.model1.replay(50)
-                self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
+                # self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
                 print ('结束模型训练')
 
             if self.model2 is not None:
@@ -144,7 +146,7 @@ class LineTrainer:
                 if self.model2.if_replay(50):
                     print ('开始模型训练')
                     self.model2.replay(50)
-                    self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
+                    # self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
                     print ('结束模型训练')
 
         # 返回结果给游戏端

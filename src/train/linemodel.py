@@ -321,7 +321,7 @@ class LineModel:
         str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题
-        if random.random() < 0.1:
+        if random.random() < 0.0:
             # 随机策略, 用来探索新的可能性
             aval_actions = [act for act in acts if act > -1]
             rdm = random.randint(0, len(aval_actions) - 1)
@@ -499,7 +499,9 @@ class LineModel:
         # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
         # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
         # TODO 这个金币奖励值应该是个变化值，目前取的是最小值
-        if gold_delta >= 200 > dead_golds:
+        prev_state_rival = state_infos[state_idx-1].get_hero(rival_hero_name)
+        if prev_state_rival.hp > 0 and cur_rival_hero.hp <= 0 and gold_delta >= 80 > dead_golds:
+            print("敌方英雄死亡奖励，扣减")
             gold_delta = int(dead_golds / 2)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
