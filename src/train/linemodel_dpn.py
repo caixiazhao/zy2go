@@ -229,13 +229,6 @@ class LineModel_DQN:
                 print('特定英雄的大招必须要打到英雄才行')
                 reward = -1
 
-        # 被塔攻击情况下，只有杀死对方才不会有惩罚，否则最高惩罚。只看当前帧
-        hit_by_tower = RewardUtil.if_hit_by_tower(state_infos, state_idx, 3, hero_name)
-        if_rival_dead = RewardUtil.if_hero_dead(state_infos, state_idx, 3, rival_hero_name)
-        if hit_by_tower and not if_rival_dead:
-            print('被塔攻击情况下，只有杀死对方才不会有惩罚')
-            reward = -1
-
         # 是否离线太远
         cur_state = state_infos[state_idx]
         leave_line = RewardUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
