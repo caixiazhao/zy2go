@@ -154,6 +154,11 @@ class LineTrainer:
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
 
+    def save_models(self):
+        self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
+        if self.model2 is not None:
+            self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
+
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
         self.raw_log_file.flush()
