@@ -44,5 +44,13 @@ def main():
     sess = tf.Session()
     print(sess.run(one_hot))
 
+    eps = 0.5
+    chose_random = tf.random_uniform(tf.stack([100]), minval=0, maxval=1, dtype=tf.float32, seed=1234)
+    result = chose_random < eps
+    sess = tf.Session()
+    print(sess.run([chose_random, result]))
+
+
+
 if __name__ == "__main__":
     main()

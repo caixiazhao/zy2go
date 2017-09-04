@@ -30,7 +30,8 @@ import baselines.common.tf_util as U
 class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
 
-    def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None):
+    def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None,
+                 initial_p=0.1, final_p=0.02):
         self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
@@ -58,7 +59,7 @@ class LineTrainer:
         heros = list(model1_heros)
         if real_heros is not None:
             heros.extend(real_heros)
-        self.model1 = LineModel_DQN(279, 50, heros, scope="linemodel1")
+        self.model1 = LineModel_DQN(279, 50, heros, scope="linemodel1", initial_p=initial_p, final_p=final_p)
         if model1_path is not None:
             self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
@@ -68,7 +69,7 @@ class LineTrainer:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
-            self.model2 = LineModel_DQN(279, 50, heros, scope="linemodel2")
+            self.model2 = LineModel_DQN(279, 50, heros, scope="linemodel2", initial_p=initial_p, final_p=final_p)
             if model2_path is not None:
                 self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'

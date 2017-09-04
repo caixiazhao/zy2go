@@ -29,7 +29,7 @@ def model(inpt, num_actions, scope, reuse=False):
 class LineModel_DQN:
     REWARD_RIVAL_DMG = 250
 
-    def __init__(self, statesize, actionsize, heros, update_target_period=100, scope="deepq"):
+    def __init__(self, statesize, actionsize, heros, update_target_period=100, scope="deepq", initial_p=1.0, final_p=0.02):
         self.act = None
         self.train =None
         self.update_target = None
@@ -54,7 +54,7 @@ class LineModel_DQN:
         self.train_times = 0
         self.update_target_period = update_target_period
 
-        self.exploration = LinearSchedule(schedule_timesteps=10000, initial_p=1.0, final_p=0.02)
+        self.exploration = LinearSchedule(schedule_timesteps=10000, initial_p=initial_p, final_p=final_p)
 
 
     @property
@@ -137,7 +137,9 @@ class LineModel_DQN:
         # print(input_detail)
 
         state_input=np.array([state_input])
-        actions = self.act(state_input, update_eps=self.exploration.value(self.act_times))
+        explor_value = self.exploration.value(self.act_times)
+        print("dqn model exploration value is ", explor_value)
+        actions = self.act(state_input, update_eps=explor_value)
         # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
 
         action=LineModel.select_actions(actions,stateinformation,hero_name, rival_hero)
