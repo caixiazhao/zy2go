@@ -54,11 +54,15 @@ class LineModel_DQN:
         self.train_times = 0
         self.update_target_period = update_target_period
 
-        self.exploration = LinearSchedule(schedule_timesteps=10000, initial_p=initial_p, final_p=final_p)
+        self.exploration = LinearSchedule(schedule_timesteps=1000, initial_p=initial_p, final_p=final_p)
 
 
     @property
     def _build_model(self):
+        sess = U.get_session()
+        if sess is None:
+            sess = U.make_session(8)
+            sess.__enter__()
         self.act, self.train, self.update_target, self.debug = deepq.build_train(
             make_obs_ph=lambda name: U.BatchInput(shape=[self.state_size], name=name),
             q_func=model,
@@ -67,20 +71,19 @@ class LineModel_DQN:
             scope=self.scope
         )
 
+        # 初始化tf环境
+        U.initialize()
+        self.update_target()
+
     def load(self, name):
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
         sess = U.get_session()
-        if sess is None:
-            sess = U.make_session(8)
-            sess.__enter__()
         saver.restore(sess, name)
 
     def save(self, name):
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
         sess = U.get_session()
         saver.save(sess, name)
-        # aw = ActWrapper(self.act, None)
-        # aw.save(name)
 
     def remember(self, cur_state, new_state):
         for hero_name in self.heros:

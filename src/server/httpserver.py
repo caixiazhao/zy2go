@@ -68,7 +68,9 @@ class S(BaseHTTPRequestHandler):
     # 两个模型用来相互对战，分别训练
     line_trainer = LineTrainer(model1_heros=['27'], model2_heros=['28'], real_heros=None,
                                model1_path=None,
-                               model2_path=None)
+                               model2_path=None,
+                               initial_p=0.1,
+                               final_p=0.02)
 
     def log_message(self, format, *args):
         return

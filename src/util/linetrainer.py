@@ -77,11 +77,6 @@ class LineTrainer:
         else:
             self.model2 = None
 
-        # 初始化tf环境
-        if U.get_session() is None:
-            self.sess = U.make_session(8)
-            self.sess.__enter__()
-        # U.initialize()
         # self.model1.update_target()
         # if self.model2 is not None:
         #     self.model2.update_target()
@@ -127,8 +122,6 @@ class LineTrainer:
         # 更新玩家行为以及奖励值，有一段时间延迟
         reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
         print ('reward_state_idx: ' + str(reward_state_idx))
-        if reward_state_idx == 299:
-            bd = 1
         state_with_reward = None
         if reward_state_idx > 0:
             self.guess_hero_actions(reward_state_idx, self.real_heros)
@@ -141,23 +134,28 @@ class LineTrainer:
             self.model1.remember(state_with_reward, next_state_4_m)
 
             # 学习
-            # print(len(self.model1.memory))
-            # if self.model1.if_replay(50):
-            #     print ('开始模型训练')
-            #     self.model1.replay(50)
-            #     self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
-            #     print ('结束模型训练')
-            #
-            # if self.model2 is not None:
-            #     # TODO 过滤之后放入相应的模型
-            #     self.model2.remember(state_with_reward, next_state_4_m)
-            #
-            #     # 学习
-            #     if self.model2.if_replay(50):
-            #         print ('开始模型训练')
-            #         self.model2.replay(50)
-            #         self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
-            #         print ('结束模型训练')
+            model1_memory_len = len(self.model1.memory)
+            print('model1 memory: ', model1_memory_len)
+            if self.model1.if_replay(50):
+                print ('开始模型训练')
+                self.model1.replay(50)
+                if model1_memory_len > 0 and model1_memory_len % 1000 == 0:
+                    self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
+                print ('结束模型训练')
+
+            if self.model2 is not None:
+                # TODO 过滤之后放入相应的模型
+                self.model2.remember(state_with_reward, next_state_4_m)
+
+                # 学习
+                model2_memory_len = len(self.model2.memory)
+                print('model2 memory: ', model2_memory_len)
+                if self.model2.if_replay(50):
+                    print ('开始模型训练')
+                    self.model2.replay(50)
+                    if model2_memory_len > 0 and model2_memory_len % 1000 == 0:
+                        self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
+                    print ('结束模型训练')
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
