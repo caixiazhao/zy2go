@@ -31,7 +31,7 @@ class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
 
     def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None,
-                 initial_p=0.1, final_p=0.02):
+                 initial_p=1.0, final_p=0.02):
         self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
@@ -97,7 +97,7 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 1459062:
+        if raw_state_info.tick >= 213510:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -136,9 +136,9 @@ class LineTrainer:
             # 学习
             model1_memory_len = len(self.model1.memory)
             print('model1 memory: ', model1_memory_len)
-            if self.model1.if_replay(50):
+            if self.model1.if_replay(40):
                 print ('开始模型训练')
-                self.model1.replay(50)
+                self.model1.replay(40)
                 if model1_memory_len > 0 and model1_memory_len % 1000 == 0:
                     self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
                 print ('结束模型训练')
@@ -150,9 +150,9 @@ class LineTrainer:
                 # 学习
                 model2_memory_len = len(self.model2.memory)
                 print('model2 memory: ', model2_memory_len)
-                if self.model2.if_replay(50):
+                if self.model2.if_replay(40):
                     print ('开始模型训练')
-                    self.model2.replay(50)
+                    self.model2.replay(40)
                     if model2_memory_len > 0 and model2_memory_len % 1000 == 0:
                         self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
                     print ('结束模型训练')
@@ -245,24 +245,24 @@ class LineTrainer:
                 continue
 
             # 处在少血状态是，且周围没有地方单位的情况下选择回城
-            if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
-                if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
-                    print('策略层：回城')
-                    # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
-                    if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
-                        if prev_hero.hp > hero.hp:
-                            town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
-                            action_str = StateUtil.build_command(town_action)
-                            action_strs.append(action_str)
-                    # 检查英雄当前状态，如果不在回城，则将状态设置为正在回城，开始回城
-                    elif self.hero_strategy[hero.hero_name] != ActionEnum.town_ing:
-                        self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
-                        town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
-                        action_str = StateUtil.build_command(town_action)
-                        action_strs.append(action_str)
-
-                    # 无论上面怎么操作，玩家下面的动作应该都是在回城中，所以跳过其它的操作
-                    continue
+            # if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
+            #     if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
+            #         print('策略层：回城')
+            #         # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
+            #         if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
+            #             if prev_hero.hp > hero.hp:
+            #                 town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
+            #                 action_str = StateUtil.build_command(town_action)
+            #                 action_strs.append(action_str)
+            #         # 检查英雄当前状态，如果不在回城，则将状态设置为正在回城，开始回城
+            #         elif self.hero_strategy[hero.hero_name] != ActionEnum.town_ing:
+            #             self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
+            #             town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
+            #             action_str = StateUtil.build_command(town_action)
+            #             action_strs.append(action_str)
+            #
+            #         # 无论上面怎么操作，玩家下面的动作应该都是在回城中，所以跳过其它的操作
+            #         continue
 
             # 处在泉水之中的时候设置策略层为吃线
             if StateUtil.if_hero_at_basement(hero):

@@ -317,6 +317,8 @@ class LineModel:
         acts = LineModel.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
         maxQ = max(acts)
         selected = acts.index(maxQ)
+        if maxQ <= -1:
+            selected = 49
         print ("line model selected action:%s action array:%s" % (
         str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高

@@ -16,7 +16,12 @@ def model(inpt, num_actions, scope, reuse=False):
     """This model takes as input an observation and returns values of all actions."""
     with tf.variable_scope(scope, reuse=reuse):
         out = inpt
-        out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.tanh)
+        # out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.tanh)
+        # out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
+        out = layers.fully_connected(out, num_outputs=512, activation_fn=tf.nn.relu)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.tanh)
         out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         return out
 
@@ -42,14 +47,25 @@ if __name__ == '__main__':
         U.initialize()
         update_target()
 
+        tvars = tf.trainable_variables()
+        tvars_vals = U.get_session().run(tvars)
+
+        for var, val in zip(tvars, tvars_vals):
+            print(var.name, val)
+
         episode_rewards = [0.0]
         obs = env.reset()
         for t in itertools.count():
             # Take action and update exploration to the newest value
             action = act(obs[None], update_eps=exploration.value(t))[0]
-            new_obs, rew, done, _ = env.step(action)
+            print(action)
+            action = list(action)
+            maxQ = max(action)
+            selected = action.index(maxQ)
+            new_obs, rew, done, _ = env.step(selected)
             # Store transition in the replay buffer.
-            replay_buffer.add(obs, action, rew, new_obs, float(done))
+            avail = np.ones(env.action_space.n, dtype=float).tolist()
+            replay_buffer.add(obs, selected, rew, new_obs, float(done), avail)
             obs = new_obs
 
             episode_rewards[-1] += rew
@@ -64,8 +80,8 @@ if __name__ == '__main__':
             else:
                 # Minimize the error in Bellman's equation on a batch sampled from replay buffer.
                 if t > 1000:
-                    obses_t, actions, rewards, obses_tp1, dones = replay_buffer.sample(32)
-                    train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards))
+                    obses_t, actions, rewards, obses_tp1, dones, avail = replay_buffer.sample(32)
+                    train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), avail)
                 # Update target network periodically.
                 if t % 1000 == 0:
                     update_target()

@@ -69,7 +69,7 @@ class S(BaseHTTPRequestHandler):
     line_trainer = LineTrainer(model1_heros=['27'], model2_heros=['28'], real_heros=None,
                                model1_path=None,
                                model2_path=None,
-                               initial_p=0.1,
+                               initial_p=1.0,
                                final_p=0.02)
 
     def log_message(self, format, *args):

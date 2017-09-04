@@ -9,7 +9,6 @@ import baselines.common.tf_util as U
 from baselines import deepq
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
-from baselines.deepq.simple import ActWrapper
 from train.line_input import Line_input
 from train.linemodel import LineModel
 from util.rewardutil import RewardUtil
@@ -20,8 +19,9 @@ def model(inpt, num_actions, scope, reuse=False):
     """This model takes as input an observation and returns values of all actions."""
     with tf.variable_scope(scope, reuse=reuse):
         out = inpt
-        out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.tanh)
-        out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.tanh)
+        out = layers.fully_connected(out, num_outputs=512, activation_fn=tf.nn.relu)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.tanh)
         out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         return out
 
@@ -209,15 +209,20 @@ class LineModel_DQN:
         self_hp_loss = (cur_hero.hp - next_hero.hp) / float(cur_hero.maxhp) if cur_hero.hp > next_hero.hp else 0
         dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
 
+        # 计算塔的被攻击情况
+        self_tower_hp_change = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=True)
+        rival_tower_hp_change = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=False)
+
         # 统计和更新变量
-        print(
-            'reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, dead_units: %s'
-            % (hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str))
+        print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
+            'dead_units: %s, self_tower: %s, rival_tower: %s'
+            % (hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str,
+               self_tower_hp_change, rival_tower_hp_change))
 
         # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
         # 最大惩罚是被对方造成了一条命伤害
         # 零分为获得了所有的死亡奖励
-        reward = float(gold_delta + dmg_delta) / 100
+        reward = float(gold_delta + dmg_delta) / 100 + rival_tower_hp_change - self_tower_hp_change
 
         # 特殊情况处理
 

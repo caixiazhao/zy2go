@@ -10,7 +10,16 @@ from model.unitstateinfo import UnitStateInfo
 # 注意有些信息不是完整的，
 # units是需要跟之前的信息进行累加的
 # heros信息，其中一部分属性也是需要累加的
+
 class StateInfo:
+    def get_hero_tower_dmg(self, hero_name):
+        total_dmg = 0
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and int(dmg.tgt) < 27:
+                tower = self.get_unit(dmg.tgt)
+                total_dmg += float(dmg.dmg)/tower.maxhp
+        return total_dmg
+
     def get_hero_total_dmg(self, hero_name, tgt_id):
         total_dmg = 0
         for dmg in self.dmg_infos:

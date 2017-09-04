@@ -42,6 +42,23 @@ class StateUtil:
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
+    def get_tower_hp_change(state_info, next_info, hero_name, line_idx, self_tower=True):
+        hero_state = state_info.get_hero(hero_name)
+        near_own_towers = StateUtil.get_near_towers_in_line(state_info, hero_state, line_idx)
+        if self_tower:
+            near_own_towers = [t for t in near_own_towers if t.team == hero_state.team]
+        else:
+            near_own_towers = [t for t in near_own_towers if t.team != hero_state.team]
+        hp_change = 0
+        for tower in near_own_towers:
+            next_state_tower = next_info.get_unit(tower.unit_name)
+            if next_state_tower is None:
+                hp_change += float(tower.hp)/tower.maxhp
+            else:
+                hp_change += float(tower.hp - next_state_tower.hp)/tower.maxhp
+        return hp_change
+
+    @staticmethod
     def get_skills_can_upgrade(hero_info):
         skills = []
         for i in range(1, 4):
@@ -304,7 +321,7 @@ class StateUtil:
             towers.sort(key=lambda t: math.fabs(hero.pos.x - t.pos.x), reverse=False)
             near_tower = towers[0]
             # 移动到塔后侧
-            near_tower_x = near_tower.pos.x - 2000 if hero.team == 0 else near_tower.pos.x + 2000
+            near_tower_x = near_tower.pos.x - 3000 if hero.team == 0 else near_tower.pos.x + 3000
             pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower.pos.z)
             return pos
         else:
