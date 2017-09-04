@@ -20,7 +20,6 @@ def model(inpt, num_actions, scope, reuse=False):
         # out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         out = layers.fully_connected(out, num_outputs=512, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.tanh)
         out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         return out
@@ -58,7 +57,7 @@ if __name__ == '__main__':
         for t in itertools.count():
             # Take action and update exploration to the newest value
             action = act(obs[None], update_eps=exploration.value(t))[0]
-            print(action)
+            # print(action)
             action = list(action)
             maxQ = max(action)
             selected = action.index(maxQ)

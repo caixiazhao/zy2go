@@ -50,13 +50,15 @@ class StateUtil:
         else:
             near_own_towers = [t for t in near_own_towers if t.team != hero_state.team]
         hp_change = 0
+        destroyed = False
         for tower in near_own_towers:
             next_state_tower = next_info.get_unit(tower.unit_name)
-            if next_state_tower is None:
+            if next_state_tower is None or next_state_tower.hp <= 0:
                 hp_change += float(tower.hp)/tower.maxhp
+                destroyed = True
             else:
                 hp_change += float(tower.hp - next_state_tower.hp)/tower.maxhp
-        return hp_change
+        return hp_change, destroyed
 
     @staticmethod
     def get_skills_can_upgrade(hero_info):
@@ -420,6 +422,8 @@ class StateUtil:
         if action == 'AUTO':
             return {"hero_id": hero_id, "action": action}
         if action == 'HOLD':
+            return {"hero_id": hero_id, "action": action}
+        if action == 'RESTART':
             return {"hero_id": hero_id, "action": action}
         raise ValueError('unexpected action type ' + action)
 

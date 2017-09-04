@@ -31,7 +31,7 @@ class LineModel_DQN:
 
     def __init__(self, statesize, actionsize, heros, update_target_period=100, scope="deepq", initial_p=1.0, final_p=0.02):
         self.act = None
-        self.train =None
+        self.train = None
         self.update_target = None
         self.debug = None
 
@@ -86,6 +86,7 @@ class LineModel_DQN:
         saver.save(sess, name)
 
     def remember(self, cur_state, new_state):
+        added = False
         for hero_name in self.heros:
             action = cur_state.get_hero_action(hero_name)
             if action is not None:
@@ -112,6 +113,8 @@ class LineModel_DQN:
 
                 self.memory.add(cur_state_input, selected_action_idx, reward, new_state_input, float(done),
                                 new_state_action_flags)
+                added = True
+        return added
 
     def if_replay(self, learning_batch):
         if len(self.memory) > learning_batch:
@@ -124,7 +127,8 @@ class LineModel_DQN:
     def replay(self, batch_size):
         batch_size = min(batch_size, len(self.memory))
         obses_t, actions, rewards, obses_tp1, dones, new_avails = self.memory.sample(batch_size)
-        self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
+        td_loss = self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
+        print('td_loss', td_loss)
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:
@@ -161,11 +165,13 @@ class LineModel_DQN:
             # TODO 这些参数应该是传入的
             # 只有有Action的玩家才评估行为打分
             hero_action = state_info.get_hero_action(hero_name)
+            if_destroyed = False
             if hero_action is not None:
                 rival_hero_name = '27' if hero_name == '28' else '28'
-                reward = LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
+                reward, destroyed = LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
                 state_info.add_rewards(hero_name, reward)
-        return state_info
+                if_destroyed = max(destroyed, if_destroyed)
+        return state_info, if_destroyed
 
     @staticmethod
     def cal_target_v3(state_infos, state_idx, hero_name, rival_hero_name, line_idx):
@@ -210,8 +216,8 @@ class LineModel_DQN:
         dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
 
         # 计算塔的被攻击情况
-        self_tower_hp_change = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=True)
-        rival_tower_hp_change = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=False)
+        self_tower_hp_change, destroyed = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=True)
+        rival_tower_hp_change, _ = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=False)
 
         # 统计和更新变量
         print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
@@ -271,4 +277,4 @@ class LineModel_DQN:
             if dmg_hit_rival > 0:
                 print('英雄%s对对方造成了最后一击' % hero_name)
                 reward = 1
-        return min(max(reward, -1), 1)
+        return min(max(reward, -1), 1), destroyed
