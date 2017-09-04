@@ -27,7 +27,7 @@ def model(inpt, num_actions, scope, reuse=False):
 
 
 class LineModel_DQN:
-    REWARD_RIVAL_DMG = 150
+    REWARD_RIVAL_DMG = 250
 
     def __init__(self, statesize, actionsize, heros, update_target_period=100, scope="deepq"):
         self.act = None
@@ -68,13 +68,19 @@ class LineModel_DQN:
         )
 
     def load(self, name):
-        # baseline目前还不支持checkpoint，加载继续训练
-        from baselines import deepq
-        self.act = deepq.load(name)._act
+        saver = tf.train.Saver()
+        sess = U.get_session()
+        if sess is None:
+            sess = U.make_session(8)
+            sess.__enter__()
+        saver.restore(sess, name)
 
     def save(self, name):
-        aw = ActWrapper(self.act, None)
-        aw.save(name)
+        saver = tf.train.Saver()
+        sess = U.get_session()
+        saver.save(sess, name)
+        # aw = ActWrapper(self.act, None)
+        # aw.save(name)
 
     def remember(self, cur_state, new_state):
         for hero_name in self.heros:
@@ -105,7 +111,7 @@ class LineModel_DQN:
                                 new_state_action_flags)
 
     def if_replay(self, learning_batch):
-        if len(self.memory) > learning_batch == 0:
+        if len(self.memory) > learning_batch:
             return True
         return False
 

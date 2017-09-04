@@ -5,6 +5,7 @@
 
 import json as JSON
 import os
+import tensorflow as tf
 from time import gmtime, strftime
 from datetime import datetime
 
@@ -76,14 +77,21 @@ class LineTrainer:
             self.model2 = None
 
         # 初始化tf环境
-        self.sess = U.make_session(8)
-        self.sess.__enter__()
-        U.initialize()
-        self.model1.update_target()
-        if self.model2 is not None:
-            self.model2.update_target()
+        if U.get_session() is None:
+            self.sess = U.make_session(8)
+            self.sess.__enter__()
+        # U.initialize()
+        # self.model1.update_target()
+        # if self.model2 is not None:
+        #     self.model2.update_target()
 
-    # 负责整个对线模型的训练
+        tvars = tf.trainable_variables()
+        tvars_vals = U.get_session().run(tvars)
+
+        for var, val in zip(tvars, tvars_vals):
+            print(var.name, val)
+
+            # 负责整个对线模型的训练
     # 包括：模型选择动作，猜测玩家行为（如果有玩家），得到行为奖励值，训练行为，保存结果
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
@@ -132,22 +140,23 @@ class LineTrainer:
             self.model1.remember(state_with_reward, next_state_4_m)
 
             # 学习
-            if self.model1.if_replay(50):
-                print ('开始模型训练')
-                self.model1.replay(50)
-                # self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()))
-                print ('结束模型训练')
-
-            if self.model2 is not None:
-                # TODO 过滤之后放入相应的模型
-                self.model2.remember(state_with_reward, next_state_4_m)
-
-                # 学习
-                if self.model2.if_replay(50):
-                    print ('开始模型训练')
-                    self.model2.replay(50)
-                    # self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()))
-                    print ('结束模型训练')
+            # print(len(self.model1.memory))
+            # if self.model1.if_replay(50):
+            #     print ('开始模型训练')
+            #     self.model1.replay(50)
+            #     self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
+            #     print ('结束模型训练')
+            #
+            # if self.model2 is not None:
+            #     # TODO 过滤之后放入相应的模型
+            #     self.model2.remember(state_with_reward, next_state_4_m)
+            #
+            #     # 学习
+            #     if self.model2.if_replay(50):
+            #         print ('开始模型训练')
+            #         self.model2.replay(50)
+            #         self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
+            #         print ('结束模型训练')
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
