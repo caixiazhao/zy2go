@@ -63,7 +63,7 @@ if __name__ == '__main__':
             selected = action.index(maxQ)
             new_obs, rew, done, _ = env.step(selected)
             # Store transition in the replay buffer.
-            avail = np.ones(env.action_space.n, dtype=float).tolist()
+            avail = np.zeros(env.action_space.n, dtype=float).tolist()
             replay_buffer.add(obs, selected, rew, new_obs, float(done), avail)
             obs = new_obs
 

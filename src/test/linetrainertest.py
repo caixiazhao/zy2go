@@ -9,12 +9,13 @@ from util.stateutil import StateUtil
 import baselines.common.tf_util as U
 
 
-def test_line_trainer(raw_log_path, model1_path):
+def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
     line_trainer = LineTrainer(model1_heros=['27'], model2_heros=['28'], real_heros=None,
                                model1_path=model1_path,
-                               model2_path=None)
+                               model2_path=model2_path,
+                               initial_p=initial_p, final_p=final_p)
     for line in lines:
         json_str = line[23:]
         rsp_str = line_trainer.train_line_model(json_str)
@@ -191,8 +192,12 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-08-25100407.804318-long/raw.log',
-                         None)
+    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05142307.696433/raw.log',
+                      '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05122237.045313/line_model_1_v2154',
+                      '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05122237.045313/line_model_2_v1397',
+                      # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v51/model',
+                      # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v52/model',
+                      initial_p=0, final_p=0)
     # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
     #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',
     #                   ['28'], None, None)

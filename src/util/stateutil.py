@@ -42,6 +42,16 @@ class StateUtil:
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
+    def if_first_tower_destroyed_in_line(state_info, line_idx):
+        for unit in state_info.units:
+            if int(unit.unit_name) <= 26:
+                if StateUtil.if_in_line(unit, line_idx) >= 0:
+                    if unit.hp <= 0:
+                        print(unit.unit_name + '塔被摧毁')
+                        return True
+        return False
+
+    @staticmethod
     def get_tower_hp_change(state_info, next_info, hero_name, line_idx, self_tower=True):
         hero_state = state_info.get_hero(hero_name)
         near_own_towers = StateUtil.get_near_towers_in_line(state_info, hero_state, line_idx)
@@ -140,8 +150,8 @@ class StateUtil:
                 frontest = frontest if frontest is not None and ((frontest.pos.x > soldier.pos.x and team_id == 0) or
                                     (frontest.pos.x < soldier.pos.x and team_id == 1)) else soldier
 
-        print('front_point team:%s, line:%s, %s/%s in line, frontest.x: %s' % (team_id, line_index, soldiers_in_line,
-                                                                             len(soldiers), 0 if frontest is None else frontest.pos.x))
+        # print('front_point team:%s, line:%s, %s/%s in line, frontest.x: %s' % (team_id, line_index, soldiers_in_line,
+        #                                                                      len(soldiers), 0 if frontest is None else frontest.pos.x))
         return frontest
 
     @staticmethod

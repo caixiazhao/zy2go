@@ -108,8 +108,11 @@ class LineModel_DQN:
                 done = 1 if cur_state.get_hero(hero_name).hp <= 0 else 0
 
                 # 构造一个禁用action的数组
+                # 因为会对next_q的计算有影响（-1是其中最大值，所以改成暂时不屏蔽任何选择）
                 acts = np.ones(50, dtype=float).tolist()
+                # new_state_action_flags = acts
                 new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
+                new_state_action_flags = [-1000 if a == -1 else 0 for a in new_state_action_flags]
 
                 self.memory.add(cur_state_input, selected_action_idx, reward, new_state_input, float(done),
                                 new_state_action_flags)
@@ -127,8 +130,8 @@ class LineModel_DQN:
     def replay(self, batch_size):
         batch_size = min(batch_size, len(self.memory))
         obses_t, actions, rewards, obses_tp1, dones, new_avails = self.memory.sample(batch_size)
-        td_loss = self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
-        print('td_loss', td_loss)
+        td_error, rew_t_ph, q_t_selected_target, q_t_selected = self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
+        print('td_loss', td_error, "rew_t_ph", rew_t_ph, "q_t_selected_target", q_t_selected_target, "q_t_selected", q_t_selected)
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:
@@ -165,13 +168,11 @@ class LineModel_DQN:
             # TODO 这些参数应该是传入的
             # 只有有Action的玩家才评估行为打分
             hero_action = state_info.get_hero_action(hero_name)
-            if_destroyed = False
             if hero_action is not None:
                 rival_hero_name = '27' if hero_name == '28' else '28'
-                reward, destroyed = LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
+                reward = LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
                 state_info.add_rewards(hero_name, reward)
-                if_destroyed = max(destroyed, if_destroyed)
-        return state_info, if_destroyed
+        return state_info
 
     @staticmethod
     def cal_target_v3(state_infos, state_idx, hero_name, rival_hero_name, line_idx):
@@ -277,4 +278,4 @@ class LineModel_DQN:
             if dmg_hit_rival > 0:
                 print('英雄%s对对方造成了最后一击' % hero_name)
                 reward = 1
-        return min(max(reward, -1), 1), destroyed
+        return min(max(reward, -1), 1)

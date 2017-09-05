@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import baselines.common.tf_util as U
+import sys
 
 def main():
     sess = U.make_session(8)
@@ -31,14 +32,15 @@ def main():
     print(sess.run(norm))
     print(sess.run(norm))
 
-    norm = tf.random_normal([2, 5], seed=1234)
-    acts = np.ones(5, dtype=float)
-    acts[3] = 0
+    norm = tf.random_normal([15], seed=1234)
+    acts = np.ones(15, dtype=float)
+    acts[3] = -1
+    acts = [-1000 if a == -1 else 0 for a in acts]
     print(acts)
     b = tf.constant(acts, dtype=tf.float32)
-    c = tf.multiply(norm, b)
+    c = tf.add(norm, b)
     sess = tf.Session()
-    print(sess.run(c))
+    print(sess.run([norm, c]))
 
     one_hot = tf.one_hot(1, 5)
     sess = tf.Session()

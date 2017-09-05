@@ -97,13 +97,14 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 213510:
+        if raw_state_info.tick >= 686004:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
         if raw_state_info.tick <= StateUtil.TICK_PER_STATE:
             print("clear")
             self.state_cache = []
+            prev_state_info = None
         elif prev_state_info is not None and prev_state_info.tick >= raw_state_info.tick:
             print ("clear %s %s" % (prev_state_info.tick, raw_state_info.tick))
             self.state_cache = []
@@ -121,12 +122,13 @@ class LineTrainer:
 
         # 更新玩家行为以及奖励值，有一段时间延迟
         reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
-        print ('reward_state_idx: ' + str(reward_state_idx))
+        print('reward_state_idx: ' + str(reward_state_idx))
         state_with_reward = None
-        if_destroyed = False
         if reward_state_idx > 0:
+            if self.state_cache[reward_state_idx].tick >= 686004:
+                debug = 1
             self.guess_hero_actions(reward_state_idx, self.real_heros)
-            state_with_reward, if_destroyed = LineModel_DQN.update_state_rewards(self.state_cache, reward_state_idx)
+            state_with_reward = LineModel_DQN.update_state_rewards(self.state_cache, reward_state_idx)
 
         if state_with_reward is not None:
             # 将中间结果写入文件
@@ -161,9 +163,10 @@ class LineTrainer:
                         print ('结束模型训练')
 
         # 如果达到了重开条件，重新开始游戏
-        if if_destroyed:
+        # 当线上第一个塔被摧毁时候重开
+        if StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1):
             print('重新开始游戏')
-            action_strs = StateUtil.build_action_command('27', 'RESTART', None)
+            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
