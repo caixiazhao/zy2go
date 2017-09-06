@@ -174,10 +174,7 @@ class StateInfo:
     @staticmethod
     def decode(obj):
         battleid = obj['wldstatic']['ID']
-        tick = obj['wldruntime']['tick']
-
-        if int(tick) >= 55506:
-            db = 1
+        tick = obj['wldruntime']['tick'] if 'tick' in obj['wldruntime'] else -1
 
         # 忽略了第一帧中的兵线信息
 

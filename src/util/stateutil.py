@@ -14,11 +14,10 @@ from train.cmdactionenum import CmdActionEnum
 class StateUtil:
     # 注：游戏并不会严格的每528返回一个值，这个只是PC情况，而且中间这个值也可能缩短
     TICK_PER_STATE = 528
-    NEARBY_TOWER_RADIUS = 8
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 7  # 13.5
     ATTACK_UNIT_RADIUS = 7  # 10
-    LINE_MODEL_RADIUS = 9
+    LINE_MODEL_RADIUS = 10
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -54,7 +53,7 @@ class StateUtil:
     @staticmethod
     def get_tower_hp_change(state_info, next_info, hero_name, line_idx, self_tower=True):
         hero_state = state_info.get_hero(hero_name)
-        near_own_towers = StateUtil.get_near_towers_in_line(state_info, hero_state, line_idx)
+        near_own_towers = StateUtil.get_near_towers_in_line(state_info, hero_state, line_idx, StateUtil.LINE_MODEL_RADIUS)
         if self_tower:
             near_own_towers = [t for t in near_own_towers if t.team == hero_state.team]
         else:
@@ -341,7 +340,7 @@ class StateUtil:
             return basement_pos
 
     @staticmethod
-    def get_near_towers_in_line(state_info, hero_state, line_idx, distance=NEARBY_TOWER_RADIUS):
+    def get_near_towers_in_line(state_info, hero_state, line_idx, distance):
         towers = []
         for unit in state_info.units:
             if int(unit.unit_name) <= 26:

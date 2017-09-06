@@ -97,7 +97,11 @@ class LineTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
 
-        if raw_state_info.tick >= 686004:
+        # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
+        if raw_state_info.tick == -1:
+            return ''
+
+        if raw_state_info.tick == 790548:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息

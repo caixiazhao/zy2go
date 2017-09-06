@@ -227,7 +227,7 @@ class LineModel:
                     if debug: print("普攻受限，放弃普攻")
                     continue
                 if selected == 8:  # 敌方塔
-                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
+                    tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
                     if tower is None:
                         acts[selected] = -1
                         if debug: print("塔太远，放弃普攻")
@@ -336,7 +336,7 @@ class LineModel:
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔
-                tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.NEARBY_TOWER_RADIUS)
+                tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
                 tgtid = tower.unit_name
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action

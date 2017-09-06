@@ -21,7 +21,7 @@ def model(inpt, num_actions, scope, reuse=False):
         out = inpt
         out = layers.fully_connected(out, num_outputs=512, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.tanh)
+        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
         out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
         return out
 
@@ -54,7 +54,7 @@ class LineModel_DQN:
         self.train_times = 0
         self.update_target_period = update_target_period
 
-        self.exploration = LinearSchedule(schedule_timesteps=1000, initial_p=initial_p, final_p=final_p)
+        self.exploration = LinearSchedule(schedule_timesteps=10000, initial_p=initial_p, final_p=final_p)
 
 
     @property
@@ -109,10 +109,10 @@ class LineModel_DQN:
 
                 # 构造一个禁用action的数组
                 # 因为会对next_q的计算有影响（-1是其中最大值，所以改成暂时不屏蔽任何选择）
-                acts = np.ones(50, dtype=float).tolist()
-                # new_state_action_flags = acts
-                new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
-                new_state_action_flags = [-1000 if a == -1 else 0 for a in new_state_action_flags]
+                acts = np.zeros(50, dtype=float).tolist()
+                new_state_action_flags = acts
+                # new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
+                # new_state_action_flags = [-1000 if a == -1 else 0 for a in new_state_action_flags]
 
                 self.memory.add(cur_state_input, selected_action_idx, reward, new_state_input, float(done),
                                 new_state_action_flags)
@@ -211,9 +211,9 @@ class LineModel_DQN:
         # 扩大攻击伤害的权重
         # TODO 防御型辅助型法术的定义，辅助法术不能乱放，否则惩罚
         dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name) / float(cur_rival_hero.maxhp)
-        if float(cur_rival_hero.hp) / cur_rival_hero.maxhp <= 0.3:
-            dmg *= 3
+        dmg *= 3 * cur_rival_hero.maxhp / float(cur_rival_hero.hp + cur_rival_hero.maxhp)
         self_hp_loss = (cur_hero.hp - next_hero.hp) / float(cur_hero.maxhp) if cur_hero.hp > next_hero.hp else 0
+        self_hp_loss *= 3 * cur_hero.maxhp / float(cur_hero.hp + cur_hero.maxhp)
         dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
 
         # 计算塔的被攻击情况
