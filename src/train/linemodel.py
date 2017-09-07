@@ -278,8 +278,8 @@ class LineModel:
                         acts[selected] = -1
                         if debug: print("小兵太远，放弃普攻")
                         continue
-                    print ("英雄%s可以攻击到小兵%s，英雄位置%s，小兵位置%s，距离%s" % (str(hero_name), str(creeps[n].unit_name),
-                                        hero.pos.to_string(), creeps[n].pos.to_string(), str(dist)))
+                    # print ("英雄%s可以攻击到小兵%s，英雄位置%s，小兵位置%s，距离%s" % (str(hero_name), str(creeps[n].unit_name),
+                    #                     hero.pos.to_string(), creeps[n].pos.to_string(), str(dist)))
             elif selected < 48:  # skill1
                 skillid =int( (selected-18)/10+1)
                 if hero.skills[skillid].canuse != True:
@@ -305,7 +305,7 @@ class LineModel:
                     if debug: print("目标不符合施法要求")
                     continue
             elif selected == 48:  # 撤退
-                continue
+                acts[selected] = -1
         return acts
 
     @staticmethod
@@ -319,7 +319,7 @@ class LineModel:
         selected = acts.index(maxQ)
         if maxQ <= -1:
             selected = 49
-        print ("line model selected action:%s action array:%s" % (
+        print ("hero %s line model selected action:%s action array:%s" % (hero_name,
         str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题

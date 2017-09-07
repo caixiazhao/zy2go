@@ -50,7 +50,7 @@ class Line_input:
 
         # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
         nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
-        print('训练输入信息，塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers]))
+        # print('训练输入信息，塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers]))
         if len(nearest_towers) == 0:
             tower_input1 = self.gen_input_building(None)
             tower_input2 = self.gen_input_building(None)

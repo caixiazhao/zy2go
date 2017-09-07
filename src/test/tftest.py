@@ -39,8 +39,9 @@ def main():
     print(acts)
     b = tf.constant(acts, dtype=tf.float32)
     c = tf.add(norm, b)
+    normalized = tf.nn.l2_normalize(norm, 0)
     sess = tf.Session()
-    print(sess.run([norm, c]))
+    print(sess.run([norm, c, normalized]))
 
     one_hot = tf.one_hot(1, 5)
     sess = tf.Session()
@@ -51,6 +52,12 @@ def main():
     result = chose_random < eps
     sess = tf.Session()
     print(sess.run([chose_random, result]))
+
+    norm = tf.random_normal([2, 2, 15], seed=1234)
+    normalized = tf.nn.l2_normalize(norm, 2)
+    flatten = tf.contrib.layers.flatten(normalized)
+    sess = tf.Session()
+    print(sess.run([norm, normalized, flatten]))
 
 
 

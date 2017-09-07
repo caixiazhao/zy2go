@@ -15,9 +15,9 @@ class StateUtil:
     # 注：游戏并不会严格的每528返回一个值，这个只是PC情况，而且中间这个值也可能缩短
     TICK_PER_STATE = 528
     NEARBY_BASEMENT_RADIUS = 7
-    ATTACK_HERO_RADIUS = 7  # 13.5
-    ATTACK_UNIT_RADIUS = 7  # 10
-    LINE_MODEL_RADIUS = 10
+    ATTACK_HERO_RADIUS = 9  # 13.5
+    ATTACK_UNIT_RADIUS = 8  # 10
+    LINE_MODEL_RADIUS = 9
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)

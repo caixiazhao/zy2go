@@ -14,18 +14,6 @@ from train.linemodel import LineModel
 from util.rewardutil import RewardUtil
 from util.stateutil import StateUtil
 
-
-def model(inpt, num_actions, scope, reuse=False):
-    """This model takes as input an observation and returns values of all actions."""
-    with tf.variable_scope(scope, reuse=reuse):
-        out = inpt
-        out = layers.fully_connected(out, num_outputs=512, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
-        out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
-        return out
-
-
 class LineModel_DQN:
     REWARD_RIVAL_DMG = 250
 
@@ -54,8 +42,22 @@ class LineModel_DQN:
         self.train_times = 0
         self.update_target_period = update_target_period
 
-        self.exploration = LinearSchedule(schedule_timesteps=10000, initial_p=initial_p, final_p=final_p)
+        self.exploration = LinearSchedule(schedule_timesteps=5000, initial_p=initial_p, final_p=final_p)
 
+        self.battle_rewards = []
+        self.loss = []
+
+    def model(self, inpt, num_actions, scope, reuse=False):
+        """This model takes as input an observation and returns values of all actions."""
+        with tf.variable_scope(scope, reuse=reuse):
+            out = tf.contrib.layers.flatten(inpt)
+            out = tf.nn.l2_normalize(out, 1)
+            out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu)
+            out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu)
+            out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu)
+            out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
+            out = tf.nn.l2_normalize(out, 1)
+            return out
 
     @property
     def _build_model(self):
@@ -64,8 +66,8 @@ class LineModel_DQN:
             sess = U.make_session(8)
             sess.__enter__()
         self.act, self.train, self.update_target, self.debug = deepq.build_train(
-            make_obs_ph=lambda name: U.BatchInput(shape=[self.state_size], name=name),
-            q_func=model,
+            make_obs_ph=lambda name: U.BatchInput(shape=[2, self.state_size], name=name),
+            q_func=self.model,
             num_actions=self.action_size,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
             scope=self.scope
@@ -85,7 +87,7 @@ class LineModel_DQN:
         sess = U.get_session()
         saver.save(sess, name)
 
-    def remember(self, cur_state, new_state):
+    def remember(self, prev_state, cur_state, new_state):
         added = False
         for hero_name in self.heros:
             action = cur_state.get_hero_action(hero_name)
@@ -99,13 +101,15 @@ class LineModel_DQN:
                         rival_hero = hero.hero_name
                         break
 
+                prev_state_input = Line_input(prev_state, hero_name, rival_hero).gen_line_input()
+
                 cur_line_input = Line_input(cur_state, hero_name, rival_hero)
                 cur_state_input = cur_line_input.gen_line_input()
 
                 new_line_input = Line_input(new_state, hero_name, rival_hero)
                 new_state_input = new_line_input.gen_line_input()
 
-                done = 1 if cur_state.get_hero(hero_name).hp <= 0 else 0
+                done = 1 if new_state.get_hero(hero_name).hp <= 0 else 0
 
                 # 构造一个禁用action的数组
                 # 因为会对next_q的计算有影响（-1是其中最大值，所以改成暂时不屏蔽任何选择）
@@ -114,9 +118,18 @@ class LineModel_DQN:
                 # new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
                 # new_state_action_flags = [-1000 if a == -1 else 0 for a in new_state_action_flags]
 
-                self.memory.add(cur_state_input, selected_action_idx, reward, new_state_input, float(done),
-                                new_state_action_flags)
+                self.memory.add(np.array([prev_state_input, cur_state_input]), selected_action_idx, reward,
+                                         np.array([cur_state_input, new_state_input]), float(done), new_state_action_flags)
                 added = True
+
+                self.battle_rewards.append(reward)
+                if done == 1:
+                    print('')
+                    print('')
+                    print("战斗总奖励", np.sum(self.battle_rewards))
+                    print('')
+                    print('')
+                    self.battle_rewards = []
         return added
 
     def if_replay(self, learning_batch):
@@ -131,28 +144,33 @@ class LineModel_DQN:
         batch_size = min(batch_size, len(self.memory))
         obses_t, actions, rewards, obses_tp1, dones, new_avails = self.memory.sample(batch_size)
         td_error, rew_t_ph, q_t_selected_target, q_t_selected = self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
-        print('td_loss', td_error, "rew_t_ph", rew_t_ph, "q_t_selected_target", q_t_selected_target, "q_t_selected", q_t_selected)
+        self.loss.append(np.mean(td_error))
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:
+            print('td_loss', td_error, "rew_t_ph", rew_t_ph, "q_t_selected_target", q_t_selected_target, "q_t_selected",
+                  q_t_selected)
+            print('loss_mean', np.mean(self.loss))
             self.update_target()
 
-    def get_action(self,stateinformation,hero_name, rival_hero):
+    def get_action(self, prev_state, state_info, hero_name, rival_hero):
         self.act_times += 1
 
-        line_input = Line_input(stateinformation, hero_name, rival_hero)
+        prev_state_input = Line_input(prev_state, hero_name, rival_hero).gen_line_input()
+
+        line_input = Line_input(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input()
 
         # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
         # print(input_detail)
 
-        state_input=np.array([state_input])
+        state_input=np.array([[prev_state_input, state_input]])
         explor_value = self.exploration.value(self.act_times)
         print("dqn model exploration value is ", explor_value)
         actions = self.act(state_input, update_eps=explor_value)
         # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
 
-        action=LineModel.select_actions(actions,stateinformation,hero_name, rival_hero)
+        action=LineModel.select_actions(actions,state_info,hero_name, rival_hero)
 
         # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
         #        (str(action.output_index), input_detail, action_detail))
@@ -232,44 +250,51 @@ class LineModel_DQN:
         reward = float(gold_delta + dmg_delta) / 100 + rival_tower_hp_change - self_tower_hp_change
 
         # 特殊情况处理
+        # 鼓励攻击对方小兵
+        if_hit_unit = next_next_state.if_hero_hit_unit(hero_name, rival_hero_name)
+        if dmg == 0 and self_hp_loss == 0 and if_hit_unit is not None and reward == 0:
+            print("没有奖惩情况下攻击到了小兵", if_hit_unit)
+            reward = 0.01
 
         # 撤退的话首先将惩罚值设置为-0.2吧
-        cur_state = state_infos[state_idx]
-        hero_action = cur_state.get_hero_action(hero_name)
-        if hero_action.output_index == 48:
-            if float(cur_hero.hp) / cur_hero.maxhp > 0.7:
-                print('高血量撤退')
-                reward = -1
-            else:
-                print('撤退基础惩罚')
-                reward = -0.2
+        # cur_state = state_infos[state_idx]
+        # hero_action = cur_state.get_hero_action(hero_name)
+        # if hero_action.output_index == 48:
+        #     if float(cur_hero.hp) / cur_hero.maxhp > 0.7:
+        #         print('高血量撤退')
+        #         reward = -1
+        #     else:
+        #         print('撤退基础惩罚')
+        #         reward = -0.2
 
-        # 特定英雄的大招必须要打到英雄才行
-        if_cast_ultimate_skill = RewardUtil.if_cast_skill(state_infos, state_idx, hero_name, 3)
-        if if_cast_ultimate_skill:
-            if_skill_hit_rival = RewardUtil.if_skill_hit_hero(state_infos, state_idx, hero_name, 3, rival_hero_name)
-            if not if_skill_hit_rival:
-                print('特定英雄的大招必须要打到英雄才行')
-                reward = -1
-
-        # 是否离线太远
-        cur_state = state_infos[state_idx]
-        leave_line = RewardUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
-        if leave_line:
-            print('离线太远')
-            reward = -1
-
-        # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
-        if RewardUtil.if_leave_linemodel_range(state_infos, state_idx, hero_name, line_idx):
-            if hero_action.output_index != 48:
-                print('离开模型范围，又不是撤退')
-                reward = -1
+        # # 特定英雄的大招必须要打到英雄才行
+        # if_cast_ultimate_skill = RewardUtil.if_cast_skill(state_infos, state_idx, hero_name, 3)
+        # if if_cast_ultimate_skill:
+        #     if_skill_hit_rival = RewardUtil.if_skill_hit_hero(state_infos, state_idx, hero_name, 3, rival_hero_name)
+        #     if not if_skill_hit_rival:
+        #         print('特定英雄的大招必须要打到英雄才行')
+        #         reward = -1
+        #
+        # # 是否离线太远
+        # cur_state = state_infos[state_idx]
+        # leave_line = RewardUtil.if_hero_leave_line(state_infos, state_idx, hero_name, line_idx)
+        # if leave_line:
+        #     print('离线太远')
+        #     reward = -1
+        #
+        # # 暂时忽略模型选择立刻离开选择范围这种情况，让英雄可以在危险时候拉远一些距离
+        # if RewardUtil.if_leave_linemodel_range(state_infos, state_idx, hero_name, line_idx):
+        #     if hero_action.output_index != 48:
+        #         print('离开模型范围，又不是撤退')
+        #         reward = -1
 
         # 特殊奖励，放在最后面
         # 英雄击杀最后一击，直接最大奖励
         cur_state = state_infos[state_idx]
+        cur_hero = cur_state.get_hero(hero_name)
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
         next_state = state_infos[state_idx + 1]
+        next_hero = next_state.get_hero(hero_name)
         next_rival = next_state.get_hero(rival_hero_name)
         if cur_rival_hero.hp > 0 and next_rival.hp <= 0:
             print('对线英雄%s死亡' % rival_hero_name)
@@ -278,4 +303,7 @@ class LineModel_DQN:
             if dmg_hit_rival > 0:
                 print('英雄%s对对方造成了最后一击' % hero_name)
                 reward = 1
+
+        if cur_hero.hp > 0 and next_hero.hp <= 0:
+            reward = -1
         return min(max(reward, -1), 1)

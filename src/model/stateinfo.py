@@ -27,6 +27,12 @@ class StateInfo:
                 total_dmg += dmg.dmg
         return total_dmg
 
+    def if_hero_hit_unit(self, hero_name, rival_hero_name):
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and int(dmg.tgt) > 27 and dmg.tgt != rival_hero_name:
+                return dmg.tgt
+        return None
+
     def if_unit_attack_hero(self, unit_name, hero_name):
         for att in self.attack_infos:
             if str(att.atker) == unit_name and str(att.defer) == hero_name:

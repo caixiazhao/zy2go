@@ -126,26 +126,27 @@ class LineTrainer:
 
         # 更新玩家行为以及奖励值，有一段时间延迟
         reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
-        print('reward_state_idx: ' + str(reward_state_idx))
+        # print('reward_state_idx: ' + str(reward_state_idx))
         state_with_reward = None
-        if reward_state_idx > 0:
+        if reward_state_idx > 1:
             if self.state_cache[reward_state_idx].tick >= 686004:
                 debug = 1
             self.guess_hero_actions(reward_state_idx, self.real_heros)
+            prev_4_m = self.state_cache[reward_state_idx - 1]
             state_with_reward = LineModel_DQN.update_state_rewards(self.state_cache, reward_state_idx)
 
         if state_with_reward is not None:
             # 将中间结果写入文件
             next_state_4_m = self.state_cache[reward_state_idx + 1]
             self.save_reward_log(state_with_reward)
-            added = self.model1.remember(state_with_reward, next_state_4_m)
+            added = self.model1.remember(prev_4_m, state_with_reward, next_state_4_m)
 
             # 学习
             if added:
                 model1_memory_len = len(self.model1.memory)
-                print('model1 memory: ', model1_memory_len)
+                # print('model1 memory: ', model1_memory_len)
                 if self.model1.if_replay(40):
-                    print ('开始模型训练')
+                    # print ('开始模型训练')
                     self.model1.replay(40)
                     if model1_memory_len > 0 and model1_memory_len % 1000 == 0:
                         self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
@@ -153,18 +154,18 @@ class LineTrainer:
 
             if self.model2 is not None:
                 # TODO 过滤之后放入相应的模型
-                added = self.model2.remember(state_with_reward, next_state_4_m)
+                added = self.model2.remember(prev_4_m, state_with_reward, next_state_4_m)
 
                 # 学习
                 if added:
                     model2_memory_len = len(self.model2.memory)
-                    print('model2 memory: ', model2_memory_len)
+                    # print('model2 memory: ', model2_memory_len)
                     if self.model2.if_replay(40):
-                        print ('开始模型训练')
+                        # print ('开始模型训练')
                         self.model2.replay(40)
                         if model2_memory_len > 0 and model2_memory_len % 1000 == 0:
                             self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
-                        print ('结束模型训练')
+                        # print ('结束模型训练')
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
@@ -264,24 +265,24 @@ class LineTrainer:
                 continue
 
             # 处在少血状态是，且周围没有地方单位的情况下选择回城
-            if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
-                if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
-                    print('策略层：回城')
-                    # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
-                    if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
-                        if prev_hero.hp > hero.hp:
-                            town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
-                            action_str = StateUtil.build_command(town_action)
-                            action_strs.append(action_str)
-                    # 检查英雄当前状态，如果不在回城，则将状态设置为正在回城，开始回城
-                    elif self.hero_strategy[hero.hero_name] != ActionEnum.town_ing:
-                        self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
-                        town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
-                        action_str = StateUtil.build_command(town_action)
-                        action_strs.append(action_str)
-
-                    # 无论上面怎么操作，玩家下面的动作应该都是在回城中，所以跳过其它的操作
-                    continue
+            # if len(near_enemy_heroes) == 0 and len(near_enemy_units) == 0 and nearest_enemy_tower is None:
+            #     if hero.hp/float(hero.maxhp) < LineTrainer.TOWN_HP_THRESHOLD:
+            #         print('策略层：回城')
+            #         # 检查英雄当前状态，如果在回城但是上一帧中受到了伤害，则将状态设置为正在回城，开始回城
+            #         if self.hero_strategy[hero.hero_name] == ActionEnum.town_ing:
+            #             if prev_hero.hp > hero.hp:
+            #                 town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
+            #                 action_str = StateUtil.build_command(town_action)
+            #                 action_strs.append(action_str)
+            #         # 检查英雄当前状态，如果不在回城，则将状态设置为正在回城，开始回城
+            #         elif self.hero_strategy[hero.hero_name] != ActionEnum.town_ing:
+            #             self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
+            #             town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None, None, None)
+            #             action_str = StateUtil.build_command(town_action)
+            #             action_strs.append(action_str)
+            #
+            #         # 无论上面怎么操作，玩家下面的动作应该都是在回城中，所以跳过其它的操作
+            #         continue
 
             # 处在泉水之中的时候设置策略层为吃线
             if StateUtil.if_hero_at_basement(hero):
@@ -312,7 +313,7 @@ class LineTrainer:
             if len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0 and (len(near_enemy_heroes) == 0 or
                     StateUtil.if_in_line(hero, line_index, 4000) == -1):
                 self.hero_strategy[hero.hero_name] = ActionEnum.line_1
-                print("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
+                # print("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
                 # 跟兵线
                 front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
                 if front_soldier is None:
@@ -325,7 +326,7 @@ class LineTrainer:
                     action_strs.append(action_str)
             else:
                 # 使用模型进行决策
-                print("使用对线模型决定英雄%s的行动" % hero.hero_name)
+                # print("使用对线模型决定英雄%s的行动" % hero.hero_name)
                 self.hero_strategy[hero.hero_name] = ActionEnum.line_model
                 enemies = []
                 enemies.extend((hero.hero_name for hero in near_enemy_heroes))
@@ -336,7 +337,7 @@ class LineTrainer:
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
-                action = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                action = line_model.get_action(prev_state_info, state_info, hero.hero_name, rival_hero)
                 action_str = StateUtil.build_command(action)
                 action_strs.append(action_str)
 
