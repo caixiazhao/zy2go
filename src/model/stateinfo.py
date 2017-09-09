@@ -20,6 +20,13 @@ class StateInfo:
                 total_dmg += float(dmg.dmg)/tower.maxhp
         return total_dmg
 
+    def get_hero_dmg_skill(self, hero_name, skill_slot, tgt_id):
+        total_dmg = 0
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and dmg.tgt == tgt_id and int(dmg.skillslot) == int(skill_slot):
+                total_dmg += dmg.dmg
+        return total_dmg
+
     def get_hero_total_dmg(self, hero_name, tgt_id):
         total_dmg = 0
         for dmg in self.dmg_infos:
@@ -29,9 +36,9 @@ class StateInfo:
 
     def if_hero_hit_unit(self, hero_name, rival_hero_name):
         for dmg in self.dmg_infos:
-            if dmg.atker == hero_name and int(dmg.tgt) > 27 and dmg.tgt != rival_hero_name:
+            if dmg.atker == hero_name and int(dmg.tgt) > 27 and dmg.tgt != rival_hero_name and int(dmg.skillslot) == 0:
                 return dmg.tgt
-        return None
+        # return None
 
     def if_unit_attack_hero(self, unit_name, hero_name):
         for att in self.attack_infos:

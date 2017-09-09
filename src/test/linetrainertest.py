@@ -24,7 +24,7 @@ def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p
 
 def train_line_model(state_path, model_path, output_model_path, heros):
     state_file = open(state_path, "r")
-    model = LineModel(279, 50, heros)
+    model = LineModel(279, 48, heros)
     if model_path is not None:
         model.load(model_path)
 
@@ -156,7 +156,7 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
 
     state_logs = []
     prev_state = None
-    model = LineModel(279, 50, hero_names)
+    model = LineModel(279, 48, hero_names)
     if model_path is not None:
         model.load(model_path)
     if save_model_path is not None:
@@ -192,9 +192,9 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05142307.696433/raw.log',
-                      '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05122237.045313/line_model_1_v2154',
-                      '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-05122237.045313/line_model_2_v1397',
+    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-08152540.975239/raw.log',
+                      None,
+                      None,
                       # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v51/model',
                       # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v52/model',
                       initial_p=0, final_p=0)

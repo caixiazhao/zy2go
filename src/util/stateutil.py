@@ -15,9 +15,9 @@ class StateUtil:
     # 注：游戏并不会严格的每528返回一个值，这个只是PC情况，而且中间这个值也可能缩短
     TICK_PER_STATE = 528
     NEARBY_BASEMENT_RADIUS = 7
-    ATTACK_HERO_RADIUS = 9  # 13.5
-    ATTACK_UNIT_RADIUS = 8  # 10
-    LINE_MODEL_RADIUS = 9
+    ATTACK_HERO_RADIUS = 7  # 13.5
+    ATTACK_UNIT_RADIUS = 7  # 10
+    LINE_MODEL_RADIUS = 7
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -39,6 +39,28 @@ class StateUtil:
          PosStateInfo(43300, 0, 25700), PosStateInfo(36500, 0, 34000), PosStateInfo(26000, 0, 45200),
          PosStateInfo(0, 0, 60800), PosStateInfo(-20600, 0, 51700), PosStateInfo(-39900, 0, 30000),
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
+
+    @staticmethod
+    def get_attack_cast_dmg(cur_state, next_state, next_next_state, hero_name, rival_hero):
+        dmg = 0
+        cur_act = cur_state.get_hero_action(hero_name)
+        skill_slot = cur_act.skillid
+        # 只有攻击才会计算对对方英雄造成的伤害
+        if cur_act.action == CmdActionEnum.CAST:
+            # 对于技能，查看当前帧和后续帧，这个技能造成的伤害
+            dmg = next_state.get_hero_dmg_skill(hero_name, skill_slot, rival_hero)
+            dmg += next_next_state.get_hero_dmg_skill(hero_name, skill_slot, rival_hero)
+        elif cur_act.action == CmdActionEnum.ATTACK:
+            # 对于物攻，同样因为伤害有延迟，先检查玩家在下一帧的行动
+            # 如果不是物攻，这读取这两帧中间的物攻伤害
+            next_act = next_state.get_hero_action(hero_name)
+            if next_act is None or next_act.action != CmdActionEnum.ATTACK:
+                dmg = next_state.get_hero_dmg_skill(hero_name, skill_slot, rival_hero)
+                dmg += next_next_state.get_hero_dmg_skill(hero_name, skill_slot, rival_hero)
+            else:
+                # 否则只计算当前帧的，简单起见
+                dmg = next_state.get_hero_dmg_skill(hero_name, skill_slot, rival_hero)
+        return dmg
 
     @staticmethod
     def if_first_tower_destroyed_in_line(state_info, line_idx):
@@ -489,3 +511,20 @@ class StateUtil:
         rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
+
+    @staticmethod
+    def get_hit_rival_tower_dmg_ratio(cur_state, next_state, next_next_state, hero_name):
+        dmg = 0
+        cur_act = cur_state.get_hero_action(hero_name)
+        skill_slot = cur_act.skillid
+        if cur_act.action == CmdActionEnum.ATTACK:
+            # 对于物攻，同样因为伤害有延迟，先检查玩家在下一帧的行动
+            # 如果不是物攻，这读取这两帧中间的物攻伤害
+            next_act = next_state.get_hero_action(hero_name)
+            if next_act is None or next_act.action != CmdActionEnum.ATTACK:
+                dmg = next_state.get_hero_tower_dmg(hero_name)
+                dmg += next_next_state.get_hero_tower_dmg(hero_name)
+            else:
+                # 否则只计算当前帧的，简单起见
+                dmg = next_state.get_hero_tower_dmg(hero_name)
+        return dmg

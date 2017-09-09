@@ -306,6 +306,8 @@ class LineModel:
                     continue
             elif selected == 48:  # 撤退
                 acts[selected] = -1
+            elif selected == 49:  # 撤退
+                acts[selected] = -1
         return acts
 
     @staticmethod

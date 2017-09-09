@@ -9,6 +9,7 @@ import baselines.common.tf_util as U
 from baselines import deepq
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
+from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
 from train.linemodel import LineModel
 from util.rewardutil import RewardUtil
@@ -70,7 +71,8 @@ class LineModel_DQN:
             q_func=self.model,
             num_actions=self.action_size,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
-            scope=self.scope
+            scope=self.scope,
+            double_q=True
         )
 
         # 初始化tf环境
@@ -113,7 +115,7 @@ class LineModel_DQN:
 
                 # 构造一个禁用action的数组
                 # 因为会对next_q的计算有影响（-1是其中最大值，所以改成暂时不屏蔽任何选择）
-                acts = np.zeros(50, dtype=float).tolist()
+                acts = np.zeros(self.action_size, dtype=float).tolist()
                 new_state_action_flags = acts
                 # new_state_action_flags = LineModel.remove_unaval_actions(acts, new_state, hero_name, rival_hero)
                 # new_state_action_flags = [-1000 if a == -1 else 0 for a in new_state_action_flags]
@@ -126,7 +128,7 @@ class LineModel_DQN:
                 if done == 1:
                     print('')
                     print('')
-                    print("战斗总奖励", np.sum(self.battle_rewards))
+                    print('hero', hero_name, "战斗总奖励", np.sum(self.battle_rewards))
                     print('')
                     print('')
                     self.battle_rewards = []
@@ -148,9 +150,9 @@ class LineModel_DQN:
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:
-            print('td_loss', td_error, "rew_t_ph", rew_t_ph, "q_t_selected_target", q_t_selected_target, "q_t_selected",
+            print('model', self.scope, 'td_loss', td_error, "rew_t_ph", rew_t_ph, "q_t_selected_target", q_t_selected_target, "q_t_selected",
                   q_t_selected)
-            print('loss_mean', np.mean(self.loss))
+            print('model', self.scope, 'loss_mean', np.mean(self.loss))
             self.update_target()
 
     def get_action(self, prev_state, state_info, hero_name, rival_hero):
@@ -161,8 +163,8 @@ class LineModel_DQN:
         line_input = Line_input(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input()
 
-        # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
-        # print(input_detail)
+        input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
+        print(input_detail)
 
         state_input=np.array([[prev_state_input, state_input]])
         explor_value = self.exploration.value(self.act_times)
@@ -198,6 +200,7 @@ class LineModel_DQN:
         # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
         cur_state = state_infos[state_idx]
         cur_hero = cur_state.get_hero(hero_name)
+        act_info = cur_state.get_hero_action(hero_name)
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
         rival_team = cur_rival_hero.team
         cur_hero = cur_state.get_hero(hero_name)
@@ -205,6 +208,7 @@ class LineModel_DQN:
         next_state = state_infos[state_idx + 1]
         next_hero = next_state.get_hero(hero_name)
         next_next_state = state_infos[state_idx + 2]
+        next_next_hero = next_next_state.get_hero(hero_name)
         dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
         dead_unit_str = (','.join([u.unit_name for u in dead_units]))
@@ -213,6 +217,8 @@ class LineModel_DQN:
         gold_delta = next_hero.gold - cur_hero.gold
         if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
             gold_delta -= 3
+
+        # 暂时解决不了的是释放技能，延迟造成的金币获得
 
         # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
         # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
@@ -223,38 +229,43 @@ class LineModel_DQN:
             gold_delta = int(dead_golds / 2)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
-        # 伤害信息和击中信息都有延迟，在两帧之后
+        # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
         # 扩大自己受到伤害的惩罚
         # 扩大对方低血量下受到伤害的奖励
         # 扩大攻击伤害的权重
         # TODO 防御型辅助型法术的定义，辅助法术不能乱放，否则惩罚
-        dmg = next_next_state.get_hero_total_dmg(hero_name, rival_hero_name) / float(cur_rival_hero.maxhp)
+        dmg = StateUtil.get_attack_cast_dmg(cur_state, next_state, next_next_state, hero_name, rival_hero_name) / float(cur_rival_hero.maxhp)
         dmg *= 3 * cur_rival_hero.maxhp / float(cur_rival_hero.hp + cur_rival_hero.maxhp)
-        self_hp_loss = (cur_hero.hp - next_hero.hp) / float(cur_hero.maxhp) if cur_hero.hp > next_hero.hp else 0
+
+        # 估算玩家接收的伤害时候，我们考虑后两帧的伤害的平均值，因为有些伤害会有延迟，比如小兵和建筑的攻击，因为弹道和攻速，血量变化会有延迟
+        self_hp_loss = (cur_hero.hp - next_next_hero.hp) / float(cur_hero.maxhp) / 2 if (
+            cur_hero.hp >= next_hero.hp >= next_next_hero.hp) else 0
         self_hp_loss *= 3 * cur_hero.maxhp / float(cur_hero.hp + cur_hero.maxhp)
         dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
 
-        # 计算塔的被攻击情况
-        self_tower_hp_change, destroyed = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=True)
-        rival_tower_hp_change, _ = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=False)
+        hit_rival_tower_dmg_ratio = StateUtil.get_hit_rival_tower_dmg_ratio(cur_state, next_state, next_next_state, hero_name)
+
+        # # 计算塔的被攻击情况
+        # self_tower_hp_change, destroyed = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=True)
+        # rival_tower_hp_change, _ = StateUtil.get_tower_hp_change(cur_state, next_state, hero_name, line_idx, self_tower=False)
 
         # 统计和更新变量
         print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
-            'dead_units: %s, self_tower: %s, rival_tower: %s'
+            'dead_units: %s, rival_tower: %s'
             % (hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str,
-               self_tower_hp_change, rival_tower_hp_change))
+               hit_rival_tower_dmg_ratio))
 
         # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
         # 最大惩罚是被对方造成了一条命伤害
         # 零分为获得了所有的死亡奖励
-        reward = float(gold_delta + dmg_delta) / 100 + rival_tower_hp_change - self_tower_hp_change
+        reward = float(gold_delta + dmg_delta) / 100 + hit_rival_tower_dmg_ratio
 
         # 特殊情况处理
         # 鼓励攻击对方小兵
         if_hit_unit = next_next_state.if_hero_hit_unit(hero_name, rival_hero_name)
-        if dmg == 0 and self_hp_loss == 0 and if_hit_unit is not None and reward == 0:
-            print("没有奖惩情况下攻击到了小兵", if_hit_unit)
-            reward = 0.01
+        if if_hit_unit is not None:
+            print("物理攻击到了小兵", if_hit_unit)
+            reward += 0.01
 
         # 撤退的话首先将惩罚值设置为-0.2吧
         # cur_state = state_infos[state_idx]

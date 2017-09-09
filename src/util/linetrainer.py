@@ -59,7 +59,7 @@ class LineTrainer:
         heros = list(model1_heros)
         if real_heros is not None:
             heros.extend(real_heros)
-        self.model1 = LineModel_DQN(279, 50, heros, scope="linemodel1", initial_p=initial_p, final_p=final_p)
+        self.model1 = LineModel_DQN(279, 48, heros, scope="linemodel1", initial_p=initial_p, final_p=final_p)
         if model1_path is not None:
             self.model1.load(model1_path)
         self.model1_save_header = save_dir + '/line_model_1_v'
@@ -69,7 +69,7 @@ class LineTrainer:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
-            self.model2 = LineModel_DQN(279, 50, heros, scope="linemodel2", initial_p=initial_p, final_p=final_p)
+            self.model2 = LineModel_DQN(279, 48, heros, scope="linemodel2", initial_p=initial_p, final_p=final_p)
             if model2_path is not None:
                 self.model2.load(model2_path)
             self.model2_save_header = save_dir + '/line_model_2_v'
@@ -101,7 +101,7 @@ class LineTrainer:
         if raw_state_info.tick == -1:
             return ''
 
-        if raw_state_info.tick == 790548:
+        if raw_state_info.tick == 285516:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
