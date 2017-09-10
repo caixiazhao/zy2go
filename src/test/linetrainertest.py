@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 import json as JSON
 from time import gmtime, strftime
 from train.linemodel import LineModel
+from train.linemodel_dpn import LineModel_DQN
 from util.linetrainer import LineTrainer
 from util.replayer import Replayer
 from util.stateutil import StateUtil
@@ -22,9 +24,9 @@ def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p
         print('返回结果: ' + rsp_str)
 
 
-def train_line_model(state_path, model_path, output_model_path, heros):
+def train_line_model(state_path, model_path, scope, output_model_path, heros):
     state_file = open(state_path, "r")
-    model = LineModel(279, 48, heros)
+    model = LineModel_DQN(279, 48, heros, scope=scope)
     if model_path is not None:
         model.load(model_path)
 
@@ -39,14 +41,21 @@ def train_line_model(state_path, model_path, output_model_path, heros):
                     flag = flag + 1
             if flag == 0:
                 prev_state_info = StateUtil.parse_state_log(lines[idx-1])
-                model.remember(state_info, prev_state_info)
-    print("model memory size: " + str(len(model.memory)))
-    for i in range(1):
-        model.replay(5000, True, output_model_path + "_graph_" + str(i))
-        print ("___________________________________ train ___________________________________")
-    # 输出一部分对比数据
-    model.replay(100, False)
-    model.save(output_model_path)
+                next_state_info = StateUtil.parse_state_log(lines[idx+1])
+                added = model.remember(prev_state_info, state_info, next_state_info)
+                if added:
+                    # 需要手动添加
+                    model.act_times += 1
+                    model1_memory_len = model.get_memory_size()
+                    if model.if_replay(64):
+                        # print ('开始模型训练')
+                        model.replay(64)
+                        if model1_memory_len > 0 and model1_memory_len % 1000 == 0:
+                            save_dir = output_model_path + str(model.get_memory_size())
+                            os.makedirs(save_dir)
+                            model.save(save_dir + '/model')
+    # model.replay(100, False)
+    # model.save(output_model_path)
 
 # 根据包含了模型决策的state日志，继续计算我方英雄的行为以及双方的奖励值
 def guess_action_cal_reward(state_path, output_path):
@@ -192,12 +201,12 @@ def replay_battle_log(log_path, state_path, hero_names, model_path=None, save_mo
     print(len(state_logs))
 
 if __name__ == "__main__":
-    test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-08152540.975239/raw.log',
-                      None,
-                      None,
+    # test_line_trainer('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-08152540.975239/raw.log',
+    #                   None,
+    #                   None,
                       # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v51/model',
                       # '/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-01180534.681934/line_model_2_v52/model',
-                      initial_p=0, final_p=0)
+                      # initial_p=0, final_p=0)
     # replay_battle_log('C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/httpd.log',
     #                   'C:/Users/YangLei/Documents/GitHub/zy2go/src/server/model_2017-08-17010052.525523/pve_state_test.log',
     #                   ['28'], None, None)
@@ -209,7 +218,7 @@ if __name__ == "__main__":
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_rewards_0825.log')
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
-    # train_line_model('/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log',
-    #                  None,
-    #                  '/Users/sky4star/Github/zy2go/battle_logs/test/line_model_1_trained_0828_test',
-    #                  ['27'])
+    train_line_model('/Users/sky4star/Downloads/state_reward.log',
+                     None, "linemodel2",
+                     '/Users/sky4star/Github/zy2go/battle_logs/test/server0910/linetrainer_2_v',
+                     ['28'])

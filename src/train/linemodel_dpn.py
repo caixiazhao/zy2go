@@ -8,6 +8,7 @@ import tensorflow.contrib.layers as layers
 import baselines.common.tf_util as U
 from baselines import deepq
 from baselines.common.schedules import LinearSchedule
+from baselines.deepq import PrioritizedReplayBuffer
 from baselines.deepq import ReplayBuffer
 from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
@@ -26,7 +27,7 @@ class LineModel_DQN:
 
         self.state_size = statesize
         self.action_size = actionsize  # 50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
-        self.memory = ReplayBuffer(50000)
+        self.memory = PrioritizedReplayBuffer(500000, alpha=0.6)
         self.gamma = 0.9  # discount rate
         self.epsilon = 1.0  # exploration rate
         self.e_decay = .99
@@ -72,7 +73,8 @@ class LineModel_DQN:
             num_actions=self.action_size,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
             scope=self.scope,
-            double_q=True
+            double_q=True,
+            param_noise=True
         )
 
         # 初始化tf环境
@@ -135,18 +137,20 @@ class LineModel_DQN:
         return added
 
     def if_replay(self, learning_batch):
-        if len(self.memory) > learning_batch:
+        if self.act_times > learning_batch:
             return True
         return False
 
     def get_memory_size(self):
-        return len(self.memory)
+        return self.act_times
 
     def replay(self, batch_size):
         batch_size = min(batch_size, len(self.memory))
-        obses_t, actions, rewards, obses_tp1, dones, new_avails = self.memory.sample(batch_size)
-        td_error, rew_t_ph, q_t_selected_target, q_t_selected = self.train(obses_t, actions, rewards, obses_tp1, dones, np.ones_like(rewards), new_avails)
+        obses_t, actions, rewards, obses_tp1, dones, new_avails, weights, idxes = self.memory.sample(batch_size, beta=0.4)
+        td_error, rew_t_ph, q_t_selected_target, q_t_selected = self.train(obses_t, actions, rewards, obses_tp1, dones, weights, new_avails)
         self.loss.append(np.mean(td_error))
+        new_priorities = np.abs(td_error) + 1e-6
+        self.memory.update_priorities(idxes, new_priorities)
 
         self.train_times += 1
         if self.train_times % self.update_target_period == 0:

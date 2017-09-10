@@ -143,11 +143,10 @@ class LineTrainer:
 
             # 学习
             if added:
-                model1_memory_len = len(self.model1.memory)
-                # print('model1 memory: ', model1_memory_len)
-                if self.model1.if_replay(40):
+                model1_memory_len = self.model1.get_memory_size()
+                if self.model1.if_replay(64):
                     # print ('开始模型训练')
-                    self.model1.replay(40)
+                    self.model1.replay(64)
                     if model1_memory_len > 0 and model1_memory_len % 1000 == 0:
                         self.model1.save(self.model1_save_header + str(self.model1.get_memory_size()) + '/model')
                     # print ('结束模型训练')
@@ -158,11 +157,10 @@ class LineTrainer:
 
                 # 学习
                 if added:
-                    model2_memory_len = len(self.model2.memory)
-                    # print('model2 memory: ', model2_memory_len)
-                    if self.model2.if_replay(40):
+                    model2_memory_len = self.model2.get_memory_size()
+                    if self.model2.if_replay(64):
                         # print ('开始模型训练')
-                        self.model2.replay(40)
+                        self.model2.replay(64)
                         if model2_memory_len > 0 and model2_memory_len % 1000 == 0:
                             self.model2.save(self.model2_save_header + str(self.model2.get_memory_size()) + '/model')
                         # print ('结束模型训练')
@@ -247,7 +245,7 @@ class LineTrainer:
             # 检查周围状况
             near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
             near_enemy_units = StateUtil.get_nearby_enemy_units(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
-            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
+            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS + 3)
 
             # 回城相关逻辑
             # 如果在回城中且没有被打断则继续回城，什么也不用返回
