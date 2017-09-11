@@ -34,40 +34,46 @@ class Line_input:
     def gen_line_input(self):
         state=[]
 
-        # 添加双方英雄信息，对线模型暂时只考虑1v1的情况
         my_hero_info = self.stateInformation.get_hero(self.hero_name)
         rival_hero_info = self.stateInformation.get_hero(self.rival_hero)
-        my_hero_input = self.gen_input_hero(my_hero_info)
+
+        # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
+        nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
+        nearest_towers_rival = [t for t in nearest_towers if t.team != my_hero_info.team]
+        nearest_towers_team = [t for t in nearest_towers if t.team == my_hero_info.team]
+
+        # 添加双方英雄信息，对线模型暂时只考虑1v1的情况
+        my_hero_input = self.gen_input_hero(my_hero_info, nearest_towers_rival)
 
         # 首先判断对手英雄的位置，如果距离过远则不加入队伍中
         if StateUtil.cal_distance(my_hero_info.pos, rival_hero_info.pos) > self.NEAR_TOWER_RADIUS:
             rival_hero_input = np.zeros(len(my_hero_input)).tolist()
             # print "对手距离过远，不作为输入信息"
         else:
-            rival_hero_input = self.gen_input_hero(rival_hero_info)
+            rival_hero_input = self.gen_input_hero(rival_hero_info, nearest_towers_rival)
         state += my_hero_input
         state += rival_hero_input
 
-        # 添加附近塔信息（2个）,搜索半径为self.NEAR_TOWER_RADIUS
-        nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
-        # print('训练输入信息，塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers]))
-        if len(nearest_towers) == 0:
+        # print(self.hero_name + ' 训练输入信息，敌方塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers_rival]))
+        # print(self.hero_name + ' 训练输入信息，己方塔信息：' + ','.join([str(t.unit_name) for t in nearest_towers_team]))
+        if len(nearest_towers_rival) == 0:
             tower_input1 = self.gen_input_building(None)
             tower_input2 = self.gen_input_building(None)
-            tower_input3 = self.gen_input_building(None)
-        elif len(nearest_towers) == 1:
-            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
+        elif len(nearest_towers_rival) == 1:
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name)
             tower_input2 = self.gen_input_building(None)
-            tower_input3 = self.gen_input_building(None)
         # 当玩家处在高地时候会有超过2个塔
-        elif len(nearest_towers) >= 2:
-            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
-            tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
+        elif len(nearest_towers_rival) >= 2:
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name)
+            tower_input2 = self.gen_input_building(nearest_towers_rival[1], self.stateInformation, self.hero_name)
+        else:
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name)
+            tower_input2 = self.gen_input_building(nearest_towers_rival[1], self.stateInformation, self.hero_name)
+        # 添加一个己方塔
+        if len(nearest_towers_team) == 0:
             tower_input3 = self.gen_input_building(None)
         else:
-            tower_input1 = self.gen_input_building(nearest_towers[0], self.stateInformation, self.hero_name)
-            tower_input2 = self.gen_input_building(nearest_towers[1], self.stateInformation, self.hero_name)
-            tower_input3 = self.gen_input_building(nearest_towers[2], self.stateInformation, self.hero_name)
+            tower_input3 = self.gen_input_building(nearest_towers_team[0], self.stateInformation, self.hero_name)
         state += tower_input1
         state += tower_input2
         state += tower_input3
@@ -78,7 +84,7 @@ class Line_input:
         n=8
         for i in range(n):
             if i < m:
-                state=state+self.gen_input_creep(enermy_creeps[i], self.stateInformation, self.hero_name)
+                state=state+self.gen_input_creep(enermy_creeps[i], self.stateInformation, self.hero_name, nearest_towers_rival)
             else:
                 temp=self.gen_input_creep(None)
                 state=state+list(temp)
@@ -86,7 +92,7 @@ class Line_input:
         m=len(friend_creeps)
         for i in range(n):
             if i <m:
-                state=state+self.gen_input_creep(friend_creeps[i], self.stateInformation, self.hero_name)
+                state=state+self.gen_input_creep(friend_creeps[i], self.stateInformation, self.hero_name, nearest_towers_rival)
             else:
                 temp = self.gen_input_creep(None)
                 state=state+list(temp)
@@ -101,9 +107,14 @@ class Line_input:
 
     #TODO 需要更多注释
     # 英雄信息向量大小13+3*19
-    def gen_input_hero(self,hero):
+    def gen_input_hero(self, hero, rival_towers):
         if hero.state == 'out' or hero.hp <= 0:
             return list(np.zeros(13+3*19))
+
+        dis_rival = 10000
+        if len(rival_towers) > 0:
+            dis_list = [StateUtil.cal_distance2(hero.pos, t.pos) for t in rival_towers]
+            dis_rival = min(dis_list)
 
         hero_input = [self.normalize_value(int(hero.hero_name)),
                   self.normalize_value(hero.pos.x),
@@ -116,7 +127,7 @@ class Line_input:
                   self.normalize_value(hero.hp),
                   hero.hp/float(hero.maxhp),
                   self.normalize_value(hero.mp),
-                  self.normalize_value(1000+hero.attspeed),
+                  self.normalize_value(dis_rival),
                   hero.team]
 
         is_enemy_visible = hero.is_enemy_visible()
@@ -167,13 +178,14 @@ class Line_input:
             building_info=np.zeros(9)
             building_info=list(building_info)
         else:
+            hero_info = state_info.get_hero(hero_name)
             building_info=[self.normalize_value(int(building.unit_name)),
                            self.normalize_value(building.pos.x),
                            self.normalize_value(building.pos.z),
                            self.normalize_value(building.att),
                            self.normalize_value(7000),
                            self.normalize_value(building.hp),
-                           self.normalize_value(1000+building.attspeed),
+                           self.normalize_value(StateUtil.cal_distance2(building.pos, hero_info.pos)),
                            building.team]
             # 添加是否在攻击当前英雄
             attack_info = state_info.if_unit_attack_hero(building.unit_name, hero_name)
@@ -184,15 +196,20 @@ class Line_input:
         return building_info
 
     # 单个小兵信息大小=7
-    def gen_input_creep(self, creep, state_info=None, hero_name=None):
+    def gen_input_creep(self, creep, state_info=None, hero_name=None, towers=None):
         if creep is None:
             return list(np.zeros(7))
+
+        dis = 10000
+        if len(towers) > 0:
+            dis_list = [StateUtil.cal_distance2(creep.pos, t.pos) for t in towers]
+            dis = min(dis_list)
 
         creep_info=[self.normalize_value(creep.pos.x),
                     self.normalize_value(creep.pos.z),
                     self.normalize_value(creep.att),
                     self.normalize_value(creep.hp),
-                    self.normalize_value(1000+creep.attspeed),
+                    self.normalize_value(dis),
                     creep.team]
 
         # 添加是否在攻击当前英雄

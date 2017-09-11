@@ -372,6 +372,12 @@ class StateUtil:
         return towers
 
     @staticmethod
+    def cal_distance2(pos1, pos2):
+        # 忽略y值
+        distance = math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.z - pos2.z) * (pos1.z - pos2.z))
+        return distance
+
+    @staticmethod
     def cal_distance(pos1, pos2):
         # 忽略y值
         distance = math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.z - pos2.z) * (pos1.z - pos2.z)) / 1000

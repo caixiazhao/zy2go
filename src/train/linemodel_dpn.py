@@ -44,7 +44,7 @@ class LineModel_DQN:
         self.train_times = 0
         self.update_target_period = update_target_period
 
-        self.exploration = LinearSchedule(schedule_timesteps=5000, initial_p=initial_p, final_p=final_p)
+        self.exploration = LinearSchedule(schedule_timesteps=3000, initial_p=initial_p, final_p=final_p)
 
         self.battle_rewards = []
         self.loss = []
@@ -61,6 +61,38 @@ class LineModel_DQN:
             out = tf.nn.l2_normalize(out, 1)
             return out
 
+    # 返回总信息向量大小=2*70+9*3+16*7=279
+    def model2(self, input, num_actions, scope, reuse=False):
+        """This model takes as input an observation and returns values of all actions."""
+        with tf.variable_scope(scope, reuse=reuse):
+            # 拆分成，英雄0~139，敌方塔140~157，己方塔158~166，敌方小兵167~222，己方小兵223~278
+            heroes = tf.contrib.layers.flatten(tf.slice(input, [0, 0, 0], [-1, -1, 140]))
+            rival_towers = tf.contrib.layers.flatten(tf.slice(input, [0, 0, 140], [-1, -1, 18]))
+            team_towers = tf.contrib.layers.flatten(tf.slice(input, [0, 0, 158], [-1, -1, 9]))
+            rival_units = tf.contrib.layers.flatten(tf.slice(input, [0, 0, 167], [-1, -1, 56]))
+            team_units = tf.contrib.layers.flatten(tf.slice(input, [0, 0, 223], [-1, -1, 56]))
+
+            heroes_out = layers.fully_connected(heroes, num_outputs=64, activation_fn=tf.nn.relu)
+            heroes_out = layers.fully_connected(heroes_out, num_outputs=128, activation_fn=tf.nn.relu)
+
+            rival_towers_out = layers.fully_connected(rival_towers, num_outputs=8, activation_fn=tf.nn.relu)
+            rival_towers_out = layers.fully_connected(rival_towers_out, num_outputs=16, activation_fn=tf.nn.relu)
+
+            team_towers_out = layers.fully_connected(team_towers, num_outputs=4, activation_fn=tf.nn.relu)
+            team_towers_out = layers.fully_connected(team_towers_out, num_outputs=8, activation_fn=tf.nn.relu)
+
+            rival_units_out = layers.fully_connected(rival_units, num_outputs=32, activation_fn=tf.nn.relu)
+            rival_units_out = layers.fully_connected(rival_units_out, num_outputs=64, activation_fn=tf.nn.relu)
+
+            team_units_out = layers.fully_connected(team_units, num_outputs=16, activation_fn=tf.nn.relu)
+            team_units_out = layers.fully_connected(team_units_out, num_outputs=32, activation_fn=tf.nn.relu)
+
+            out = tf.concat([heroes_out, rival_towers_out, team_towers_out, rival_units_out, team_units_out], 1)
+            out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.relu)
+            out = layers.fully_connected(out, num_outputs=num_actions, activation_fn=None)
+            out = tf.nn.l2_normalize(out, 1)
+            return out
+
     @property
     def _build_model(self):
         sess = U.get_session()
@@ -69,7 +101,7 @@ class LineModel_DQN:
             sess.__enter__()
         self.act, self.train, self.update_target, self.debug = deepq.build_train(
             make_obs_ph=lambda name: U.BatchInput(shape=[2, self.state_size], name=name),
-            q_func=self.model,
+            q_func=self.model2,
             num_actions=self.action_size,
             optimizer=tf.train.AdamOptimizer(learning_rate=5e-4),
             scope=self.scope,
@@ -125,6 +157,7 @@ class LineModel_DQN:
                 self.memory.add(np.array([prev_state_input, cur_state_input]), selected_action_idx, reward,
                                          np.array([cur_state_input, new_state_input]), float(done), new_state_action_flags)
                 added = True
+                self.act_times += 1
 
                 self.battle_rewards.append(reward)
                 if done == 1:
@@ -160,8 +193,6 @@ class LineModel_DQN:
             self.update_target()
 
     def get_action(self, prev_state, state_info, hero_name, rival_hero):
-        self.act_times += 1
-
         prev_state_input = Line_input(prev_state, hero_name, rival_hero).gen_line_input()
 
         line_input = Line_input(state_info, hero_name, rival_hero)
@@ -174,6 +205,7 @@ class LineModel_DQN:
         explor_value = self.exploration.value(self.act_times)
         print("dqn model exploration value is ", explor_value)
         actions = self.act(state_input, update_eps=explor_value)
+        # print("d0", d0, "d1", d1, "d2", d2, "d3", d3, "d4", d4, "d5", d5)
         # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
 
         action=LineModel.select_actions(actions,state_info,hero_name, rival_hero)
