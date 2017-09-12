@@ -6,6 +6,8 @@ from baselines import bench
 import os.path as osp
 import gym, logging
 from baselines import logger
+from train.linemodel_ppo1 import LineModel_PPO1
+
 
 def wrap_train(env):
     from baselines.common.atari_wrappers import (wrap_deepmind, FrameStack)
@@ -21,6 +23,7 @@ def train(env_id, num_frames, seed):
     sess.__enter__()
     if rank != 0: logger.set_level(logger.DISABLED)
     workerseed = seed + 10000 * MPI.COMM_WORLD.Get_rank()
+    print("workerseed", workerseed)
     set_global_seeds(workerseed)
     env = gym.make(env_id)
     def policy_fn(name, ob_space, ac_space): #pylint: disable=W0613
@@ -34,21 +37,61 @@ def train(env_id, num_frames, seed):
     num_timesteps = int(num_frames / 4 * 1.1)
     env.seed(workerseed)
 
-    pposgd_simple.learn(env, policy_fn,
-        max_timesteps=num_timesteps,
-        timesteps_per_batch=256,
-        clip_param=0.2, entcoeff=0.01,
-        optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
-        gamma=0.99, lam=0.95,
-        schedule='linear'
-    )
+    # pposgd_simple.learn(env, policy_fn,
+    #     max_timesteps=num_timesteps,
+    #     timesteps_per_batch=256,
+    #     clip_param=0.2, entcoeff=0.01,
+    #     optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
+    #     gamma=0.99, lam=0.95,
+    #     schedule='linear'
+    # )
+    call_lm(env, policy_fn, num_timesteps)
     env.close()
+
+def call_lm(env, policy_fn, num_timesteps):
+    ob = env.reset()
+    ac = env.action_space.sample()
+    new = True # marks if we're on first timestep of an episode
+    model = LineModel_PPO1(env.observation_space, env.action_space, None, ob, ac, policy_fn,
+                           update_target_period=256, schedule='linear', max_timesteps=num_timesteps)
+    while True:
+        prevac = ac
+        stochastic = True
+        ac, vpred = model.pi.act(stochastic, ob)
+
+        if model.t > 0 and model.t % model.update_target_period == 0:
+            model.replay(vpred)
+            # Be careful!!! if you change the downstream algorithm to aggregate
+            # several of these batches, then be sure to do a deepcopy
+            model.ep_rets = []
+            model.ep_lens = []
+
+        # remember
+        i = model.t % model.update_target_period
+        model.obs[i] = ob
+        model.vpreds[i] = vpred
+        model.news[i] = new
+        model.acs[i] = ac
+        model.prevacs[i] = prevac
+
+        ob, rew, new, _ = env.step(ac)
+        model.rews[i] = rew
+
+        model.cur_ep_ret += rew
+        model.cur_ep_len += 1
+        if new:
+            model.ep_rets.append(model.cur_ep_ret)
+            model.ep_lens.append(model.cur_ep_len)
+            model.cur_ep_ret = 0
+            model.cur_ep_len = 0
+            ob = env.reset()
+        model.t += 1
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--env', help='environment ID', default='PongNoFrameskip-v4')
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--seed', help='RNG seed', type=int, default=1000)
     args = parser.parse_args()
     train(args.env, num_frames=40e6, seed=args.seed)
 

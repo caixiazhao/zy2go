@@ -30,8 +30,8 @@ import baselines.common.tf_util as U
 class LineTrainer:
     TOWN_HP_THRESHOLD = 0.3
 
-    def __init__(self, model1_heros, model2_heros=None, real_heros=None, model1_path=None, model2_path=None,
-                 initial_p=1.0, final_p=0.02):
+    def __init__(self, save_dir, model1_heros, model1, model1_save_header,
+                 model2_heros=None, model2=None, model2_save_header=None, real_heros=None):
         self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
@@ -47,9 +47,6 @@ class LineTrainer:
             self.all_heros.extend(real_heros)
 
         # 创建存储文件路径
-        date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
-        os.makedirs(save_dir)
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
         self.state_file = open(save_dir + '/state.log', 'w')
         self.state_reward_file = open(save_dir + '/state_reward.log', 'w')
@@ -59,27 +56,17 @@ class LineTrainer:
         heros = list(model1_heros)
         if real_heros is not None:
             heros.extend(real_heros)
-        self.model1 = LineModel_DQN(279, 48, heros, scope="linemodel1", initial_p=initial_p, final_p=final_p)
-        if model1_path is not None:
-            self.model1.load(model1_path)
-        self.model1_save_header = save_dir + '/line_model_1_v'
-        # self.model1.save(self.model1_save_header + '0')
+        self.model1 = model1
+        self.model1_save_header = model1_save_header
 
         if model2_heros is not None:
             heros = list(model2_heros)
             if real_heros is not None:
                 heros.extend(real_heros)
-            self.model2 = LineModel_DQN(279, 48, heros, scope="linemodel2", initial_p=initial_p, final_p=final_p)
-            if model2_path is not None:
-                self.model2.load(model2_path)
-            self.model2_save_header = save_dir + '/line_model_2_v'
-            # self.model2.save(self.model2_save_header + '0')
+            self.model2 = model2
+            self.model2_save_header = model2_save_header
         else:
             self.model2 = None
-
-        # self.model1.update_target()
-        # if self.model2 is not None:
-        #     self.model2.update_target()
 
         tvars = tf.trainable_variables()
         tvars_vals = U.get_session().run(tvars)

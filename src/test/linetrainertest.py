@@ -3,13 +3,50 @@
 import os
 import json as JSON
 from time import gmtime, strftime
+from datetime import datetime
+
+from train.line_ppo_model import LinePPOModel
 from train.linemodel import LineModel
 from train.linemodel_dpn import LineModel_DQN
+from train.linemodel_ppo1 import LineModel_PPO1
 from util.linetrainer import LineTrainer
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 import baselines.common.tf_util as U
+import numpy as np
 
+def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
+    raw_file = open(raw_log_path, "r")
+    lines = raw_file.readlines()
+
+    ob_size = 270
+    act_size = 48
+    ob = np.zeros(ob_size, dtype=float).tolist()
+    ac = np.zeros(act_size, dtype=float).tolist()
+    model1_heros = ['27']
+    model2_heros = ['28']
+    model_1 = LineModel_PPO1(270, 48, model1_heros, ob, ac, LinePPOModel)
+    model_2 = LineModel_PPO1(270, 48, model2_heros, ob, ac, LinePPOModel)
+
+    date_str = str(datetime.now()).replace(' ', '').replace(':', '')
+    save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
+    os.makedirs(save_dir)
+
+    # 创建模型，决定有几个模型，以及是否有真人玩家
+    # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
+    if model1_path is not None:
+        model_1.load(model1_path)
+    model1_save_header = save_dir + '/line_model_1_v'
+
+    if model2_path is not None:
+        model_2.load(model2_path)
+    model2_save_header = save_dir + '/line_model_2_v'
+
+    line_trainer = LineTrainer(save_dir, model1_heros, model_1, model1_save_header, model2_heros, model_2, model2_save_header)
+    for line in lines:
+        json_str = line[23:]
+        rsp_str = line_trainer.train_line_model(json_str)
+        print('返回结果: ' + rsp_str)
 
 def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p):
     raw_file = open(raw_log_path, "r")
@@ -42,6 +79,8 @@ def train_line_model(state_path, model_path, scope, output_model_path, heros):
             if flag == 0:
                 prev_state_info = StateUtil.parse_state_log(lines[idx-1])
                 next_state_info = StateUtil.parse_state_log(lines[idx+1])
+                model.get_action(prev_state_info, state_info, '27', '28')
+
                 added = model.remember(prev_state_info, state_info, next_state_info)
                 if added:
                     # 需要手动添加
@@ -219,6 +258,6 @@ if __name__ == "__main__":
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
     train_line_model('/Users/sky4star/Downloads/state_reward.log',
-                     None, "linemodel2",
-                     '/Users/sky4star/Github/zy2go/battle_logs/test/server0910/linetrainer_2_v',
-                     ['28'])
+                     None, "linemodel1",
+                     '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
+                     ['27'])
