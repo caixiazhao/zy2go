@@ -41,6 +41,12 @@ class StateUtil:
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
+    def if_hero_dead(prev_state, cur_state, hero_name):
+        prev_hero = prev_state.get_hero(hero_name)
+        cur_hero = cur_state.get_hero(hero_name)
+        return 1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
+
+    @staticmethod
     def get_attack_cast_dmg(cur_state, next_state, next_next_state, hero_name, rival_hero):
         dmg = 0
         cur_act = cur_state.get_hero_action(hero_name)

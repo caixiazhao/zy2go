@@ -7,6 +7,7 @@ import os.path as osp
 import gym, logging
 from baselines import logger
 from train.linemodel_ppo1 import LineModel_PPO1
+from util.ppocache import PPO_CACHE
 
 
 def wrap_train(env):
@@ -49,43 +50,23 @@ def train(env_id, num_frames, seed):
     env.close()
 
 def call_lm(env, policy_fn, num_timesteps):
+
     ob = env.reset()
     ac = env.action_space.sample()
+    cache = PPO_CACHE(ob, ac, horizon=256)
     new = True # marks if we're on first timestep of an episode
     model = LineModel_PPO1(env.observation_space, env.action_space, None, ob, ac, policy_fn,
                            update_target_period=256, schedule='linear', max_timesteps=num_timesteps)
     while True:
         prevac = ac
+        prevnew = new
         stochastic = True
         ac, vpred = model.pi.act(stochastic, ob)
-
-        if model.t > 0 and model.t % model.update_target_period == 0:
-            model.replay(vpred)
-            # Be careful!!! if you change the downstream algorithm to aggregate
-            # several of these batches, then be sure to do a deepcopy
-            model.ep_rets = []
-            model.ep_lens = []
-
-        # remember
-        i = model.t % model.update_target_period
-        model.obs[i] = ob
-        model.vpreds[i] = vpred
-        model.news[i] = new
-        model.acs[i] = ac
-        model.prevacs[i] = prevac
-
+        o4r = cache.output4replay(prevnew, vpred)
+        if o4r is not None:
+            model.replay(o4r)
         ob, rew, new, _ = env.step(ac)
-        model.rews[i] = rew
-
-        model.cur_ep_ret += rew
-        model.cur_ep_len += 1
-        if new:
-            model.ep_rets.append(model.cur_ep_ret)
-            model.ep_lens.append(model.cur_ep_len)
-            model.cur_ep_ret = 0
-            model.cur_ep_len = 0
-            ob = env.reset()
-        model.t += 1
+        cache.remember(ob, ac, vpred, new, rew, prevnew, prevac)
 
 def main():
     import argparse

@@ -10,23 +10,28 @@ from train.linemodel import LineModel
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
 from util.linetrainer import LineTrainer
+from util.linetrainer_ppo import LineTrainerPPO
+from util.ppocache import PPO_CACHE
 from util.replayer import Replayer
 from util.stateutil import StateUtil
-import baselines.common.tf_util as U
+from baselines.common import set_global_seeds
 import numpy as np
 
 def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
+    set_global_seeds(1000)
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
 
-    ob_size = 270
+    ob_size = 183
     act_size = 48
     ob = np.zeros(ob_size, dtype=float).tolist()
     ac = np.zeros(act_size, dtype=float).tolist()
-    model1_heros = ['27']
-    model2_heros = ['28']
-    model_1 = LineModel_PPO1(270, 48, model1_heros, ob, ac, LinePPOModel)
-    model_2 = LineModel_PPO1(270, 48, model2_heros, ob, ac, LinePPOModel)
+    model1_hero = '27'
+    model2_hero = '28'
+    model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1")
+    model1_cache = PPO_CACHE(ob, 1, horizon=64)
+    model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2")
+    model2_cache = PPO_CACHE(ob, 1, horizon=64)
 
     date_str = str(datetime.now()).replace(' ', '').replace(':', '')
     save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
@@ -42,11 +47,16 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
         model_2.load(model2_path)
     model2_save_header = save_dir + '/line_model_2_v'
 
-    line_trainer = LineTrainer(save_dir, model1_heros, model_1, model1_save_header, model2_heros, model_2, model2_save_header)
+    line_trainer = LineTrainerPPO(save_dir, model1_hero, model_1, model1_save_header, model1_cache,
+        model2_hero, model_2, model2_save_header, model2_cache)
+
     for line in lines:
         json_str = line[23:]
         rsp_str = line_trainer.train_line_model(json_str)
         print('返回结果: ' + rsp_str)
+
+def train_line_model_ppo():
+    return
 
 def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p):
     raw_file = open(raw_log_path, "r")
@@ -257,7 +267,8 @@ if __name__ == "__main__":
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_rewards_0825.log')
     # cal_state_log_action_reward('/Users/sky4star/Github/zy2go/data/merged_state_0825.log',
     #                             '/Users/sky4star/Github/zy2go/data/merged_state_with_reward_0828.log')
-    train_line_model('/Users/sky4star/Downloads/state_reward.log',
-                     None, "linemodel1",
-                     '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
-                     ['27'])
+    # train_line_model('/Users/sky4star/Downloads/state_reward.log',
+    #                  None, "linemodel1",
+    #                  '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
+    #                  ['27'])
+    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-14171428.128908/raw.log', None, None)

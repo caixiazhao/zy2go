@@ -12,7 +12,7 @@ from baselines import deepq
 from baselines.common.mpi_adam import MpiAdam
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
-from train.line_input import Line_input
+from train.line_input_lite import Line_Input_Lite
 from train.line_ppo_model import LinePPOModel
 from train.linemodel import LineModel
 from baselines.common.mpi_moments import mpi_moments
@@ -98,43 +98,44 @@ class LineModel_PPO1:
 
         # Setup losses and stuff
         # ----------------------------------------
-        self.pi = policy_func("pi", input_space, action_size)  # Construct network for new policy
-        self.oldpi = policy_func("oldpi", input_space, action_size)  # Network for old policy
-        atarg = tf.placeholder(dtype=tf.float32, shape=[None])  # Target advantage function (if applicable)
-        ret = tf.placeholder(dtype=tf.float32, shape=[None])  # Empirical return
+        with tf.variable_scope(self.scope):
+            self.pi = policy_func("pi", input_space, action_size)  # Construct network for new policy
+            self.oldpi = policy_func("oldpi", input_space, action_size)  # Network for old policy
+            atarg = tf.placeholder(dtype=tf.float32, shape=[None])  # Target advantage function (if applicable)
+            ret = tf.placeholder(dtype=tf.float32, shape=[None])  # Empirical return
 
-        lrmult = tf.placeholder(name='lrmult', dtype=tf.float32,
-                                shape=[])  # learning rate multiplier, updated with schedule
-        clip_param = clip_param * lrmult  # Annealed cliping parameter epislon
+            lrmult = tf.placeholder(name='lrmult', dtype=tf.float32,
+                                    shape=[])  # learning rate multiplier, updated with schedule
+            clip_param = clip_param * lrmult  # Annealed cliping parameter epislon
 
-        ob = U.get_placeholder_cached(name="ob")
-        ac = self.pi.pdtype.sample_placeholder([None])
+            ob = U.get_placeholder_cached(name="ob")
+            ac = self.pi.pdtype.sample_placeholder([None])
 
-        kloldnew = self.oldpi.pd.kl(self.pi.pd)
-        ent = self.pi.pd.entropy()
-        meankl = U.mean(kloldnew)
-        meanent = U.mean(ent)
-        pol_entpen = (-entcoeff) * meanent
+            kloldnew = self.oldpi.pd.kl(self.pi.pd)
+            ent = self.pi.pd.entropy()
+            meankl = U.mean(kloldnew)
+            meanent = U.mean(ent)
+            pol_entpen = (-entcoeff) * meanent
 
-        ratio = tf.exp(self.pi.pd.logp(ac) - self.oldpi.pd.logp(ac))  # pnew / pold
-        surr1 = ratio * atarg  # surrogate from conservative policy iteration
-        surr2 = U.clip(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg  #
-        pol_surr = - U.mean(tf.minimum(surr1, surr2))  # PPO's pessimistic surrogate (L^CLIP)
-        vf_loss = U.mean(tf.square(self.pi.vpred - ret))
-        total_loss = pol_surr + pol_entpen + vf_loss
-        losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
+            ratio = tf.exp(self.pi.pd.logp(ac) - self.oldpi.pd.logp(ac))  # pnew / pold
+            surr1 = ratio * atarg  # surrogate from conservative policy iteration
+            surr2 = U.clip(ratio, 1.0 - clip_param, 1.0 + clip_param) * atarg  #
+            pol_surr = - U.mean(tf.minimum(surr1, surr2))  # PPO's pessimistic surrogate (L^CLIP)
+            vf_loss = U.mean(tf.square(self.pi.vpred - ret))
+            total_loss = pol_surr + pol_entpen + vf_loss
+            losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
 
-        var_list = self.pi.get_trainable_variables()
-        self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
-        self.adam = MpiAdam(var_list, epsilon=adam_epsilon)
+            var_list = self.pi.get_trainable_variables()
+            self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+            self.adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
-        self.assign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
-                                                        for (oldv, newv) in
-                                                        zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
-        self.compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
+            self.assign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
+                                                            for (oldv, newv) in
+                                                            zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
+            self.compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
 
-        U.initialize()
-        self.adam.sync()
+            U.initialize()
+            self.adam.sync()
 
     def load(self, name):
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
@@ -145,6 +146,11 @@ class LineModel_PPO1:
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
         sess = U.get_session()
         saver.save(sess, name)
+
+    def gen_input(self, cur_state, hero_name, rival_hero):
+        cur_line_input = Line_Input_Lite(cur_state, hero_name, rival_hero)
+        cur_state_input = cur_line_input.gen_line_input()
+        return cur_state_input
 
     def remember(self, cur_state, new_state, vpred, prevac):
         hero_name = self.hero
@@ -159,10 +165,10 @@ class LineModel_PPO1:
                     rival_hero = hero.hero_name
                     break
 
-            cur_line_input = Line_input(cur_state, hero_name, rival_hero)
+            cur_line_input = Line_Input_Lite(cur_state, hero_name, rival_hero)
             cur_state_input = cur_line_input.gen_line_input()
 
-            new_line_input = Line_input(new_state, hero_name, rival_hero)
+            new_line_input = Line_Input_Lite(new_state, hero_name, rival_hero)
             new_state_input = new_line_input.gen_line_input()
 
             new = True if new_state.get_hero(hero_name).hp <= 0 else False
@@ -209,23 +215,19 @@ class LineModel_PPO1:
             nonterminal = 1 - new[t + 1]
             delta = rew[t] + gamma * vpred[t + 1] * nonterminal - vpred[t]
             gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-            print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
+            # print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
-    def replay(self, next_vpred):
+    def replay(self, seg):
         if self.schedule == 'constant':
             cur_lrmult = 1.0
         elif self.schedule == 'linear':
             cur_lrmult = max(1.0 - float(self.timesteps_so_far) / self.max_timesteps, 0)
 
-        new = self.news[-1]
-        seg = {"ob": self.obs, "rew": self.rews, "vpred": self.vpreds, "new": self.news,
-         "ac": self.acs, "prevac": self.prevacs, "nextvpred": next_vpred * (1 - new),
-         "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        print(seg)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -283,20 +285,27 @@ class LineModel_PPO1:
     def get_action(self, state_info, hero_name, rival_hero):
         self.act_times += 1
 
-        line_input = Line_input(state_info, hero_name, rival_hero)
+        line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input()
+        state_input = np.array(state_input)
 
         # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
         # print(input_detail)
 
         stochastic = True
         actions, vpred = self.pi.act(stochastic, state_input)
+        actions = np.array([actions])
 
-        action=LineModel.select_actions(actions, state_info, hero_name, rival_hero)
+        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
+        action.vpred = vpred
 
         # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
         #        (str(action.output_index), input_detail, action_detail))
-        return action, vpred
+        return action
+
+    @staticmethod
+    def get_reward(state_infos, state_index, hero_name, rival_hero, line_idx):
+        return LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero, line_idx)
 
     @staticmethod
     def update_state_rewards(state_infos, state_index, hero_names=None):
