@@ -52,7 +52,7 @@ class PPO_CACHE:
         self.iters_so_far = 0
         self.tstart = time.time()
 
-    def remember(self, ob, ac, vpred, new, rew, prev_new, prev_ac):
+    def remember(self, ob, ac, vpred, new, rew, prev_new):
         if self.t > 0 and self.t % self.horizon == 0:
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
@@ -64,7 +64,8 @@ class PPO_CACHE:
         # 这里记录的new不是结果中的？
         self.news[i] = prev_new
         self.acs[i] = ac
-        self.prevacs[i] = prev_ac
+        prev_act = self.acs[i-1]
+        self.prevacs[i] = prev_act
         self.rews[i] = rew
 
         self.cur_ep_ret += rew

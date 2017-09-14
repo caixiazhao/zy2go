@@ -56,11 +56,6 @@ class LineTrainerPPO:
             self.model2_cache = model2_cache
         else:
             self.model2 = None
-
-        self.model1_prev_act = 0
-        self.model1_act = 0
-        self.model2_prev_act = 0
-        self.model2_act = 0
         self.save_batch = 20
 
         tvars = tf.trainable_variables()
@@ -70,10 +65,11 @@ class LineTrainerPPO:
             print(var.name, val)
 
     def remember_replay(self, state_infos, state_index, model_cache, model, hero_name, rival_hero,
-                        prev_act, model_save_header, line_idx=1):
+                        model_save_header, line_idx=1):
         prev_state = state_infos[state_index-1]
         state_info = state_infos[state_index]
         next_state = state_infos[state_index+1]
+        hero_info = state_info.get_hero(hero_name)
         hero_act = state_info.get_hero_action(hero_name)
         if hero_act is not None:
             # prev_new 简单计算，可能会有问题
@@ -86,9 +82,16 @@ class LineTrainerPPO:
             ac = hero_act.output_index
             vpred = hero_act.vpred
             new = StateUtil.if_hero_dead(state_info, next_state, hero_name)
-            rew = model.get_reward(state_infos, state_index, hero_name, rival_hero, line_idx)
+            # 考虑第一个塔被打掉的情况
+            tower_destroyed = StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1)
+            if tower_destroyed is not None:
+                new = 1
+                # TODO 这个值应该设置成多少
+                rew = 1 if int(tower_destroyed) != hero_info.team else -1
+            else:
+                rew = model.cal_target_ppo(prev_state, state_info, next_state, hero_name, rival_hero, line_idx)
             state_info.add_rewards(hero_name, rew)
-            model_cache.remember(ob, ac, vpred, new, rew, prev_new, prev_act)
+            model_cache.remember(ob, ac, vpred, new, rew, prev_new)
 
             if o4r is not None:
                 replay_time = model.iters_so_far
@@ -130,20 +133,20 @@ class LineTrainerPPO:
             actions_model2 = self.build_response(state_info, prev_state_info, self.model2, self.model2_hero)
             action_strs.extend(actions_model2)
 
-        reward_state_idx = len(self.state_cache) - LineModel.REWARD_DELAY_STATE_NUM
+        reward_state_idx = len(self.state_cache) - 2
         # print('reward_state_idx: ' + str(reward_state_idx))
         state_with_reward = None
-        if reward_state_idx > 1:
+        if reward_state_idx >= 1:
             added = self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model1,
-                                         self.model1_hero, self.model2_hero, self.model1_prev_act, self.model1_save_header)
+                                         self.model1_hero, self.model2_hero, self.model1_save_header)
             if self.model2 is not None:
                 added = self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model2,
-                                             self.model2_hero, self.model1_hero, self.model2_prev_act,
-                                             self.model2_save_header)
+                                             self.model2_hero, self.model1_hero, self.model2_save_header)
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
-        if StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1):
+        tower_destroyed = StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1)
+        if tower_destroyed is not None:
             print('重新开始游戏')
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
@@ -299,13 +302,6 @@ class LineTrainerPPO:
             action = line_model.get_action(state_info, hero.hero_name, rival_hero)
             action_str = StateUtil.build_command(action)
             action_strs.append(action_str)
-
-            if hero_name == self.model1_hero:
-                self.model1_prev_act = self.model1_act
-                self.model1_act = action.output_index
-            else:
-                self.model2_prev_act = self.model2_act
-                self.model2_act = action.output_index
 
             # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
             if action.action == CmdActionEnum.CAST and int(action.skillid) == 6:

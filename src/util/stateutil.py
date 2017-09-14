@@ -74,9 +74,9 @@ class StateUtil:
             if int(unit.unit_name) <= 26:
                 if StateUtil.if_in_line(unit, line_idx) >= 0:
                     if unit.hp <= 0:
-                        print(unit.unit_name + '塔被摧毁')
-                        return True
-        return False
+                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team))
+                        return unit.team
+        return None
 
     @staticmethod
     def get_tower_hp_change(state_info, next_info, hero_name, line_idx, self_tower=True):

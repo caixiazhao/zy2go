@@ -304,21 +304,81 @@ class LineModel_PPO1:
         return action
 
     @staticmethod
-    def get_reward(state_infos, state_index, hero_name, rival_hero, line_idx):
-        return LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero, line_idx)
+    # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算
+    # 另外最核心的是，ppo本身就不要要求奖惩值是根据上一个行动来得到的
+    def cal_target_ppo(prev_state, cur_state, next_state, hero_name, rival_hero_name, line_idx):
+        # 只计算当前帧的得失，得失为金币获取情况 + 敌方血量变化
+        # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        rival_team = cur_rival_hero.team
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        next_hero = next_state.get_hero(hero_name)
+        next_rival_hero = next_state.get_hero(rival_hero_name)
+        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
+        dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
+        dead_unit_str = (','.join([u.unit_name for u in dead_units]))
 
-    @staticmethod
-    def update_state_rewards(state_infos, state_index, hero_names=None):
-        state_info = state_infos[state_index]
-        line_idx = 1
-        if hero_names is None:
-            hero_names = [h.hero_name for h in state_info.heros]
-        for hero_name in hero_names:
-            # TODO 这些参数应该是传入的
-            # 只有有Action的玩家才评估行为打分
-            hero_action = state_info.get_hero_action(hero_name)
-            if hero_action is not None:
-                rival_hero_name = '27' if hero_name == '28' else '28'
-                reward = LineModel_DQN.cal_target_v3(state_infos, state_index, hero_name, rival_hero_name, line_idx)
-                state_info.add_rewards(hero_name, reward)
-        return state_info
+        # 如果英雄有小额金币变化，则忽略
+        gold_delta = next_hero.gold - cur_hero.gold
+        if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
+            gold_delta -= 3
+
+        # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
+        # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
+        # TODO 这个金币奖励值应该是个变化值，目前取的是最小值
+        prev_state_rival = prev_state.get_hero(rival_hero_name)
+        if prev_state_rival.hp > 0 and cur_rival_hero.hp <= 0 and gold_delta >= 80 > dead_golds:
+            print("敌方英雄死亡奖励，扣减")
+            gold_delta = int(dead_golds / 2)
+
+        # 计算对指定敌方英雄造成的伤害，计算接受的伤害
+        # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
+        # 这里只计算下一帧中英雄对对方造成的伤害
+        # 扩大自己受到伤害的惩罚
+        # 扩大对方低血量下受到伤害的奖励
+        # 扩大攻击伤害的权重
+        # TODO 防御型辅助型法术的定义，辅助法术不能乱放，否则惩罚
+        dmg = next_state.get_hero_total_dmg(hero_name, rival_hero_name) / float(cur_rival_hero.maxhp)
+        dmg *= 3 * cur_rival_hero.maxhp / float(cur_rival_hero.hp + cur_rival_hero.maxhp)
+
+        # 估算玩家接收的伤害时候，只考虑下一帧中的变化，像塔的攻击需要飞行所有有延迟这种情况这里不需要考虑
+        self_hp_loss = (cur_hero.hp - next_hero.hp) / float(cur_hero.maxhp) / 2 if (
+            cur_hero.hp >= next_hero.hp >= next_hero.hp) else 0
+        self_hp_loss *= 3 * cur_hero.maxhp / float(cur_hero.hp + cur_hero.maxhp)
+        dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
+
+        # 统计和更新变量
+        print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
+              'dead_units: %s'
+              % (
+              hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str))
+
+        # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
+        # 最大惩罚是被对方造成了一条命伤害
+        # 零分为获得了所有的死亡奖励
+        reward = float(gold_delta + dmg_delta) / 100
+
+        # 特殊情况处理
+        # 鼓励攻击对方小兵,塔
+        if_hit_unit = next_state.if_hero_hit_unit(hero_name, rival_hero_name)
+        if if_hit_unit is not None:
+            print("物理攻击到了小兵", if_hit_unit)
+            reward += 0.01
+        if_hit_tower = next_state.if_hero_hit_tower(hero_name)
+        if if_hit_tower is not None:
+            print("物理攻击到了塔", if_hit_tower)
+            reward += 0.01
+
+        # 特殊奖励，放在最后面
+        # 英雄击杀最后一击，直接最大奖励
+        if cur_rival_hero.hp > 0 and next_rival_hero.hp <= 0:
+            print('对线英雄%s死亡' % rival_hero_name)
+            dmg_hit_rival = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            if dmg_hit_rival > 0:
+                print('英雄%s对对方造成了最后一击' % hero_name)
+                reward = 1
+
+        if cur_hero.hp > 0 and next_hero.hp <= 0:
+            reward = -1
+        return min(max(reward, -1), 1)
