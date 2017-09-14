@@ -91,7 +91,10 @@ class S(BaseHTTPRequestHandler):
         post_data = post_data.decode()
         if post_data == 'save':
             print('save model(s)')
-            self.line_trainer.save_models()
+            replay_time = self.model_1.iters_so_far
+            self.model_1.save(self.model1_save_header + str(replay_time) + '/model')
+            replay_time = self.model_2.iters_so_far
+            self.model_2.save(self.model2_save_header + str(replay_time) + '/model')
         self._set_headers()
         self.wfile.write("copy that! ".encode(encoding="utf-8"))
 
