@@ -155,7 +155,8 @@ class CategoricalPd(Pd):
         return tf.argmax(self.logits - tf.log(-tf.log(u)), axis=-1)
     def full_sample(self):
         u = tf.random_uniform(tf.shape(self.logits))
-        return self.logits - tf.log(-tf.log(u))
+        s = self.logits - tf.log(-tf.log(u))
+        return tf.nn.l2_normalize(s, 1)
     @classmethod
     def fromflat(cls, flat):
         return cls(flat)
