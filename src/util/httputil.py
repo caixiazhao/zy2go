@@ -11,7 +11,7 @@ import numpy as np
 class HttpUtil:
     @staticmethod
     def build_models_ppo(model1_path=None, model2_path=None, initial_p=1.0, final_p=0.02):
-        set_global_seeds(1000)
+        set_global_seeds(2000)
         ob_size = 183
         act_size = 48
         ob = np.zeros(ob_size, dtype=float).tolist()

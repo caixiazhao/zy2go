@@ -58,7 +58,6 @@ def call_lm(env, policy_fn, num_timesteps):
     model = LineModel_PPO1(env.observation_space, env.action_space, None, ob, ac, policy_fn,
                            update_target_period=256, schedule='linear', max_timesteps=num_timesteps)
     while True:
-        prevac = ac
         prevnew = new
         stochastic = True
         ac, vpred = model.pi.act(stochastic, ob)
@@ -66,7 +65,9 @@ def call_lm(env, policy_fn, num_timesteps):
         if o4r is not None:
             model.replay(o4r)
         ob, rew, new, _ = env.step(ac)
-        cache.remember(ob, ac, vpred, new, rew, prevnew, prevac)
+        cache.remember(ob, ac, vpred, new, rew, prevnew)
+        if new:
+            ob = env.reset()
 
 def main():
     import argparse

@@ -123,10 +123,24 @@ class LineModel_PPO1:
             pol_surr = - U.mean(tf.minimum(surr1, surr2))  # PPO's pessimistic surrogate (L^CLIP)
             vf_loss = U.mean(tf.square(self.pi.vpred - ret))
             total_loss = pol_surr + pol_entpen + vf_loss
-            losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
+
 
             var_list = self.pi.get_trainable_variables()
-            self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+
+            # more debug info
+            debug_atarg = atarg
+            pi_ac = self.pi.pd.logp(ac)
+            opi_ac = self.oldpi.pd.logp(ac)
+            vpred = U.mean(self.pi.vpred)
+            pi_pd = U.mean(self.pi.pd.flatparam())
+            opi_pd = self.oldpi.pd.flatparam()[0]
+            kl_oldnew = kloldnew[0]
+            grads = tf.gradients(total_loss, var_list)
+
+            losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
+            debugs = [debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss]
+
+            self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + debugs + [var_list, grads] + [U.flatgrad(total_loss, var_list)])
             self.adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
             self.assign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
@@ -215,11 +229,13 @@ class LineModel_PPO1:
             nonterminal = 1 - new[t + 1]
             delta = rew[t] + gamma * vpred[t + 1] * nonterminal - vpred[t]
             gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-            # print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
+            print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
     def replay(self, seg):
+        print(self.scope + " training")
+
         if self.schedule == 'constant':
             cur_lrmult = 1.0
         elif self.schedule == 'linear':
@@ -227,7 +243,7 @@ class LineModel_PPO1:
 
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        # print(seg)
+        print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -245,9 +261,16 @@ class LineModel_PPO1:
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(self.optim_batchsize):
-                # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
-                *newlosses, g = self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
-                self.adam.update(g, self.optim_stepsize * cur_lrmult)
+                print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
+                *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
+                    self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
+                      "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
+                if np.isnan(np.mean(g)):
+                    debug = 1
+                    print('output nan, ignore it!')
+                else:
+                    self.adam.update(g, self.optim_stepsize * cur_lrmult)
                 losses.append(newlosses)
             logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
@@ -266,6 +289,8 @@ class LineModel_PPO1:
         lens, rews = map(self.flatten_lists, zip(*listoflrpairs))
         self.lenbuffer.extend(lens)
         self.rewbuffer.extend(rews)
+        last_rew = self.rewbuffer[-1] if len(self.rewbuffer) > 0 else 0
+        logger.record_tabular("LastRew", last_rew)
         logger.record_tabular("LastLen", 0 if len(self.lenbuffer) <= 0 else self.lenbuffer[-1])
         logger.record_tabular("EpLenMean", np.mean(self.lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(self.rewbuffer))
@@ -276,6 +301,7 @@ class LineModel_PPO1:
         logger.record_tabular("EpisodesSoFar", self.episodes_so_far)
         logger.record_tabular("TimestepsSoFar", self.timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - self.tstart)
+        logger.record_tabular("IterSoFar", self.iters_so_far)
         if MPI.COMM_WORLD.Get_rank() == 0:
             logger.dump_tabular()
 
