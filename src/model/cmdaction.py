@@ -5,7 +5,7 @@
 from model.fwdstateinfo import FwdStateInfo
 from model.posstateinfo import PosStateInfo
 class CmdAction(object):
-    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward):
+    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward, vpred=0):
         self.hero_name = hero_name
         self.action = action
         self.skillid = str(skillid)
@@ -15,6 +15,7 @@ class CmdAction(object):
         self.itemid = itemid
         self.output_index = output_index
         self.reward = reward
+        self.vpred = vpred  # for ppo
 
     @staticmethod
     def decode(obj):
@@ -27,11 +28,12 @@ class CmdAction(object):
         itemid = obj['itemid'] if 'itemid' in obj else None
         output_index = obj['output_index'] if 'output_index' in obj else None
         reward = obj['reward'] if 'reward' in obj else None
-        return CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward)
+        vpred = obj['vpred'] if 'vpred' in obj else None
+        return CmdAction(hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward, vpred)
 
     def encode(self):
         json_map = {'hero_name': self.hero_name, 'action': self.action, 'skillid': self.skillid, 'tgtid': self.tgtid, \
-                    'itemid':self.itemid, 'output_index': self.output_index, 'reward': self.reward}
+                    'itemid':self.itemid, 'output_index': self.output_index, 'reward': self.reward, 'vpred': self.vpred}
         if self.tgtpos is not None:
             json_map['tgtpos'] = self.tgtpos.encode()
         if self.fwd is not None:

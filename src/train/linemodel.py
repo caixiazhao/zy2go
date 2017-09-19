@@ -15,6 +15,7 @@ import random
 #from model.action import Action
 #from train.actioncommandenum import ActionCommandEnum
 from model.cmdaction import CmdAction
+from model.posstateinfo import PosStateInfo
 from model.skillcfginfo import SkillTargetEnum
 from train.cmdactionenum import CmdActionEnum
 from train.line_input import Line_input
@@ -334,7 +335,8 @@ class LineModel:
             print("随机选择操作 " + str(selected))
         if selected < 8:  # move
             fwd = StateUtil.mov(selected)
-            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, selected, None)
+            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 7, hero.pos.y + fwd.y * 7, hero.pos.z + fwd.z * 7)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔

@@ -6,6 +6,9 @@ from baselines import bench
 import os.path as osp
 import gym, logging
 from baselines import logger
+from train.linemodel_ppo1 import LineModel_PPO1
+from util.ppocache import PPO_CACHE
+
 
 def wrap_train(env):
     from baselines.common.atari_wrappers import (wrap_deepmind, FrameStack)
@@ -21,6 +24,7 @@ def train(env_id, num_frames, seed):
     sess.__enter__()
     if rank != 0: logger.set_level(logger.DISABLED)
     workerseed = seed + 10000 * MPI.COMM_WORLD.Get_rank()
+    print("workerseed", workerseed)
     set_global_seeds(workerseed)
     env = gym.make(env_id)
     def policy_fn(name, ob_space, ac_space): #pylint: disable=W0613
@@ -34,21 +38,42 @@ def train(env_id, num_frames, seed):
     num_timesteps = int(num_frames / 4 * 1.1)
     env.seed(workerseed)
 
-    pposgd_simple.learn(env, policy_fn,
-        max_timesteps=num_timesteps,
-        timesteps_per_batch=256,
-        clip_param=0.2, entcoeff=0.01,
-        optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
-        gamma=0.99, lam=0.95,
-        schedule='linear'
-    )
+    # pposgd_simple.learn(env, policy_fn,
+    #     max_timesteps=num_timesteps,
+    #     timesteps_per_batch=256,
+    #     clip_param=0.2, entcoeff=0.01,
+    #     optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
+    #     gamma=0.99, lam=0.95,
+    #     schedule='linear'
+    # )
+    call_lm(env, policy_fn, num_timesteps)
     env.close()
+
+def call_lm(env, policy_fn, num_timesteps):
+
+    ob = env.reset()
+    ac = env.action_space.sample()
+    cache = PPO_CACHE(ob, ac, horizon=256)
+    new = True # marks if we're on first timestep of an episode
+    model = LineModel_PPO1(env.observation_space, env.action_space, None, ob, ac, policy_fn,
+                           update_target_period=256, schedule='linear', max_timesteps=num_timesteps)
+    while True:
+        prevnew = new
+        stochastic = True
+        ac, vpred = model.pi.act(stochastic, ob)
+        o4r = cache.output4replay(prevnew, vpred)
+        if o4r is not None:
+            model.replay(o4r)
+        ob, rew, new, _ = env.step(ac)
+        cache.remember(ob, ac, vpred, new, rew, prevnew)
+        if new:
+            ob = env.reset()
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--env', help='environment ID', default='PongNoFrameskip-v4')
-    parser.add_argument('--seed', help='RNG seed', type=int, default=0)
+    parser.add_argument('--seed', help='RNG seed', type=int, default=1000)
     args = parser.parse_args()
     train(args.env, num_frames=40e6, seed=args.seed)
 
