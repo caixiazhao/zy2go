@@ -75,6 +75,7 @@ def add_vtarg_and_adv(seg, gamma, lam):
         nonterminal = 1-new[t+1]
         delta = rew[t] + gamma * vpred[t+1] * nonterminal - vpred[t]
         gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
+        # print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t + 1], 'vpred_t', vpred[t])
     seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
 def learn(env, policy_func, *,
@@ -163,6 +164,7 @@ def learn(env, policy_func, *,
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -200,6 +202,7 @@ def learn(env, policy_func, *,
         lens, rews = map(flatten_lists, zip(*listoflrpairs))
         lenbuffer.extend(lens)
         rewbuffer.extend(rews)
+        logger.record_tabular("LastLen", 0 if len(lenbuffer) <= 0 else lenbuffer[-1])
         logger.record_tabular("EpLenMean", np.mean(lenbuffer))
         logger.record_tabular("EpRewMean", np.mean(rewbuffer))
         logger.record_tabular("EpThisIter", len(lens))

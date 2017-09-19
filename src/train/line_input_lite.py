@@ -6,7 +6,7 @@ from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 
 
-class Line_input:
+class Line_Input_Lite:
     NORMARLIZE = 10000
 
     #注：这个值需要小心调整，会和找附近塔的逻辑有冲突
@@ -30,7 +30,7 @@ class Line_input:
             team_input.append(team)
         return team_input
 
-    # 返回总信息向量大小=2*70+9*3+16*7=270
+    # 返回总信息向量大小=2*22+9*3+16*7=183
     def gen_line_input(self):
         state=[]
 
@@ -100,16 +100,16 @@ class Line_input:
         return state
 
     def normalize_value(self, value):
-        return float(value)/Line_input.NORMARLIZE
+        return float(value)/Line_Input_Lite.NORMARLIZE
 
     def normalize_skill_value(self, value):
         return float(value)/10
 
     #TODO 需要更多注释
-    # 英雄信息向量大小13+3*19
+    # 英雄信息向量大小7+3*5
     def gen_input_hero(self, hero, rival_towers):
         if hero.state == 'out' or hero.hp <= 0:
-            return list(np.zeros(13+3*19))
+            return list(np.zeros(7+3*5))
 
         dis_rival = 10000
         if len(rival_towers) > 0:
@@ -119,19 +119,19 @@ class Line_input:
         hero_input = [self.normalize_value(int(hero.hero_name)),
                   self.normalize_value(hero.pos.x),
                   self.normalize_value(hero.pos.z),
-                  self.normalize_value(hero.speed),
-                  self.normalize_value(hero.att),
-                  # todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
-                  0.2,
-                  self.normalize_value(hero.mag),
+                  # self.normalize_value(hero.speed),
+                  # self.normalize_value(hero.att),
+                  # # todo: 2 是普攻手长，现只适用于1,2号英雄，其他英雄可能手长不同
+                  # 0.2,
+                  # self.normalize_value(hero.mag),
                   self.normalize_value(hero.hp),
                   hero.hp/float(hero.maxhp),
-                  self.normalize_value(hero.mp),
+                  # self.normalize_value(hero.mp),
                   self.normalize_value(dis_rival),
                   hero.team]
 
-        is_enemy_visible = hero.is_enemy_visible()
-        hero_input.append(int(is_enemy_visible))
+        # is_enemy_visible = hero.is_enemy_visible()
+        # hero_input.append(int(is_enemy_visible))
 
         skill_info1 = SkillUtil.get_skill_info(hero.cfg_id, 1)
         skill_info2 = SkillUtil.get_skill_info(hero.cfg_id, 2)
@@ -143,32 +143,32 @@ class Line_input:
         hero_input=hero_input+skill_input1+skill_input2+skill_input3
         return hero_input
 
-    # 技能信息向量大小=16+3
+    # 技能信息向量大小=5
     def gen_input_skill(self, skill_cfg_info, skill):
         skill_input = [
-            self.normalize_skill_value(skill_cfg_info.instant_dmg),
-            self.normalize_skill_value(skill_cfg_info.sustained_dmg),
-            self.normalize_skill_value(skill_cfg_info.restore),
-            self.normalize_skill_value(skill_cfg_info.defend_bonus),
-            self.normalize_skill_value(skill_cfg_info.attack_bonus),
-            self.normalize_skill_value(skill_cfg_info.restore_bonus),
-            self.normalize_skill_value(skill_cfg_info.move_bonus),
-            self.normalize_skill_value(skill_cfg_info.defend_weaken),
-            self.normalize_skill_value(skill_cfg_info.attack_weaken),
-            self.normalize_skill_value(skill_cfg_info.move_weaken),
-            self.normalize_skill_value(skill_cfg_info.stun),
-            self.normalize_skill_value(skill_cfg_info.blink),
+            # self.normalize_skill_value(skill_cfg_info.instant_dmg),
+            # self.normalize_skill_value(skill_cfg_info.sustained_dmg),
+            # self.normalize_skill_value(skill_cfg_info.restore),
+            # self.normalize_skill_value(skill_cfg_info.defend_bonus),
+            # self.normalize_skill_value(skill_cfg_info.attack_bonus),
+            # self.normalize_skill_value(skill_cfg_info.restore_bonus),
+            # self.normalize_skill_value(skill_cfg_info.move_bonus),
+            # self.normalize_skill_value(skill_cfg_info.defend_weaken),
+            # self.normalize_skill_value(skill_cfg_info.attack_weaken),
+            # self.normalize_skill_value(skill_cfg_info.move_weaken),
+            # self.normalize_skill_value(skill_cfg_info.stun),
+            # self.normalize_skill_value(skill_cfg_info.blink),
             self.normalize_skill_value(skill_cfg_info.dmg_range),
             self.normalize_skill_value(skill_cfg_info.cast_distance),
             # 是否可以给自己和敌人施法
             1 if skill_cfg_info.cast_target == SkillTargetEnum.self or skill_cfg_info.cast_target == SkillTargetEnum.both else 0,
             1 if skill_cfg_info.cast_target == SkillTargetEnum.rival or skill_cfg_info.cast_target == SkillTargetEnum.both else 0]
 
-        skill_cost = skill.cost if skill.cost is not None else 0
-        skill_max_cd = skill.max_cd if skill.max_cd is not None else 0
+        # skill_cost = skill.cost if skill.cost is not None else 0
+        # skill_max_cd = skill.max_cd if skill.max_cd is not None else 0
         skill_canuse = int(skill.canuse) if skill.canuse is not None else 0
-        skill_input.append(self.normalize_value(skill_cost))
-        skill_input.append(self.normalize_value(skill_max_cd))
+        # skill_input.append(self.normalize_value(skill_cost))
+        # skill_input.append(self.normalize_value(skill_max_cd))
         skill_input.append(skill_canuse)
         return skill_input
 

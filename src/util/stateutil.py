@@ -41,6 +41,12 @@ class StateUtil:
          PosStateInfo(-52900, 0, 14800), PosStateInfo(-56800, 0, 2600)]]
 
     @staticmethod
+    def if_hero_dead(prev_state, cur_state, hero_name):
+        prev_hero = prev_state.get_hero(hero_name)
+        cur_hero = cur_state.get_hero(hero_name)
+        return 1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
+
+    @staticmethod
     def get_attack_cast_dmg(cur_state, next_state, next_next_state, hero_name, rival_hero):
         dmg = 0
         cur_act = cur_state.get_hero_action(hero_name)
@@ -68,9 +74,9 @@ class StateUtil:
             if int(unit.unit_name) <= 26:
                 if StateUtil.if_in_line(unit, line_idx) >= 0:
                     if unit.hp <= 0:
-                        print(unit.unit_name + '塔被摧毁')
-                        return True
-        return False
+                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team))
+                        return unit.team
+        return None
 
     @staticmethod
     def get_tower_hp_change(state_info, next_info, hero_name, line_idx, self_tower=True):
@@ -370,6 +376,12 @@ class StateUtil:
                     if StateUtil.cal_distance(unit.pos, hero_state.pos) < distance:  # 根据配置得来
                         towers.append(unit)
         return towers
+
+    @staticmethod
+    def cal_distance2(pos1, pos2):
+        # 忽略y值
+        distance = math.sqrt((pos1.x - pos2.x) * (pos1.x - pos2.x) + (pos1.z - pos2.z) * (pos1.z - pos2.z))
+        return distance
 
     @staticmethod
     def cal_distance(pos1, pos2):
