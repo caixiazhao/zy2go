@@ -439,7 +439,8 @@ class StateUtil:
         if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:
-            return {"hero_id": action.hero_name, "action": 'HOLD'}
+            # 设置hold的行为为移动到本地。因为如果之前一个动作是攻击，hold等于继续攻击
+            return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         if action.action == CmdActionEnum.RETREAT:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         raise ValueError('unexpected action type ' + str(action.action))

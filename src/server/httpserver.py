@@ -64,8 +64,8 @@ class S(BaseHTTPRequestHandler):
             #                                                          )
             # PPO
             ob = np.zeros(183, dtype=float).tolist()
-            model1_cache = PPO_CACHE(ob, 1, horizon=64)
-            model2_cache = PPO_CACHE(ob, 1, horizon=64)
+            model1_cache = PPO_CACHE(ob, 1, horizon=self.model_1.optim_batchsize)
+            model2_cache = PPO_CACHE(ob, 1, horizon=self.model_2.optim_batchsize)
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
                              '28', self.model_2, self.model2_save_header, model2_cache)
@@ -103,10 +103,12 @@ class S(BaseHTTPRequestHandler):
 
     line_trainers = {}
     real_heros = None
-    save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(model1_path=None,
-                          model2_path=None,
-                          initial_p=0.5,
-                          final_p=0)
+    save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
+        model1_path=None,
+        model2_path=None,
+        schedule_timesteps=10000,
+        initial_p=0.5,
+        final_p=0.05)
 
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)

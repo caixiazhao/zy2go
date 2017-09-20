@@ -31,7 +31,7 @@ class LineModel_PPO1:
 
     def __init__(self, statesize, actionsize, hero, ob, ac,
                  policy_func=None,
-                 update_target_period=100, scope="ppo1", initial_p=1.0, final_p=0.02,
+                 update_target_period=100, scope="ppo1", schedule_timesteps=10000, initial_p=0, final_p=0,
                  gamma=0.99, lam=0.95,
                  optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,  # optimization hypers
                  schedule='linear', max_timesteps=40e6
@@ -83,6 +83,7 @@ class LineModel_PPO1:
         self.timesteps_so_far = 0
         self.iters_so_far = 0
 
+        self.exploration = LinearSchedule(schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
         policy_func = LinePPOModel if LinePPOModel is None else policy_func
         self._build_model(input_space=statesize, action_size=actionsize, policy_func=policy_func)
 
@@ -123,7 +124,6 @@ class LineModel_PPO1:
             pol_surr = - U.mean(tf.minimum(surr1, surr2))  # PPO's pessimistic surrogate (L^CLIP)
             vf_loss = U.mean(tf.square(self.pi.vpred - ret))
             total_loss = pol_surr + pol_entpen + vf_loss
-
 
             var_list = self.pi.get_trainable_variables()
 
@@ -193,8 +193,8 @@ class LineModel_PPO1:
             self.news[i] = new
             self.acs[i] = selected_action_idx
             self.prevacs[i] = prevac
-            self.t += 1
             self.rews[i] = reward
+            self.t += 1
 
             self.cur_ep_ret += reward
             self.cur_ep_len += 1
@@ -204,15 +204,8 @@ class LineModel_PPO1:
                 self.cur_ep_ret = 0
                 self.cur_ep_len = 0
 
-    def if_replay(self):
-        if self.t >= self.update_target_period:
-            return True
-        if self.news[-1]:
-            return True
-        return False
-
     def get_memory_size(self):
-        return self.t
+        return self.iters_so_far
 
     def add_vtarg_and_adv(self, seg, gamma, lam):
         """
@@ -319,7 +312,9 @@ class LineModel_PPO1:
         # print(input_detail)
 
         stochastic = True
-        actions, vpred = self.pi.act(stochastic, state_input)
+        explor_value = self.exploration.value(self.act_times)
+        print("ppo1 model exploration value is ", explor_value)
+        actions, vpred = self.pi.act(stochastic=stochastic, update_eps=explor_value, ob=state_input)
         actions = np.array([actions])
 
         action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
@@ -345,18 +340,12 @@ class LineModel_PPO1:
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
         dead_unit_str = (','.join([u.unit_name for u in dead_units]))
 
-        # 如果英雄有小额金币变化，则忽略
-        gold_delta = next_hero.gold - cur_hero.gold
-        if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
-            gold_delta -= 3
-
-        # 忽略英雄死亡的奖励金，这部分金币在其他地方计算
-        # 这里暂时将英雄获得金币清零了，因为如果英雄表现好（最后一击，会在后面有所加成）
-        # TODO 这个金币奖励值应该是个变化值，目前取的是最小值
-        prev_state_rival = prev_state.get_hero(rival_hero_name)
-        if prev_state_rival.hp > 0 and cur_rival_hero.hp <= 0 and gold_delta >= 80 > dead_golds:
-            print("敌方英雄死亡奖励，扣减")
-            gold_delta = int(dead_golds / 2)
+        # 金币上，只计算最后一击的奖励
+        gold_delta = 0
+        for dead_unit in dead_units:
+            if cur_state.if_hero_hit_unit(hero_name, dead_unit.unit_name):
+                print('击杀信息，英雄 %s, 单位 %s' % (hero_name, dead_unit.unit_name))
+                gold_delta += StateUtil.get_unit_value(dead_unit.unit_name, dead_unit.cfg_id)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
         # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
@@ -387,7 +376,7 @@ class LineModel_PPO1:
 
         # 特殊情况处理
         # 鼓励攻击对方小兵,塔
-        if_hit_unit = next_state.if_hero_hit_unit(hero_name, rival_hero_name)
+        if_hit_unit = next_state.if_hero_hit_any_unit(hero_name, rival_hero_name)
         if if_hit_unit is not None:
             print("物理攻击到了小兵", if_hit_unit)
             reward += 0.01
@@ -396,6 +385,9 @@ class LineModel_PPO1:
             print("物理攻击到了塔", if_hit_tower)
             reward += 0.01
 
+        # 将所有奖励缩小
+        final_reward = reward / 10
+
         # 特殊奖励，放在最后面
         # 英雄击杀最后一击，直接最大奖励
         if cur_rival_hero.hp > 0 and next_rival_hero.hp <= 0:
@@ -403,8 +395,12 @@ class LineModel_PPO1:
             dmg_hit_rival = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             if dmg_hit_rival > 0:
                 print('英雄%s对对方造成了最后一击' % hero_name)
-                reward = 1
+                final_reward = 1
+                if cur_hero.hp > 0 and next_hero.hp <= 0:
+                    print('英雄死亡')
+                    final_reward = 0
 
         if cur_hero.hp > 0 and next_hero.hp <= 0:
-            reward = -1
-        return min(max(reward, -1), 1)
+            print('英雄死亡')
+            final_reward = -1
+        return min(max(final_reward, -1), 1)

@@ -33,7 +33,7 @@ class Replayer:
     # 这里计算的是prev_state_info中的玩家行为，也就是根据prev_state_info来计算当前状况，从state_info得到玩家在之前的实际行为，
     # 然后根据next_state来找到hitinfo
     # TODO 没有解决朝指定点释放的问题，action中的output_index没法指定。另外目前模型也学不会这个场景
-    def guess_player_action(prev_state_info, state_info, next_state_info, hero_name, rival_hero_name):
+    def guess_player_action(prev_state_info, state_info, next_state_info, next_next_state_info, hero_name, rival_hero_name):
         #针对每一帧，结合后一帧信息，判断英雄在该帧的有效操作
         #仅对于一对一线上模型有效
         #技能>攻击>走位
@@ -56,7 +56,7 @@ class Replayer:
 
             # 回城
             if hero_attack_info.skill == 10000:
-                action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 48, None)
+                action = CmdAction(hero_name, CmdActionEnum.CAST, 6, None, None, None, None, 49, None)
                 return action
             # 普攻，不会以自己为目标
             output_idx = None
@@ -76,9 +76,9 @@ class Replayer:
                             output_idx = i + 10
                 # attacinfo里没有目标，从hit里找目标
                 elif tgtid == 0:
-                    # hitinfo 和 dmginfo都有延迟
-                    hit_infos = next_state_info.get_hero_hit_with_skill(hero_name, skill)
-
+                    # hitinfo 和 dmginfo都有延迟，尤其是超远距离的攻击技能
+                    hit_infos = state_info.get_hero_hit_with_skill(hero_name, skill)
+                    hit_infos.extend(next_state_info.get_hero_hit_with_skill(hero_name, skill))
                     if len(hit_infos) > 0:
                         # 首先检查是否敌方英雄被击中，这种优先级最高
                         if rival_hero_name in [hit.tgt for hit in hit_infos]:
@@ -93,18 +93,16 @@ class Replayer:
                             else:
                                 # 从英雄附近的小兵中，检索它的编号
                                 # 注：极端情况下有可能丢失，比如在这0.5秒钟内，英雄接近了小兵并进行了攻击
-                                creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name)
+                                # 扩大搜索的范围
+                                creeps = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name,
+                                                                          max_distance=StateUtil.ATTACK_HERO_RADIUS+2)
                                 for i in range(len(creeps)):
                                     if creeps[i].unit_name == tgtid:
                                         output_idx = i + 10
-                if output_idx is None:
-                    action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None,
-                                       None, None, 49,
-                                       None)
-                else:
+                if output_idx is not None:
                     action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, tgtpos, None, None,
                                        output_idx, None)
-                return action
+                    return action
             # 使用技能，不考虑以敌方塔为目标（若真以敌方塔为目标则暂时先不管吧，现在的两个英雄技能都对建筑无效）
             # TODO 暂时忽略技能为方向/范围型并且放空的情况(部分技能无任何目标，tgt为0)。这种情况下应该会有个pos记录释放点，后续可以考虑如何学习
             else:
@@ -125,7 +123,10 @@ class Replayer:
                             output_idx = i + skillid * 10 + 10
                 # attacinfo里没有目标，从hit里找目标
                 elif tgtid == 0:
-                    hit_infos = next_state_info.get_hero_hit_with_skill(hero_name, skill)
+                    # 远程技能的伤害延迟可能会比较长
+                    hit_infos = state_info.get_hero_hit_with_skill(hero_name, skill)
+                    hit_infos.extend(next_state_info.get_hero_hit_with_skill(hero_name, skill))
+                    hit_infos.extend(next_next_state_info.get_hero_hit_with_skill(hero_name, skill))
 
                     if len(hit_infos) > 0:
                         # 首先检查是否敌方英雄被击中，这种优先级最高
@@ -180,23 +181,21 @@ class Replayer:
                         action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
                                            tgtpos, None, None, output_idx, None)
                         return action
-
                     else:  # 真的技能空放了
-                        action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49,
+                        action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, prev_hero.pos, None, None, 48,
                                            None)
                         return action
-                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
+                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, prev_hero.pos, None, None, 48, None)
                 return action
         # 没有角色进行攻击或使用技能，英雄在移动或hold
-        else:
-            if current_hero.pos.x != prev_hero.pos.x or current_hero.pos.z != prev_hero.pos.z or current_hero.pos.y != prev_hero.pos.y:  # 移动
-                fwd = current_hero.pos.fwd(prev_hero.pos)
-                [fwd, output_index] = Replayer.get_closest_fwd(fwd)
-                action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
-                return action
-            else:  # hold
-                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
-                return action
+        if current_hero.pos.x != prev_hero.pos.x or current_hero.pos.z != prev_hero.pos.z or current_hero.pos.y != prev_hero.pos.y:  # 移动
+            fwd = current_hero.pos.fwd(prev_hero.pos)
+            [fwd, output_index] = Replayer.get_closest_fwd(fwd)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
+            return action
+        else:  # hold
+            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, prev_hero.pos, None, None, 48, None)
+            return action
 
     @staticmethod
     def get_closest_fwd(fwd):

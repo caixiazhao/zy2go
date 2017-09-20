@@ -34,7 +34,13 @@ class StateInfo:
                 total_dmg += dmg.dmg
         return total_dmg
 
-    def if_hero_hit_unit(self, hero_name, rival_hero_name):
+    def if_hero_hit_unit(self, hero_name, unit_id):
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and dmg.tgt == unit_id:
+                return True
+        return False
+
+    def if_hero_hit_any_unit(self, hero_name, rival_hero_name):
         for dmg in self.dmg_infos:
             if dmg.atker == hero_name and int(dmg.tgt) > 27 and dmg.tgt != rival_hero_name and int(dmg.skillslot) == 0:
                 return dmg.tgt

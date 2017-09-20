@@ -306,7 +306,7 @@ class LineModel:
                     if debug: print("目标不符合施法要求")
                     continue
             elif selected == 48:  # 撤退
-                acts[selected] = -1
+                continue
             elif selected == 49:  # 撤退
                 acts[selected] = -1
         return acts
@@ -335,7 +335,7 @@ class LineModel:
             print("随机选择操作 " + str(selected))
         if selected < 8:  # move
             fwd = StateUtil.mov(selected)
-            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 7, hero.pos.y + fwd.y * 7, hero.pos.z + fwd.z * 7)
+            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
             action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
@@ -364,14 +364,15 @@ class LineModel:
                 fwd = tgtpos.fwd(hero.pos)
             action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
             return action
-        elif selected == 48:  # 撤退
+        elif selected == 48: # hold
+            print("轮到了48号行为-hold")
+            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 49, None)
+            return action
+        else:  # 撤退
             retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
             action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
             return action
-        else:  # hold
-            print("轮到了49号行为-hold")
-            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, None, None, None, 49, None)
-            return action
+
 
     @staticmethod
     def choose_skill_target(selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):

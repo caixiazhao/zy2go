@@ -10,16 +10,24 @@ import numpy as np
 
 class HttpUtil:
     @staticmethod
-    def build_models_ppo(model1_path=None, model2_path=None, initial_p=1.0, final_p=0.02):
+    def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000, initial_p=1.0, final_p=0.02, real_hero=None):
         set_global_seeds(2000)
         ob_size = 183
-        act_size = 48
+        act_size = 49
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
         model1_hero = '27'
         model2_hero = '28'
-        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1")
-        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2")
+        if real_hero == model1_hero:
+            model_1 = None
+        else:
+            model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=128,
+                            scope="model1", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
+        if real_hero == model2_hero:
+            model_2 = None
+        else:
+            model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=128,
+                            scope="model2", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
         save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
