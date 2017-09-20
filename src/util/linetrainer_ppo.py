@@ -209,6 +209,7 @@ class LineTrainerPPO:
         near_enemy_units = StateUtil.get_nearby_enemy_units(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
         nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero.hero_name,
                                                                 StateUtil.LINE_MODEL_RADIUS + 3)
+        nearest_friend_units = StateUtil.get_nearby_friend_units(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
 
         # 开始根据策略决定当前的行动
         # 对线情况下，首先拿到兵线，朝最前方的兵线移动
@@ -217,9 +218,12 @@ class LineTrainerPPO:
         line_index = 1
         near_enemy_units_in_line = StateUtil.get_units_in_line(near_enemy_units, line_index)
         nearest_enemy_tower_in_line = StateUtil.get_units_in_line([nearest_enemy_tower], line_index)
-        if len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0 and (
+        if (len(near_enemy_units_in_line) == 0 and len(nearest_enemy_tower_in_line) == 0 and (
                 len(near_enemy_heroes) == 0 or
-                StateUtil.if_in_line(hero, line_index, 4000) == -1):
+                StateUtil.if_in_line(hero, line_index, 4000) == -1)
+            ) or\
+            (len(nearest_friend_units) == 0 and len(near_enemy_units_in_line) == 0 and
+            len(near_enemy_heroes) == 0 and len(nearest_enemy_tower_in_line) == 1):
             self.hero_strategy[hero.hero_name] = ActionEnum.line_1
             # print("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
             # 跟兵线

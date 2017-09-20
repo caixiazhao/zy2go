@@ -322,7 +322,7 @@ class LineModel:
         selected = acts.index(maxQ)
         if maxQ <= -1:
             selected = 49
-        print ("hero %s line model selected action:%s action array:%s" % (hero_name,
+        print ("battle %s hero %s line model selected action:%s action array:%s" % (stateinformation.battleid, hero_name,
         str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题
@@ -365,7 +365,7 @@ class LineModel:
             action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid, tgtpos, fwd, None, selected, None)
             return action
         elif selected == 48: # hold
-            print("轮到了48号行为-hold")
+            # print("轮到了48号行为-hold")
             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 49, None)
             return action
         else:  # 撤退

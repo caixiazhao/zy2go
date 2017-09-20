@@ -72,7 +72,6 @@ class S(BaseHTTPRequestHandler):
         # 交给对线训练器来进行训练
         rsp_str = self.line_trainers[raw_state_info.battleid].train_line_model(get_data)
         print(rsp_str)
-        print('\n')
         rsp_str = rsp_str.encode(encoding="utf-8")
 
         #给客户端提供对应的指令

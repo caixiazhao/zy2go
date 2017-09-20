@@ -313,7 +313,7 @@ class LineModel_PPO1:
 
         stochastic = True
         explor_value = self.exploration.value(self.act_times)
-        print("ppo1 model exploration value is ", explor_value)
+        # print("ppo1 model exploration value is ", explor_value)
         actions, vpred = self.pi.act(stochastic=stochastic, update_eps=explor_value, ob=state_input)
         actions = np.array([actions])
 
@@ -364,10 +364,10 @@ class LineModel_PPO1:
         dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
 
         # 统计和更新变量
-        print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
-              'dead_units: %s'
-              % (
-              hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str))
+        # print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
+        #       'dead_units: %s'
+        #       % (
+        #       hero_name, str(dead_golds), str(gold_delta), str(dmg), str(self_hp_loss), str(dmg_delta), dead_unit_str))
 
         # 最大奖励是击杀小兵和塔的金币加上对方一条命血量的奖励
         # 最大惩罚是被对方造成了一条命伤害
@@ -378,11 +378,11 @@ class LineModel_PPO1:
         # 鼓励攻击对方小兵,塔
         if_hit_unit = next_state.if_hero_hit_any_unit(hero_name, rival_hero_name)
         if if_hit_unit is not None:
-            print("物理攻击到了小兵", if_hit_unit)
+            # print("物理攻击到了小兵", if_hit_unit)
             reward += 0.01
         if_hit_tower = next_state.if_hero_hit_tower(hero_name)
         if if_hit_tower is not None:
-            print("物理攻击到了塔", if_hit_tower)
+            # print("物理攻击到了塔", if_hit_tower)
             reward += 0.01
 
         # 将所有奖励缩小
@@ -391,10 +391,10 @@ class LineModel_PPO1:
         # 特殊奖励，放在最后面
         # 英雄击杀最后一击，直接最大奖励
         if cur_rival_hero.hp > 0 and next_rival_hero.hp <= 0:
-            print('对线英雄%s死亡' % rival_hero_name)
+            # print('对线英雄%s死亡' % rival_hero_name)
             dmg_hit_rival = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
             if dmg_hit_rival > 0:
-                print('英雄%s对对方造成了最后一击' % hero_name)
+                # print('英雄%s对对方造成了最后一击' % hero_name)
                 final_reward = 1
                 if cur_hero.hp > 0 and next_hero.hp <= 0:
                     print('英雄死亡')
