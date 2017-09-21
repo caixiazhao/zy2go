@@ -21,12 +21,12 @@ class HttpUtil:
         if real_hero == model1_hero:
             model_1 = None
         else:
-            model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=128,
+            model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=64,
                             scope="model1", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
         if real_hero == model2_hero:
             model_2 = None
         else:
-            model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=128,
+            model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=64,
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')

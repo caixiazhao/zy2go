@@ -306,7 +306,7 @@ class LineModel:
                     if debug: print("目标不符合施法要求")
                     continue
             elif selected == 48:  # 撤退
-                continue
+                acts[selected] = -1
             elif selected == 49:  # 撤退
                 acts[selected] = -1
         return acts

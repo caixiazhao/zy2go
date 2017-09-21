@@ -336,16 +336,24 @@ class LineModel_PPO1:
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
         next_hero = next_state.get_hero(hero_name)
         next_rival_hero = next_state.get_hero(rival_hero_name)
-        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx)
+        # 找到英雄附近死亡的敌方小兵
+        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero, StateUtil.GOLD_GAIN_RADIUS)
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
         dead_unit_str = (','.join([u.unit_name for u in dead_units]))
 
-        # 金币上，只计算最后一击的奖励
-        gold_delta = 0
-        for dead_unit in dead_units:
-            if cur_state.if_hero_hit_unit(hero_name, dead_unit.unit_name):
-                print('击杀信息，英雄 %s, 单位 %s' % (hero_name, dead_unit.unit_name))
-                gold_delta += StateUtil.get_unit_value(dead_unit.unit_name, dead_unit.cfg_id)
+        # 如果英雄有小额金币变化，则忽略
+        gold_delta = next_hero.gold - cur_hero.gold
+        if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
+            gold_delta -= 3
+
+        # 很难判断英雄的最后一击，所以我们计算金币变化，超过死亡单位一半的金币作为英雄获得金币
+        gold_delta = gold_delta * 2 - dead_golds
+        if gold_delta < 0:
+            print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain', (next_hero.gold - cur_hero.gold))
+            gold_delta = 0
+
+        if dead_golds > 0:
+            print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
         # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
@@ -387,9 +395,10 @@ class LineModel_PPO1:
 
         # 将所有奖励缩小
         final_reward = reward / 10
+        final_reward = min(max(final_reward, -1), 1)
 
         # 特殊奖励，放在最后面
-        # 英雄击杀最后一击，直接最大奖励
+        # 英雄击杀最后一击，直接最大奖励(因为gamma的存在，扩大这个惩罚）
         if cur_rival_hero.hp > 0 and next_rival_hero.hp <= 0:
             # print('对线英雄%s死亡' % rival_hero_name)
             dmg_hit_rival = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
@@ -397,10 +406,8 @@ class LineModel_PPO1:
                 # print('英雄%s对对方造成了最后一击' % hero_name)
                 final_reward = 1
                 if cur_hero.hp > 0 and next_hero.hp <= 0:
-                    print('英雄死亡')
                     final_reward = 0
-
-        if cur_hero.hp > 0 and next_hero.hp <= 0:
+        elif cur_hero.hp > 0 and next_hero.hp <= 0:
             print('英雄死亡')
-            final_reward = -1
-        return min(max(final_reward, -1), 1)
+            final_reward = -5
+        return final_reward
