@@ -68,7 +68,7 @@ class S(BaseHTTPRequestHandler):
             model2_cache = PPO_CACHE(ob, 1, horizon=self.model_2.optim_batchsize)
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
-                             '28', self.model_2, self.model2_save_header, model2_cache)
+                             '28', self.model_2, self.model2_save_header, model2_cache, real_hero=self.real_hero)
         # 交给对线训练器来进行训练
         rsp_str = self.line_trainers[raw_state_info.battleid].train_line_model(get_data)
         print(rsp_str)
@@ -101,13 +101,14 @@ class S(BaseHTTPRequestHandler):
         return
 
     line_trainers = {}
-    real_heros = None
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
         model1_path=None,
-        model2_path=None,
+        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v6380/model',
         schedule_timesteps=10000,
-        initial_p=0.5,
-        final_p=0.05)
+        initial_p=0.05,
+        final_p=0.05
+        )
+    real_hero = '27'
 
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)
