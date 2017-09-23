@@ -10,7 +10,9 @@ import numpy as np
 
 class HttpUtil:
     @staticmethod
-    def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000, initial_p=1.0, final_p=0.02):
+    def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000,
+                         model1_initial_p=1.0, model1_final_p=0.02,
+                         model2_initial_p=1.0, model2_final_p=0.02):
         set_global_seeds(2000)
         ob_size = 183
         act_size = 49
@@ -19,12 +21,12 @@ class HttpUtil:
         model1_hero = '27'
         model2_hero = '28'
         model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=64,
-                            scope="model1", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
+                            scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model1_initial_p, final_p=model1_final_p)
         model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=64,
-                            scope="model2", schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
+                            scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
+        save_dir = '/data/battle_logs/model_' + date_str
         os.makedirs(save_dir)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家

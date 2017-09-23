@@ -103,12 +103,14 @@ class S(BaseHTTPRequestHandler):
     line_trainers = {}
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
         model1_path=None,
-        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v6380/model',
-        schedule_timesteps=10000,
-        initial_p=0.05,
-        final_p=0.05
+        model2_path='/data/battle_logs/model_2017-09-22145533.954599/line_model_2_v9600/model',
+        schedule_timesteps=50000,
+        model1_initial_p=0.5,
+        model1_final_p=0.05,
+        model2_initial_p=0.05,
+        model2_final_p=0.05,
         )
-    real_hero = '27'
+    real_hero = None
 
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)
