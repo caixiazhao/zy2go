@@ -18,19 +18,25 @@ from baselines.common import set_global_seeds
 import numpy as np
 
 def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
-    set_global_seeds(1000)
+    set_global_seeds(2000)
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
 
     ob_size = 183
-    act_size = 48
+    act_size = 49
     ob = np.zeros(ob_size, dtype=float).tolist()
     ac = np.zeros(act_size, dtype=float).tolist()
     model1_hero = '27'
     model2_hero = '28'
-    model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1")
+    # model_1 = None
+    # model1_cache = None
+    model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1",
+                             schedule_timesteps=2, initial_p=1, final_p=0)
     model1_cache = PPO_CACHE(ob, 1, horizon=64)
-    model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2")
+    # model_2 = None
+    # model2_cache = None
+    model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2",
+                             schedule_timesteps=2, initial_p=1, final_p=0)
     model2_cache = PPO_CACHE(ob, 1, horizon=64)
 
     date_str = str(datetime.now()).replace(' ', '').replace(':', '')
@@ -48,15 +54,19 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
     model2_save_header = save_dir + '/line_model_2_v'
 
     line_trainer = LineTrainerPPO(save_dir, model1_hero, model_1, model1_save_header, model1_cache,
-        model2_hero, model_2, model2_save_header, model2_cache)
+        model2_hero, model_2, model2_save_header, model2_cache, real_hero=None)
 
-    for line in lines:
-        json_str = line[23:]
-        rsp_str = line_trainer.train_line_model(json_str)
-        print('返回结果: ' + rsp_str)
+    for i in range(100):
+        for line in lines:
+            json_str = line[23:]
+            rsp_str = line_trainer.train_line_model(json_str)
+            print('返回结果: ' + rsp_str)
+    line_trainer.save_models()
+
 
 def train_line_model_ppo():
     return
+
 
 def test_line_trainer(raw_log_path, model1_path, model2_path, initial_p, final_p):
     raw_file = open(raw_log_path, "r")
@@ -271,4 +281,4 @@ if __name__ == "__main__":
     #                  None, "linemodel1",
     #                  '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
     #                  ['27'])
-    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/battle_logs/model_2017-09-14171428.128908/raw.log', None, None)
+    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/data/realvsai.log', None, None)

@@ -24,24 +24,37 @@ class LinePPOModel(object):
             out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
             out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
             out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
-            pdparam = U.dense(out, pdtype.param_shape()[0], "polfinal", U.normc_initializer(0.01))
-            self.vpred = U.dense(out, 1, "value", U.normc_initializer(1.0))[:, 0]
+            pdparam = U.dense(out, pdtype.param_shape()[0], "polfinal")
+            self.vpred = U.dense(out, 1, "value")[:, 0]
             self.pd = pdtype.pdfromflat(pdparam)
 
             self.state_in = []
             self.state_out = []
 
-            stochastic = tf.placeholder(dtype=tf.bool, shape=())
-            ac = U.switch(stochastic, self.pd.full_sample(), self.pd.flatparam())
-            self._act = U.function([stochastic, ob], [ac, self.vpred])
+            stochastic = tf.placeholder(dtype=tf.bool, shape=(), name="stochastic")
 
-    def act(self, stochastic, ob):
-        ac1, vpred1 =  self._act(stochastic, ob[None])
+            update_eps = tf.placeholder(tf.float32, (), name="update_eps")
+            deterministic_actions = self.pd.full_sample()  # tf.argmax(q_values, axis=1)
+            random_actions = tf.random_uniform(tf.shape(deterministic_actions), minval=-1, maxval=1, dtype=tf.float32)
+            chose_random = tf.random_uniform(tf.shape(deterministic_actions), minval=0, maxval=1, dtype=tf.float32) < update_eps
+            stochastic_actions = tf.where(chose_random, random_actions, deterministic_actions)
+
+            ac = U.switch(stochastic, stochastic_actions, self.pd.flatparam())
+            self._act = U.function(inputs=[stochastic, update_eps, ob],
+                                   outputs=[ac, self.vpred],
+                                   givens={update_eps: -1.0, stochastic: True}
+            )
+
+    def act(self, ob, stochastic, update_eps):
+        ac1, vpred1 = self._act(stochastic, update_eps, ob[None])
         return ac1[0], vpred1[0]
+
     def get_variables(self):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.scope)
+
     def get_trainable_variables(self):
         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+
     def get_initial_state(self):
         return []
 
