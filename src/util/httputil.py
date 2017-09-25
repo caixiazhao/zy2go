@@ -22,7 +22,7 @@ class HttpUtil:
         model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2")
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
+        save_dir = 'C:\\Users\\Administrator\\Documents\\GitHub\\zy2go\\battle_logs\\model_' + date_str
         os.makedirs(save_dir)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
