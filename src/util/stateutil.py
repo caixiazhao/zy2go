@@ -18,6 +18,8 @@ class StateUtil:
     ATTACK_HERO_RADIUS = 7  # 13.5
     ATTACK_UNIT_RADIUS = 7  # 10
     LINE_MODEL_RADIUS = 7
+    GOLD_GAIN_RADIUS = 11
+    MAX_RADIUS = 50
 
     BASEMENT_TEAM_0 = PosStateInfo(-75680, -80, 0)
     BASEMENT_TEAM_1 = PosStateInfo(75140, -80, 0)
@@ -137,14 +139,18 @@ class StateUtil:
         return [unit for unit in state_info.units if unit.team == team_id and unit.state == 'in']
 
     @staticmethod
-    def get_dead_units_in_line(state_info, team_id, line_index):
+    def get_dead_units_in_line(state_info, team_id, line_index, hero_info=None, search_range=MAX_RADIUS):
         result = []
         for unit in state_info.units:
             # 小兵死亡最后一条maxhp=0, hp=1，state=out，倒数第二条 maxhp正常，hp=0 state=in
             # 我们还是以ｈｐ＝０作为死亡的信息吧
             if unit.hp <= 0 and unit.team == team_id:
                 if StateUtil.if_in_line(unit, line_index) > 0:
-                    result.append(unit)
+                    if hero_info is not None:
+                        if StateUtil.cal_distance(unit.pos, hero_info.pos) <= search_range:
+                            result.append(unit)
+                    else:
+                        result.append(unit)
         return result
 
     @staticmethod
@@ -439,7 +445,8 @@ class StateUtil:
         if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:
-            return {"hero_id": action.hero_name, "action": 'HOLD'}
+            # 设置hold的行为为移动到本地。因为如果之前一个动作是攻击，hold等于继续攻击
+            return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         if action.action == CmdActionEnum.RETREAT:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         raise ValueError('unexpected action type ' + str(action.action))

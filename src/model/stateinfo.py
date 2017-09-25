@@ -34,7 +34,13 @@ class StateInfo:
                 total_dmg += dmg.dmg
         return total_dmg
 
-    def if_hero_hit_unit(self, hero_name, rival_hero_name):
+    def if_hero_hit_unit(self, hero_name, unit_id):
+        for dmg in self.dmg_infos:
+            if dmg.atker == hero_name and dmg.tgt == unit_id:
+                return True
+        return False
+
+    def if_hero_hit_any_unit(self, hero_name, rival_hero_name):
         for dmg in self.dmg_infos:
             if dmg.atker == hero_name and int(dmg.tgt) > 27 and dmg.tgt != rival_hero_name and int(dmg.skillslot) == 0:
                 return dmg.tgt
@@ -154,8 +160,8 @@ class StateInfo:
         for action in self.actions:
             if action.hero_name == hero_name:
                 action.reward = reward
-                print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
-                     action.action, action.skillid, action.tgtid))
+                # print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
+                #      action.action, action.skillid, action.tgtid))
                 break
 
     def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):

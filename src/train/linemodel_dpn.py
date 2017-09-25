@@ -298,7 +298,7 @@ class LineModel_DQN:
 
         # 特殊情况处理
         # 鼓励攻击对方小兵
-        if_hit_unit = next_next_state.if_hero_hit_unit(hero_name, rival_hero_name)
+        if_hit_unit = next_next_state.if_hero_hit_any_unit(hero_name, rival_hero_name)
         if if_hit_unit is not None:
             print("物理攻击到了小兵", if_hit_unit)
             reward += 0.01

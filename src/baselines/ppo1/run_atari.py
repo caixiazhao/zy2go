@@ -38,15 +38,15 @@ def train(env_id, num_frames, seed):
     num_timesteps = int(num_frames / 4 * 1.1)
     env.seed(workerseed)
 
-    # pposgd_simple.learn(env, policy_fn,
-    #     max_timesteps=num_timesteps,
-    #     timesteps_per_batch=256,
-    #     clip_param=0.2, entcoeff=0.01,
-    #     optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
-    #     gamma=0.99, lam=0.95,
-    #     schedule='linear'
-    # )
-    call_lm(env, policy_fn, num_timesteps)
+    pposgd_simple.learn(env, policy_fn,
+        max_timesteps=num_timesteps,
+        timesteps_per_batch=256,
+        clip_param=0.2, entcoeff=0.01,
+        optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,
+        gamma=0.99, lam=0.95,
+        schedule='linear'
+    )
+    # call_lm(env, policy_fn, num_timesteps)
     env.close()
 
 def call_lm(env, policy_fn, num_timesteps):
