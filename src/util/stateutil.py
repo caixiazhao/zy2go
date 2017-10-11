@@ -17,6 +17,9 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 7  # 13.5
     ATTACK_UNIT_RADIUS = 7  # 10
+    TOWER_ATTACK_RADIUS = 8
+
+    # 需要和ATTACK_HERO_RADIUS一致才行
     LINE_MODEL_RADIUS = 7
     GOLD_GAIN_RADIUS = 11
     MAX_RADIUS = 50
@@ -107,6 +110,10 @@ class StateUtil:
             if skill_info.up:
                 skills.append(i)
         return skills
+
+    @staticmethod
+    def get_basement(hero_info):
+        return StateUtil.BASEMENT_TEAM_1 if hero_info.team == 1 else StateUtil.BASEMENT_TEAM_0
 
     @staticmethod
     def if_hero_at_basement(hero_info):

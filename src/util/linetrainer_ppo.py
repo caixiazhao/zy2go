@@ -15,6 +15,7 @@ from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
 from train.linemodel import LineModel
 from train.linemodel_dpn import LineModel_DQN
+from util.linetrainer_policy import LineTrainerPolicy
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 import baselines.common.tf_util as U
@@ -31,13 +32,15 @@ class LineTrainerPPO:
     TOWN_HP_THRESHOLD = 0.3
 
     def __init__(self, save_dir, model1_hero, model1, model1_save_header, model1_cache,
-                 model2_hero=None, model2=None, model2_save_header=None, model2_cache=None, real_hero=None):
+                 model2_hero=None, model2=None, model2_save_header=None, model2_cache=None, real_hero=None,
+                 enable_policy=False):
         self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
         self.model1_hero = model1_hero
         self.model2_hero = model2_hero
         self.real_hero = real_hero
+        self.enable_policy = enable_policy
 
         # 创建存储文件路径
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
@@ -53,7 +56,7 @@ class LineTrainerPPO:
         self.model2 = model2
         self.model2_save_header = model2_save_header
         self.model2_cache = model2_cache
-        self.save_batch = 20
+        self.save_batch = 200
 
         tvars = tf.trainable_variables()
         tvars_vals = U.get_session().run(tvars)
@@ -251,7 +254,16 @@ class LineTrainerPPO:
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
-                action = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                action, explorer_ratio, action_ratios = line_model.get_action(state_info, hero.hero_name, rival_hero)
+
+                # 考虑使用固定策略
+                if self.enable_policy:  # and random.uniform(0, 1) <= explor_value:
+                    policy_action = LineTrainerPolicy.choose_action(state_info, action_ratios, hero_name, rival_hero,
+                                            near_enemy_units, nearest_enemy_tower, nearest_friend_units)
+                    if policy_action is not None:
+                        policy_action.vpred = action.vpred
+                        action = policy_action
+
                 action_str = StateUtil.build_command(action)
                 action_strs.append(action_str)
 
@@ -271,7 +283,7 @@ class LineTrainerPPO:
             else:
                 # 还是需要模型来计算出一个vpred
                 rival_hero = '28' if hero.hero_name == '27' else '27'
-                action = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                action, explorer_ratio, action_ratios = line_model.get_action(state_info, hero.hero_name, rival_hero)
 
                 # 推测玩家的行为
                 guess_action = Replayer.guess_player_action(state_info, next1_state_info, next2_state_info,

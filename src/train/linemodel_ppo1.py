@@ -24,6 +24,7 @@ from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
 import time
+import random
 
 
 class LineModel_PPO1:
@@ -320,9 +321,11 @@ class LineModel_PPO1:
         action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
         action.vpred = vpred
 
+        action_ratios = list(actions[0])
+
         # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
         #        (str(action.output_index), input_detail, action_detail))
-        return action
+        return action, explor_value, action_ratios
 
     @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算

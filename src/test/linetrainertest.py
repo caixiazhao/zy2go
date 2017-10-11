@@ -17,7 +17,7 @@ from util.stateutil import StateUtil
 from baselines.common import set_global_seeds
 import numpy as np
 
-def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
+def test_line_trainer_ppo(raw_log_path, model1_path, model2_path, real_hero=None):
     set_global_seeds(2000)
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
@@ -54,9 +54,9 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path):
     model2_save_header = save_dir + '/line_model_2_v'
 
     line_trainer = LineTrainerPPO(save_dir, model1_hero, model_1, model1_save_header, model1_cache,
-        model2_hero, model_2, model2_save_header, model2_cache, real_hero=None)
+        model2_hero, model_2, model2_save_header, model2_cache, real_hero=real_hero, enable_policy=True)
 
-    for i in range(100):
+    for i in range(10):
         for line in lines:
             json_str = line[23:]
             rsp_str = line_trainer.train_line_model(json_str)
@@ -281,4 +281,7 @@ if __name__ == "__main__":
     #                  None, "linemodel1",
     #                  '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
     #                  ['27'])
-    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/data/realvsai.log', None, None)
+    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/battle_logs/model_2017-10-11170324.808673/raw.log',
+                          None,
+                          None,
+                          None)
