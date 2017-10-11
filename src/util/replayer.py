@@ -164,18 +164,19 @@ class Replayer:
                         else:
                             # 其次检查是否可以释放给自己
                             skill_info = SkillUtil.get_skill_info(prev_hero.cfg_id, skillid)
-                            if skill_info.cast_target != SkillTargetEnum.rival:
-                                tgtid = hero_name
-                                output_idx = 8 + skillid * 10
-                            # 最后检查是否可以释放给小兵
-                            else:
-                                nearby_soldiers = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name, search_radius)
-                                if len(nearby_soldiers) > 0:
-                                    target_unit = min(nearby_soldiers, key=lambda u: u.hp)
-                                    for i in range(len(nearby_soldiers)):
-                                        if nearby_soldiers[i].unit_name == target_unit.unit_name:
-                                            tgtid = nearby_soldiers[i].unit_name
-                                            output_idx = i + 10 + skillid * 10
+                            if skill_info is not None:
+                                if skill_info.cast_target != SkillTargetEnum.rival:
+                                    tgtid = hero_name
+                                    output_idx = 8 + skillid * 10
+                                # 最后检查是否可以释放给小兵
+                                else:
+                                    nearby_soldiers = StateUtil.get_nearby_enemy_units(prev_state_info, hero_name, search_radius)
+                                    if len(nearby_soldiers) > 0:
+                                        target_unit = min(nearby_soldiers, key=lambda u: u.hp)
+                                        for i in range(len(nearby_soldiers)):
+                                            if nearby_soldiers[i].unit_name == target_unit.unit_name:
+                                                tgtid = nearby_soldiers[i].unit_name
+                                                output_idx = i + 10 + skillid * 10
                     # 组装结果
                     if output_idx is not None:
                         action = CmdAction(hero_name, CmdActionEnum.CAST, skillid, tgtid,
