@@ -4,30 +4,18 @@
 # 对线模型训练中控制英雄(们)的行为
 
 import json as JSON
-import os
 import tensorflow as tf
 from time import gmtime, strftime
-from datetime import datetime
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
-from model.fwdstateinfo import FwdStateInfo
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
-from train.linemodel import LineModel
-from train.linemodel_dpn import LineModel_DQN
 from util.linetrainer_policy import LineTrainerPolicy
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 import baselines.common.tf_util as U
-# import sys
-#
-# import imp
-# imp.reload(sys)
-# #python 3 version
-# #reload(sys)
-# sys.setdefaultencoding('utf8')
-
+from datetime import datetime
 
 class LineTrainerPPO:
     TOWN_HP_THRESHOLD = 0.3
@@ -42,6 +30,7 @@ class LineTrainerPPO:
         self.model2_hero = model2_hero
         self.real_hero = real_hero
         self.enable_policy = enable_policy
+        self.time_cache = []
 
         # 创建存储文件路径
         self.raw_log_file = open(save_dir + '/raw.log', 'w')
@@ -189,8 +178,10 @@ class LineTrainerPPO:
     def build_response(self, state_cache, state_index, line_model, hero_name):
         action_strs=[]
 
+        # 对于模型，分析当前帧的行为
         if self.real_hero != hero_name:
             state_info = state_cache[state_index]
+        # 如果有真实玩家，我们需要一些历史数据，所以分析3帧前的行为
         elif len(state_cache) > 3:
             state_info = state_cache[state_index-3]
             next1_state_info = state_cache[state_index-2]
@@ -255,7 +246,14 @@ class LineTrainerPPO:
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
+                begin_time = datetime.now()
                 action, explorer_ratio, action_ratios = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                end_time = datetime.now()
+                delta = end_time - begin_time
+                self.time_cache.append(delta.microseconds)
+                if len(self.time_cache) >= 1000:
+                    print("average model time", sum(self.time_cache)//len(self.time_cache))
+                    self.time_cache = []
 
                 # 考虑使用固定策略
                 if self.enable_policy:  # and random.uniform(0, 1) <= explor_value:

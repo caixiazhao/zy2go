@@ -112,12 +112,12 @@ class S(BaseHTTPRequestHandler):
 
     line_trainers = {}
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
-        model1_path='/Users/sky4star/Github/zy2go/data/line_model_1_v16400/model',
-        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v15800/model',
+        model1_path=None, #'/Users/sky4star/Github/zy2go/data/line_model_1_v16400/model',
+        model2_path=None, #'/Users/sky4star/Github/zy2go/data/line_model_2_v15800/model',
         schedule_timesteps=500000,
-        model1_initial_p=0.05,
+        model1_initial_p=0.5,
         model1_final_p=0.05,
-        model2_initial_p=0.05,
+        model2_initial_p=0.5,
         model2_final_p=0.05,
         )
     real_hero = None

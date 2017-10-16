@@ -26,12 +26,11 @@ class LineTrainerPolicy:
         # 如果附近没有敌方英雄，而且不在塔下
         # 攻击敌方小兵
         action = LineTrainerPolicy.policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name,
-                                                            rival_near_units, rival_near_tower)
+                                                            rival_near_units, rival_near_tower, near_friend_units)
         if action is not None:
-            print("启动策略 如果附近没有敌方英雄，而且不在塔下，攻击敌方小兵 " + hero_name)
             return action
 
-        # 如果附近没有地方英雄，在敌方塔下，且有小兵掩护
+        # 如果附近没有敌方英雄，在敌方塔下，且有小兵掩护
         if rival_near_tower is not None and len(near_friend_units) > 0:
             units_in_tower_range = LineTrainerPolicy.units_in_tower_range(near_friend_units, rival_near_tower)
             if (rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE) and \
@@ -44,18 +43,19 @@ class LineTrainerPolicy:
 
                 # 有敌方小兵先打小兵
                 if len(rival_near_units) > 0:
-                    action = LineTrainerPolicy.policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name, rival_near_units, rival_near_tower)
+                    action = LineTrainerPolicy.policy_attack_rival_unit(hero_info, rival_hero_info, state_info,
+                                                    hero_name, rival_near_units, rival_near_tower, near_friend_units)
                     if action is not None:
                         print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，有敌方小兵先打小兵 " + hero_name)
                         return action
 
                 # 掩护充足的情况下攻击对方塔
-                if units_in_tower_range >= 2:
+                if units_in_tower_range >= 3:
                     print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，掩护充足的情况下攻击对方塔 " + hero_name)
                     return LineTrainerPolicy.get_attack_tower_action(hero_name, hero_info, rival_near_tower)
 
                 # 不足的情况下后撤（如果在塔的攻击范围内）
-                if units_in_tower_range <= 1 and StateUtil.cal_distance(hero_info.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
+                if units_in_tower_range <= 2 and StateUtil.cal_distance(hero_info.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
                     print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，不足的情况下后撤（如果在塔的攻击范围内） " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
@@ -86,32 +86,37 @@ class LineTrainerPolicy:
         return num
 
     @staticmethod
-    def policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name, rival_near_units, rival_near_tower):
-        # 如果附近没有敌方英雄，而且不在塔下
+    def policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name, rival_near_units, rival_near_tower,
+                                 near_friend_units):
+        # 如果附近没有敌方英雄，而且不在塔下，且有己方小兵
         # 攻击敌方小兵
         if (rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE) and \
-                        rival_near_tower is None:
+                        rival_near_tower is None and len(near_friend_units) > 0:
             # 优先攻击快没有血的
             for unit in rival_near_units:
-                if unit.hp <= 100:
+                if unit.hp <= 50:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
+                    print("启动策略 如果附近没有敌方英雄，而且不在塔下，补兵 " + hero_name)
                     return action
 
-            # 如果敌方小兵在攻击自己，优先攻击
+            # 如果敌方小兵在攻击自己，后撤到己方的小兵后面
             for unit in rival_near_units:
                 att = state_info.if_unit_attack_hero(unit.unit_name, hero_name)
                 if att is not None:
                     # 优先物理攻击
-                    action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
-                    return action
+                    retreat = LineTrainerPolicy.policy_move_retreat(hero_info)
+                    print("启动策略 被小兵攻击的情况下后撤 " + hero_name)
+                    return retreat
 
-            # 物理攻击，不攻击血量较少的，留在补刀
-            # 选择距离较近的
+            # 物理攻击，不攻击血量较少的，留给补刀
+            # 选择距离较近的（离己方塔）
             rival_near_units_sorted = list(rival_near_units)
-            rival_near_units_sorted.sort(key=lambda u: math.fabs(hero_info.pos.x - u.pos.x), reverse=False)
+            basement_pos = StateUtil.get_basement(hero_info)
+            rival_near_units_sorted.sort(key=lambda u: math.fabs(basement_pos.x - u.pos.x), reverse=False)
             for unit in rival_near_units_sorted:
-                if unit.hp > 250:
+                if unit.hp > 150:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
+                    print("启动策略 如果附近没有敌方英雄，而且不在塔下，攻击敌方小兵 " + hero_name)
                     return action
         return None
 
