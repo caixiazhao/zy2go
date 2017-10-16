@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+# fwd有点奇怪，暂时不要在返回命令中使用它，只有施法需要传，移动时候指定tgtpos吧
 class FwdStateInfo(object):
     def __init__(self, x, y, z):
         self.x = x

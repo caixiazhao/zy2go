@@ -1,3 +1,6 @@
+from model.fwdstateinfo import FwdStateInfo
+
+
 class PosStateInfo:
     def __init__(self, x, y, z):
         self.x = x
@@ -21,4 +24,4 @@ class PosStateInfo:
         return '( %s, %s, %s)' % (self.x, self.y, self.z)
 
     def fwd(self, pos2):
-        return PosStateInfo(self.x-pos2.x, self.y-pos2.y, self.z-pos2.z)
+        return FwdStateInfo(self.x-pos2.x, self.y-pos2.y, self.z-pos2.z)

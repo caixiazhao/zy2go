@@ -3,6 +3,8 @@
 
 # 给模型添加一些固定套路，在训练中随机选择，希望模型可以学习到这些正确的处理问题方式
 # 主要目的是加速模型的学习。另外有些行为模式（比如对方低血时候追击，附近没哟敌方英雄时候尽量快的推线等）似乎很难学习到
+import math
+
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from train.cmdactionenum import CmdActionEnum
@@ -12,7 +14,8 @@ from random import randint
 
 
 class LineTrainerPolicy:
-    SAFE_RIVAL_HERO_DISTANCE = 14
+    # 如果这个范围内没有英雄则会启动各种攻击小兵攻击塔策略
+    SAFE_RIVAL_HERO_DISTANCE = 11
 
     @staticmethod
     def choose_action(state_info, action_ratios, hero_name, rival_hero, rival_near_units, rival_near_tower,
@@ -31,7 +34,7 @@ class LineTrainerPolicy:
         # 如果附近没有地方英雄，在敌方塔下，且有小兵掩护
         if rival_near_tower is not None and len(near_friend_units) > 0:
             units_in_tower_range = LineTrainerPolicy.units_in_tower_range(near_friend_units, rival_near_tower)
-            if StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE and \
+            if (rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE) and \
                     rival_near_tower is not None and \
                     units_in_tower_range > 0:
                 # 被塔攻击的情况下后撤
@@ -40,7 +43,7 @@ class LineTrainerPolicy:
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
                 # 有敌方小兵先打小兵
-                if len(rival_near_units) >= 0:
+                if len(rival_near_units) > 0:
                     action = LineTrainerPolicy.policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name, rival_near_units, rival_near_tower)
                     if action is not None:
                         print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，有敌方小兵先打小兵 " + hero_name)
@@ -57,7 +60,7 @@ class LineTrainerPolicy:
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
         #TODO 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高
-        if rival_hero_info.hp/float(rival_hero_info.maxhp) <= 0.3 and \
+        if rival_hero_info.hp > 0 and rival_hero_info.hp/float(rival_hero_info.maxhp) <= 0.3 and \
            hero_info.hp/float(hero_info.maxhp) >= rival_hero_info.hp/float(rival_hero_info.maxhp) + 0.1 and \
            rival_near_tower is None:
             # 随机从技能中选择
@@ -86,7 +89,7 @@ class LineTrainerPolicy:
     def policy_attack_rival_unit(hero_info, rival_hero_info, state_info, hero_name, rival_near_units, rival_near_tower):
         # 如果附近没有敌方英雄，而且不在塔下
         # 攻击敌方小兵
-        if StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE and \
+        if (rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE) and \
                         rival_near_tower is None:
             # 优先攻击快没有血的
             for unit in rival_near_units:
@@ -103,7 +106,10 @@ class LineTrainerPolicy:
                     return action
 
             # 物理攻击，不攻击血量较少的，留在补刀
-            for unit in rival_near_units:
+            # 选择距离较近的
+            rival_near_units_sorted = list(rival_near_units)
+            rival_near_units_sorted.sort(key=lambda u: math.fabs(hero_info.pos.x - u.pos.x), reverse=False)
+            for unit in rival_near_units_sorted:
                 if unit.hp > 250:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
                     return action
@@ -124,10 +130,15 @@ class LineTrainerPolicy:
     def get_attack_tower_action(hero_name, hero_info, tower_unit):
         # 因为目前模型中侦测塔的范围较大，可能出现攻击不到塔的情况
         # 所以需要先接近塔
+        # 使用tgtpos，而不是fwd。move命令中fwd坐标系比较奇怪
         if StateUtil.cal_distance(hero_info.pos, tower_unit.pos) > StateUtil.ATTACK_UNIT_RADIUS:
             fwd = tower_unit.pos.fwd(hero_info.pos)
             [fwd, output_index] = Replayer.get_closest_fwd(fwd)
-            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, None, fwd, None, output_index, None)
+            tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 15, hero_info.pos.y + fwd.y * 15,
+                                  hero_info.pos.z + fwd.z * 15)
+            print("朝塔移动，", hero_name, "hero_pos", hero_info.pos.to_string(), "tower_pos", tower_unit.pos.to_string(),
+                  "fwd", fwd.to_string(), "output_index", output_index)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, output_index, None)
         else:
             action_idx = 11
             action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tower_unit.unit_name, None, None, None, action_idx, None)
@@ -145,7 +156,7 @@ class LineTrainerPolicy:
     @staticmethod
     def get_attack_hero_action(state_info, hero_name, rival_hero_name, skill_id):
         action_idx = 10 * skill_id + 9
-        if skill_id >= 1:
+        if skill_id == 0:
             action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, rival_hero_name, None, None, None, action_idx, None)
         else:
             tgtpos = state_info.get_hero(rival_hero_name).pos

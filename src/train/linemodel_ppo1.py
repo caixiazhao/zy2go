@@ -223,7 +223,7 @@ class LineModel_PPO1:
             nonterminal = 1 - new[t + 1]
             delta = rew[t] + gamma * vpred[t + 1] * nonterminal - vpred[t]
             gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-            print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
+            # print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
@@ -237,7 +237,7 @@ class LineModel_PPO1:
 
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        print(seg)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -255,11 +255,11 @@ class LineModel_PPO1:
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(self.optim_batchsize):
-                print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
+                # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
                     self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
-                print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
-                      "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
+                # print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
+                #       "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
                 if np.isnan(np.mean(g)):
                     debug = 1
                     print('output nan, ignore it!')
@@ -321,11 +321,13 @@ class LineModel_PPO1:
         action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
         action.vpred = vpred
 
+        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
         action_ratios = list(actions[0])
+        action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
 
         # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
         #        (str(action.output_index), input_detail, action_detail))
-        return action, explor_value, action_ratios
+        return action, explor_value, action_ratios_masked
 
     @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算

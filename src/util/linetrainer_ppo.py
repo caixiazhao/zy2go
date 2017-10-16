@@ -11,6 +11,7 @@ from datetime import datetime
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
+from model.fwdstateinfo import FwdStateInfo
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
 from train.linemodel import LineModel
@@ -102,7 +103,7 @@ class LineTrainerPPO:
         return False
 
     def train_line_model(self, raw_state_str):
-        self.save_raw_log(raw_state_str)
+        # self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求
@@ -113,7 +114,7 @@ class LineTrainerPPO:
         if raw_state_info.tick == -1:
             return ''
 
-        if raw_state_info.tick >= 86526:
+        if raw_state_info.tick >= 241032:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -128,7 +129,7 @@ class LineTrainerPPO:
 
         # 持久化
         self.state_cache.append(state_info)
-        self.save_state_log(state_info)
+        # self.save_state_log(state_info)
 
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
@@ -153,7 +154,7 @@ class LineTrainerPPO:
         # 当线上第一个塔被摧毁时候重开
         tower_destroyed = StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1)
         if tower_destroyed is not None:
-            print('重新开始游戏')
+            print('塔重新开始游戏')
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
         # 返回结果给游戏端

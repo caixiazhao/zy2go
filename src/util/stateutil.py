@@ -79,7 +79,7 @@ class StateUtil:
             if int(unit.unit_name) <= 26:
                 if StateUtil.if_in_line(unit, line_idx) >= 0:
                     if unit.hp <= 0:
-                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team))
+                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team) + " detail：" + unit.pos.to_string())
                         return unit.team
         return None
 
