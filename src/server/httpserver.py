@@ -68,7 +68,8 @@ class S(BaseHTTPRequestHandler):
             model2_cache = PPO_CACHE(ob, 1, horizon=self.model_2.optim_batchsize)
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
-                             '28', self.model_2, self.model2_save_header, model2_cache, real_hero=None, enable_policy=True)
+                             '28', self.model_2, self.model2_save_header, model2_cache, real_hero=None,
+                             policy_ratio=0.3, policy_continue_acts=3)
         # 交给对线训练器来进行训练
         rsp_str = self.line_trainers[raw_state_info.battleid].train_line_model(get_data)
         print(rsp_str)
@@ -99,11 +100,11 @@ class S(BaseHTTPRequestHandler):
         elif post_data == 'disable_policy':
             print('commmand: disable policy')
             for key, trainer in self.line_trainers.items():
-                trainer.enable_policy = False
+                trainer.policy_ratio = -1
         elif post_data == 'enable_policy':
             print('commmand: enable policy')
             for key, trainer in self.line_trainers.items():
-                trainer.enable_policy = True
+                trainer.policy_ratio = 0.3
         self._set_headers()
         self.wfile.write("copy that! ".encode(encoding="utf-8"))
 
@@ -112,12 +113,12 @@ class S(BaseHTTPRequestHandler):
 
     line_trainers = {}
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
-        model1_path=None, #'/Users/sky4star/Github/zy2go/data/line_model_1_v16400/model',
-        model2_path=None, #'/Users/sky4star/Github/zy2go/data/line_model_2_v15800/model',
+        model1_path='/Users/sky4star/Github/zy2go/data/line_model_1_v16400/model',
+        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v15800/model',
         schedule_timesteps=500000,
-        model1_initial_p=0.5,
+        model1_initial_p=0.05,
         model1_final_p=0.05,
-        model2_initial_p=0.5,
+        model2_initial_p=0.05,
         model2_final_p=0.05,
         )
     real_hero = None

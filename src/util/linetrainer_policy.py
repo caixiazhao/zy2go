@@ -94,7 +94,7 @@ class LineTrainerPolicy:
                         rival_near_tower is None and len(near_friend_units) > 0:
             # 优先攻击快没有血的
             for unit in rival_near_units:
-                if unit.hp <= 50:
+                if unit.hp <= hero_info.att - 20:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
                     print("启动策略 如果附近没有敌方英雄，而且不在塔下，补兵 " + hero_name)
                     return action
@@ -114,7 +114,7 @@ class LineTrainerPolicy:
             basement_pos = StateUtil.get_basement(hero_info)
             rival_near_units_sorted.sort(key=lambda u: math.fabs(basement_pos.x - u.pos.x), reverse=False)
             for unit in rival_near_units_sorted:
-                if unit.hp > 150:
+                if unit.hp > hero_info.att * 3:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
                     print("启动策略 如果附近没有敌方英雄，而且不在塔下，攻击敌方小兵 " + hero_name)
                     return action

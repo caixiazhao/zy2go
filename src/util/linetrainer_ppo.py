@@ -4,6 +4,8 @@
 # 对线模型训练中控制英雄(们)的行为
 
 import json as JSON
+import random
+
 import tensorflow as tf
 from time import gmtime, strftime
 
@@ -22,14 +24,22 @@ class LineTrainerPPO:
 
     def __init__(self, save_dir, model1_hero, model1, model1_save_header, model1_cache,
                  model2_hero=None, model2=None, model2_save_header=None, model2_cache=None, real_hero=None,
-                 enable_policy=False):
+                 policy_ratio=-1, policy_continue_acts=3):
         self.retreat_pos = None
         self.hero_strategy = {}
         self.state_cache = []
         self.model1_hero = model1_hero
         self.model2_hero = model2_hero
         self.real_hero = real_hero
-        self.enable_policy = enable_policy
+
+        # policy_ratio 表示使用策略的概率， policy_continue_acts表示连续多少个使用策略
+        self.policy_ratio = policy_ratio
+        self.policy_continue_acts = policy_continue_acts
+
+        # 标记当前是采用策略连续执行的第几个行为
+        self.cur_policy_act_idx_map = {model1_hero: 0, model2_hero: 0}
+
+        # 缓存模型计算时间，用来计算平均耗时
         self.time_cache = []
 
         # 创建存储文件路径
@@ -256,12 +266,26 @@ class LineTrainerPPO:
                     self.time_cache = []
 
                 # 考虑使用固定策略
-                if self.enable_policy:  # and random.uniform(0, 1) <= explor_value:
+                # 如果决定使用策略，会连续n条行为全都采用策略（比如确保对方残血时候连续攻击的情况）
+                # 如果策略返回为空则表示策略中断
+                if self.policy_ratio > 0 and (
+                        0 < self.cur_policy_act_idx_map[hero_name] < self.policy_continue_acts
+                        or random.uniform(0, 1) <= self.policy_ratio
+                ):
                     policy_action = LineTrainerPolicy.choose_action(state_info, action_ratios, hero_name, rival_hero,
                                             near_enemy_units, nearest_enemy_tower, nearest_friend_units)
                     if policy_action is not None:
                         policy_action.vpred = action.vpred
                         action = policy_action
+                        self.cur_policy_act_idx_map[hero_name] += 1
+                        print("英雄 " + hero_name + " 使用策略，策略行为计数 idx " + str(self.cur_policy_act_idx_map[hero_name]))
+                        if self.cur_policy_act_idx_map[hero_name] >= self.policy_continue_acts:
+                            self.cur_policy_act_idx_map[hero_name] = 0
+                    else:
+                        # 策略中断，清零
+                        if self.cur_policy_act_idx_map[hero_name] > 0:
+                            print("英雄 " + hero_name + " 策略中断，清零")
+                            self.cur_policy_act_idx_map[hero_name] = 0
 
                 action_str = StateUtil.build_command(action)
                 action_strs.append(action_str)
