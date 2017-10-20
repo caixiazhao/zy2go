@@ -30,6 +30,8 @@ class LineTrainerPPO:
         self.state_cache = []
         self.model1_hero = model1_hero
         self.model2_hero = model2_hero
+        self.model1_total_death = 0
+        self.model2_total_death = 0
         self.real_hero = real_hero
 
         # policy_ratio 表示使用策略的概率， policy_continue_acts表示连续多少个使用策略
@@ -65,7 +67,7 @@ class LineTrainerPPO:
             print(var.name, val)
 
     def remember_replay(self, state_infos, state_index, model_cache, model, hero_name, rival_hero,
-                        model_save_header, line_idx=1):
+                        model_save_header, total_death, line_idx=1):
         #TODO 这里有个问题，如果prev不是模型选择的，那实际上这时候不是模型的问题
         # 比如英雄在塔边缘被塔打死了，这时候在执行撤退，其实应该算是模型最后一个动作的锅。
         # 或者需要考虑在复活时候清空
@@ -74,6 +76,7 @@ class LineTrainerPPO:
         next_state = state_infos[state_index+1]
         hero_info = state_info.get_hero(hero_name)
         hero_act = state_info.get_hero_action(hero_name)
+        new = 0
         if hero_act is not None:
             # prev_new 简单计算，可能会有问题
             prev_new = model_cache.get_prev_new()
@@ -84,16 +87,16 @@ class LineTrainerPPO:
             ob = model.gen_input(state_info, hero_name, rival_hero)
             ac = hero_act.output_index
             vpred = hero_act.vpred
-            new = StateUtil.if_hero_dead(state_info, next_state, hero_name)
-            # 考虑第一个塔被打掉的情况
+            total_death += StateUtil.if_hero_dead(state_info, next_state, hero_name)
+            # 重开条件：英雄死亡两次或者第一个塔被打掉
             tower_destroyed = StateUtil.if_first_tower_destroyed_in_line(next_state, line_idx=1)
-            if tower_destroyed is not None:
-                print('塔被摧毁')
+            if total_death >= 2 or tower_destroyed is not None:
+                print('重开游戏')
                 new = 1
                 # TODO 这个值应该设置成多少
                 rew = 1 if int(tower_destroyed) != hero_info.team else -1
             else:
-                rew = model.cal_target_ppo(prev_state, state_info, next_state, hero_name, rival_hero, line_idx)
+                rew = model.cal_target_ppo_2(prev_state, state_info, next_state, hero_name, rival_hero, line_idx)
             state_info.add_rewards(hero_name, rew)
             model_cache.remember(ob, ac, vpred, new, rew, prev_new)
 
@@ -101,8 +104,8 @@ class LineTrainerPPO:
                 replay_time = model.iters_so_far
                 if replay_time % self.save_batch == 0:
                    model.save(model_save_header + str(replay_time) + '/model')
-            return True
-        return False
+            return True, new
+        return False, new
 
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
@@ -144,19 +147,18 @@ class LineTrainerPPO:
 
         # 计算奖励值，如果有真实玩家，因为需要推测行为的原因，则多往前回朔几帧
         reward_state_idx = -2 if self.real_hero is None else -4
+        new = 0
         if len(self.state_cache) + reward_state_idx > 0:
             if self.model1 is not None:
-                added = self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model1,
-                                         self.model1_hero, self.model2_hero, self.model1_save_header)
+                added, new = self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model1,
+                                         self.model1_hero, self.model2_hero, self.model1_save_header, self.model1_total_death)
             if self.model2 is not None:
-                added = self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model2,
-                                             self.model2_hero, self.model1_hero, self.model2_save_header)
+                added, new = self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model2,
+                                             self.model2_hero, self.model1_hero, self.model2_save_header, self.model2_total_death)
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
-        tower_destroyed = StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1)
-        if tower_destroyed is not None:
-            print('塔重新开始游戏')
+        if new == 1:
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
         # 返回结果给游戏端
