@@ -31,6 +31,7 @@ from datetime import datetime
 
 from util.linetrainer_ppo import LineTrainerPPO
 from util.ppocache import PPO_CACHE
+from util.ppocache2 import PPO_CACHE2
 
 
 class S(BaseHTTPRequestHandler):
@@ -64,8 +65,8 @@ class S(BaseHTTPRequestHandler):
             #                                                          )
             # PPO
             ob = np.zeros(183, dtype=float).tolist()
-            model1_cache = PPO_CACHE(ob, 1, horizon=self.model_1.optim_batchsize)
-            model2_cache = PPO_CACHE(ob, 1, horizon=self.model_2.optim_batchsize)
+            model1_cache = PPO_CACHE2(ob, 1, horizon=self.model_1.optim_batchsize)
+            model2_cache = PPO_CACHE2(ob, 1, horizon=self.model_2.optim_batchsize)
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
                              '28', self.model_2, self.model2_save_header, model2_cache, real_hero=None,
@@ -113,8 +114,8 @@ class S(BaseHTTPRequestHandler):
 
     line_trainers = {}
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
-        model1_path='/Users/sky4star/Github/zy2go/data/line_model_1_v16400/model',
-        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v15800/model',
+        model1_path=None,
+        model2_path=None,
         schedule_timesteps=500000,
         model1_initial_p=0.05,
         model1_final_p=0.05,

@@ -66,6 +66,9 @@ class LineTrainerPPO:
 
     def remember_replay(self, state_infos, state_index, model_cache, model, hero_name, rival_hero,
                         model_save_header, line_idx=1):
+        #TODO 这里有个问题，如果prev不是模型选择的，那实际上这时候不是模型的问题
+        # 比如英雄在塔边缘被塔打死了，这时候在执行撤退，其实应该算是模型最后一个动作的锅。
+        # 或者需要考虑在复活时候清空
         prev_state = state_infos[state_index-1]
         state_info = state_infos[state_index]
         next_state = state_infos[state_index+1]
@@ -73,10 +76,10 @@ class LineTrainerPPO:
         hero_act = state_info.get_hero_action(hero_name)
         if hero_act is not None:
             # prev_new 简单计算，可能会有问题
-            prev_new = 1 if prev_state.get_hero(hero_name).hp <= 0 else 0
-            o4r = model_cache.output4replay(prev_new, hero_act.vpred)
+            prev_new = model_cache.get_prev_new()
+            o4r, batchsize = model_cache.output4replay(prev_new, hero_act.vpred)
             if o4r is not None:
-                model.replay(o4r)
+                model.replay(o4r, batchsize)
 
             ob = model.gen_input(state_info, hero_name, rival_hero)
             ac = hero_act.output_index
@@ -102,7 +105,7 @@ class LineTrainerPPO:
         return False
 
     def train_line_model(self, raw_state_str):
-        # self.save_raw_log(raw_state_str)
+        self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求

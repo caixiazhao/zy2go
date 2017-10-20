@@ -13,7 +13,6 @@ class HttpUtil:
     def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000,
                          model1_initial_p=1.0, model1_final_p=0.02,
                          model2_initial_p=1.0, model2_final_p=0.02):
-        set_global_seeds(2000)
         ob_size = 183
         act_size = 49
         ob = np.zeros(ob_size, dtype=float).tolist()
@@ -26,7 +25,7 @@ class HttpUtil:
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/data/battle_logs/model_' + date_str
+        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str  #/data/battle_logs/model_ for server
         os.makedirs(save_dir)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
@@ -46,7 +45,7 @@ class HttpUtil:
     def build_models(model1_path=None, model2_path=None, initial_p=1.0, final_p=0.02):
         # 创建存储文件路径
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
+        save_dir = '/data/battle_logs/model_' + date_str
         os.makedirs(save_dir)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家

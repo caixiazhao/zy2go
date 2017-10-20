@@ -227,7 +227,7 @@ class LineModel_PPO1:
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
-    def replay(self, seg):
+    def replay(self, seg, batch_type):
         print(self.scope + " training")
 
         if self.schedule == 'constant':
@@ -254,7 +254,10 @@ class LineModel_PPO1:
         # Here we do a bunch of optimization epochs over the data
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
-            for batch in d.iterate_once(self.optim_batchsize):
+            # 完整的拿所有行为
+            batch_size = self.optim_batchsize if batch_type == 0 else d.n
+            # for batch in d.iterate_once(self.optim_batchsize): 这是给原始分段ppo的
+            for batch in d.iterate_once(batch_size):
                 # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
                     self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)

@@ -12,6 +12,7 @@ from train.linemodel_ppo1 import LineModel_PPO1
 from util.linetrainer import LineTrainer
 from util.linetrainer_ppo import LineTrainerPPO
 from util.ppocache import PPO_CACHE
+from util.ppocache2 import PPO_CACHE2
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 from baselines.common import set_global_seeds
@@ -32,12 +33,12 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path, real_hero=None
     # model1_cache = None
     model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1",
                              schedule_timesteps=2, initial_p=1, final_p=0)
-    model1_cache = PPO_CACHE(ob, 1, horizon=64)
+    model1_cache = PPO_CACHE2(ob, 1, horizon=64)
     # model_2 = None
     # model2_cache = None
     model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2",
                              schedule_timesteps=2, initial_p=1, final_p=0)
-    model2_cache = PPO_CACHE(ob, 1, horizon=64)
+    model2_cache = PPO_CACHE2(ob, 1, horizon=64)
 
     date_str = str(datetime.now()).replace(' ', '').replace(':', '')
     save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str
@@ -54,9 +55,9 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path, real_hero=None
     model2_save_header = save_dir + '/line_model_2_v'
 
     line_trainer = LineTrainerPPO(save_dir, model1_hero, model_1, model1_save_header, model1_cache,
-        model2_hero, model_2, model2_save_header, model2_cache, real_hero=real_hero, enable_policy=True)
+        model2_hero, model_2, model2_save_header, model2_cache, real_hero=real_hero, policy_ratio=0.3)
 
-    for i in range(10):
+    for i in range(1):
         for line in lines:
             json_str = line[23:]
             rsp_str = line_trainer.train_line_model(json_str)
@@ -281,7 +282,7 @@ if __name__ == "__main__":
     #                  None, "linemodel1",
     #                  '/Users/sky4star/Github/zy2go/battle_logs/test/server0911/linetrainer_1_v',
     #                  ['27'])
-    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/battle_logs/model_2017-10-11170324.808673/raw.log',
+    test_line_trainer_ppo('/Users/sky4star/Github/zy2go/battle_logs/model_2017-10-20181233.525764/raw.log',
                           None,
                           None,
                           None)

@@ -25,19 +25,19 @@ from mpi4py import MPI
 from collections import deque
 import time
 
-class PPO_CACHE:
+class PPO_CACHE2:
     REWARD_RIVAL_DMG = 250
 
     def __init__(self, ob, ac, horizon=100):
         self.horizon = horizon
 
         # Initialize history arrays
-        self.obs = np.array([ob for _ in range(horizon)])
-        self.rews = np.zeros(horizon, 'float32')
-        self.vpreds = np.zeros(horizon, 'float32')
-        self.news = np.zeros(horizon, 'int32')
-        self.acs = np.array([ac for _ in range(horizon)])
-        self.prevacs = self.acs.copy()
+        self.obs = []
+        self.rews = []
+        self.vpreds = []
+        self.news = []
+        self.acs = []
+        self.prevacs = []
         self.nextnew = 0
         self.t = 0
 
@@ -58,20 +58,25 @@ class PPO_CACHE:
         return self.nextnew
 
     def remember(self, ob, ac, vpred, new, rew, prev_new):
-        if self.t > 0 and self.t % self.horizon == 0:
+        if self.t > 0 and prev_new == 1:
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             self.ep_rets = []
             self.ep_lens = []
-        i = self.t % self.horizon
-        self.obs[i] = ob
-        self.vpreds[i] = vpred
+            self.obs = []
+            self.rews = []
+            self.vpreds = []
+            self.news = []
+            self.acs = []
+            self.prevacs = []
+        self.obs.append(ob)
+        self.vpreds.append(vpred)
         # 这里记录的new不是结果中的？
-        self.news[i] = prev_new
-        self.acs[i] = ac
-        prev_act = self.acs[i-1]
-        self.prevacs[i] = prev_act
-        self.rews[i] = rew
+        self.news.append(prev_new)
+        self.acs.append(ac)
+        prev_act = self.acs[-2] if len(self.acs) > 1 else ac
+        self.prevacs.append(prev_act)
+        self.rews.append(rew)
         self.nextnew = new
 
         self.cur_ep_ret += rew
@@ -85,10 +90,12 @@ class PPO_CACHE:
         self.t += 1
 
     def output4replay(self, cur_new, next_vpred):
-        batch_size = 0
-        if self.t > 0 and self.t % self.horizon == 0:
-            return {"ob": self.obs, "rew": self.rews, "vpred": self.vpreds, "new": self.news,
-             "ac": self.acs, "prevac": self.prevacs, "nextvpred": next_vpred * (1 - cur_new),
+        batch_size = 1
+        if self.t > 0 and cur_new == 1:
+            print("训练数据长度 " + str(len(self.obs)))
+            return {"ob": np.array(self.obs), "rew": np.array(self.rews), "vpred": np.array(self.vpreds),
+                    "new": np.array(self.news),
+             "ac": np.array(self.acs), "prevac": np.array(self.prevacs), "nextvpred": next_vpred * (1 - cur_new),
              "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}, batch_size
         else:
             return None, batch_size
