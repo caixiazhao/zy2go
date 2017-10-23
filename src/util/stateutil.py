@@ -49,7 +49,7 @@ class StateUtil:
     def if_hero_dead(prev_state, cur_state, hero_name):
         prev_hero = prev_state.get_hero(hero_name)
         cur_hero = cur_state.get_hero(hero_name)
-        dead =  1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
+        dead = 1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
         if dead:
             breakpoint = 1
         return dead
@@ -77,13 +77,13 @@ class StateUtil:
         return dmg
 
     @staticmethod
-    def if_first_tower_destroyed_in_line(state_info, line_idx):
+    # 固定检测中路第一个塔是否被摧毁了
+    def if_first_tower_destroyed_in_middle_line(state_info):
         for unit in state_info.units:
-            if int(unit.unit_name) <= 26:
-                if StateUtil.if_in_line(unit, line_idx) >= 0:
-                    if unit.hp <= 0:
-                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team) + " detail：" + unit.pos.to_string())
-                        return unit.team
+            if unit.pos.x == 17110 or unit.pos.x == -17110:
+                if unit.hp <= 0:
+                    print(unit.unit_name + '塔被摧毁, win:' + str(unit.team) + " detail：" + unit.pos.to_string())
+                    return unit.team
         return None
 
     @staticmethod

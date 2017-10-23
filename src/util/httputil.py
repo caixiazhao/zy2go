@@ -19,9 +19,9 @@ class HttpUtil:
         ac = np.zeros(act_size, dtype=float).tolist()
         model1_hero = '27'
         model2_hero = '28'
-        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=64,
+        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=64, gamma=0.99,
                             scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model1_initial_p, final_p=model1_final_p)
-        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=64,
+        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=64,  gamma=0.99,
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')

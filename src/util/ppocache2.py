@@ -57,18 +57,22 @@ class PPO_CACHE2:
         # remember中的new会变成下一条的prev_new
         return self.nextnew
 
+    def change_last(self, new, rew):
+        self.rews[-1] = rew
+        self.nextnew = new
+
+    def clear_cache(self):
+        self.ep_rets = []
+        self.ep_lens = []
+        self.obs = []
+        self.rews = []
+        self.vpreds = []
+        self.news = []
+        self.acs = []
+        self.prevacs = []
+        self.nextnew = 0
+
     def remember(self, ob, ac, vpred, new, rew, prev_new):
-        if self.t > 0 and prev_new == 1:
-            # Be careful!!! if you change the downstream algorithm to aggregate
-            # several of these batches, then be sure to do a deepcopy
-            self.ep_rets = []
-            self.ep_lens = []
-            self.obs = []
-            self.rews = []
-            self.vpreds = []
-            self.news = []
-            self.acs = []
-            self.prevacs = []
         self.obs.append(ob)
         self.vpreds.append(vpred)
         # 这里记录的new不是结果中的？

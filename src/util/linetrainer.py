@@ -154,7 +154,7 @@ class LineTrainer:
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
-        if StateUtil.if_first_tower_destroyed_in_line(state_info, line_idx=1):
+        if StateUtil.if_first_tower_destroyed_in_middle_line(state_info):
             print('重新开始游戏')
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 

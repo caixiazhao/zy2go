@@ -70,7 +70,7 @@ class S(BaseHTTPRequestHandler):
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
                              '28', self.model_2, self.model2_save_header, model2_cache, real_hero=None,
-                             policy_ratio=0.3, policy_continue_acts=3)
+                             policy_ratio=-1, policy_continue_acts=3)
         # 交给对线训练器来进行训练
         rsp_str = self.line_trainers[raw_state_info.battleid].train_line_model(get_data)
         print(rsp_str)
@@ -116,10 +116,10 @@ class S(BaseHTTPRequestHandler):
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
         model1_path=None,
         model2_path=None,
-        schedule_timesteps=500000,
-        model1_initial_p=0.05,
+        schedule_timesteps=200000,
+        model1_initial_p=0.5,
         model1_final_p=0.05,
-        model2_initial_p=0.05,
+        model2_initial_p=0.5,
         model2_final_p=0.05,
         )
     real_hero = None

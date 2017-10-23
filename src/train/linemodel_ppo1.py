@@ -237,7 +237,7 @@ class LineModel_PPO1:
 
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        # print(seg)
+        print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -456,7 +456,7 @@ class LineModel_PPO1:
         reward = float(gold_delta) / 100
 
         # 将所有奖励缩小
-        final_reward = reward / 10
+        final_reward = reward / 100
         final_reward = min(max(final_reward, -1), 1)
 
         # 特殊奖励，放在最后面
@@ -471,5 +471,5 @@ class LineModel_PPO1:
                     final_reward = 0
         elif cur_hero.hp > 0 and next_hero.hp <= 0:
             print('英雄死亡')
-            final_reward = -5
+            final_reward = -1
         return final_reward
