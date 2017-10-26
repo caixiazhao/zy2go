@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import collections
 
+import threading
 from baselines import logger
 import numpy as np
 import tensorflow as tf
@@ -237,7 +238,7 @@ class LineModel_PPO1:
 
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        print(seg)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -252,11 +253,10 @@ class LineModel_PPO1:
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
         logger.log(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
+        batch_size = self.optim_batchsize if batch_type == 0 else d.n
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             # 完整的拿所有行为
-            batch_size = self.optim_batchsize if batch_type == 0 else d.n
-            # for batch in d.iterate_once(self.optim_batchsize): 这是给原始分段ppo的
             for batch in d.iterate_once(batch_size):
                 # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
@@ -273,9 +273,10 @@ class LineModel_PPO1:
 
         logger.log("Evaluating losses...")
         losses = []
-        for batch in d.iterate_once(self.optim_batchsize):
+        for batch in d.iterate_once(batch_size):
             newlosses = self.compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
             losses.append(newlosses)
+        print(losses)
         meanlosses, _, _ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
         for (lossval, name) in zipsame(meanlosses, loss_names):

@@ -7,6 +7,7 @@ import json as JSON
 import random
 
 import tensorflow as tf
+import time
 from time import gmtime, strftime
 
 from hero_strategy.actionenum import ActionEnum
@@ -59,12 +60,6 @@ class LineTrainerPPO:
         self.model2_save_header = model2_save_header
         self.model2_cache = model2_cache
         self.save_batch = 200
-
-        tvars = tf.trainable_variables()
-        tvars_vals = U.get_session().run(tvars)
-
-        for var, val in zip(tvars, tvars_vals):
-            print(var.name, val)
 
     def if_restart(self, state_infos, state_index):
         # 重开条件：英雄死亡两次或者第一个塔被打掉
@@ -149,7 +144,7 @@ class LineTrainerPPO:
         return False
 
     def train_line_model(self, raw_state_str):
-        self.save_raw_log(raw_state_str)
+        # self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求
@@ -190,7 +185,9 @@ class LineTrainerPPO:
         reward_state_idx = -2 if self.real_hero is None else -4
         new = 0
         if len(self.state_cache) + reward_state_idx > 0:
+            print('state_cache len', len(self.state_cache))
             new, loss_team = self.if_restart(self.state_cache, reward_state_idx)
+            print('restart check', 'done')
             if self.model1 is not None:
                 added = self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model1,
                                          self.model1_hero, self.model2_hero, self.model1_save_header, new, loss_team)
@@ -305,6 +302,7 @@ class LineTrainerPPO:
                 rival_hero = '28' if hero.hero_name == '27' else '27'
                 begin_time = datetime.now()
                 action, explorer_ratio, action_ratios = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                print('action', action)
                 end_time = datetime.now()
                 delta = end_time - begin_time
                 self.time_cache.append(delta.microseconds)
