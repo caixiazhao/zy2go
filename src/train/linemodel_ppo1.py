@@ -163,7 +163,8 @@ class LineModel_PPO1:
         sess = U.get_session()
         saver.save(sess, name)
 
-    def gen_input(self, cur_state, hero_name, rival_hero):
+    @staticmethod
+    def gen_input(cur_state, hero_name, rival_hero):
         cur_line_input = Line_Input_Lite(cur_state, hero_name, rival_hero)
         cur_state_input = cur_line_input.gen_line_input()
         return cur_state_input

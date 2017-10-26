@@ -6,17 +6,15 @@ import _thread
 from train.linetrainer_manager import LineTrainerManager
 
 
-def read_thread(name, path):
-    # raw_file = open(raw_log_path, "r")
-    # lines = raw_file.readlines()
-    # for line in lines:
-    #     time.sleep(0.5)
-    while True:
+def read_thread(name, raw_log_path):
+    raw_file = open(raw_log_path, "r")
+    lines = raw_file.readlines()
+    manager = LineTrainerManager()
+    for line in lines:
         time.sleep(0.5)
-        rnd = random.randint(1, 5)
-        print('name', name, rnd, '请求')
-        manager = LineTrainerManager()
-        manager.response(rnd)
+        # rnd = random.randint(1, 5)
+        # print('name', name, rnd, '请求')
+        manager.response(line)
 
 if __name__ == "__main__":
     try:

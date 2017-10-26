@@ -21,7 +21,7 @@ class LineTrainerManager(metaclass=Singleton):
     #     model2_initial_p=0.05,
     #     model2_final_p=0.05,
     #     )
-    model1 = ModelThread(name='model1')
+    model_thread = ModelThread(name='model1')
     init_model = False
     line_trainers = {}
     using_line_trainers = []
@@ -32,7 +32,7 @@ class LineTrainerManager(metaclass=Singleton):
             if not self.init_model:
                 self.init_model = True
                 print("model start")
-                self.model1.start()
+                self.model_thread.start()
 
         with self.lock:
             if get_data not in self.line_trainers.keys():
@@ -44,7 +44,7 @@ class LineTrainerManager(metaclass=Singleton):
             self.using_line_trainers.append(get_data)
             # 这里假装处理一段时间
             print(get_data, '正在处理')
-            self.model1.q.put(get_data)
+            self.model1.action_queue.put(get_data)
             while True:
                 self.model1.done_signal.wait(1)
                 # check package
