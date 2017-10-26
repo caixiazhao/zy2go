@@ -13,7 +13,7 @@ def read_thread(name, path):
     #     time.sleep(0.5)
     while True:
         time.sleep(0.5)
-        rnd = random.randint(1, 3)
+        rnd = random.randint(1, 5)
         print('name', name, rnd, '请求')
         manager = LineTrainerManager()
         manager.response(rnd)

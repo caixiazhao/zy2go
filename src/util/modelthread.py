@@ -3,8 +3,8 @@ import threading
 import time
 import logging
 import queue
-# import baselines.common.tf_util as U
-# import tensorflow as tf
+import baselines.common.tf_util as U
+import tensorflow as tf
 
 from util.httputil import HttpUtil
 
@@ -23,10 +23,10 @@ class ModelThread(threading.Thread):
         self.results = {}
         self.done_signal = threading.Event()
 
-        # self.sess = U.make_session(8)
-        # self.sess.__enter__()
-        # U.initialize()
-        # self.norm = tf.random_normal([2, 3], mean=-1, stddev=4)
+        self.sess = U.make_session(8)
+        self.sess.__enter__()
+        U.initialize()
+        self.norm = tf.random_normal([2, 3], mean=-1, stddev=4)
 
         # self.save_dir, self.model_1, self.model1_save_header, self.model_2, self.model2_save_header = HttpUtil.build_models_ppo(
         #     model1_path=None,
@@ -42,19 +42,17 @@ class ModelThread(threading.Thread):
 
     def run(self):
         while True:
-            item = self.q.get()
-            if item is None:
-                break
-            # rsp_str = self.sess.run(self.norm)
-            print(self.name + ' Getting ' + str(item)
-                              + ' : ' + str(self.q.qsize()) + ' items in queue ')
-            # print(rsp_str)
-            self.results[item] = item+1
-            self.done_signal.set()
-            self.q.task_done()
-        return
-
-
+            try:
+                item = self.q.get()
+                rsp_str = self.sess.run(self.norm)
+                print(self.name + ' Getting ' + str(item)
+                                  + ' : ' + str(self.q.qsize()) + ' items in queue ')
+                time.sleep(3)
+                self.results[item] = rsp_str
+                self.done_signal.set()
+                self.q.task_done()
+            except Exception as e:
+                print(e)
 
 class ProducerThread(threading.Thread):
     def __init__(self, consumer, group=None, target=None, name=None,

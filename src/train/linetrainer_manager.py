@@ -44,8 +44,14 @@ class LineTrainerManager(metaclass=Singleton):
             self.using_line_trainers.append(get_data)
             # 这里假装处理一段时间
             print(get_data, '正在处理')
-            time.sleep(10)
-            print(get_data, line_trainer)
+            self.model1.q.put(get_data)
+            while True:
+                self.model1.done_signal.wait(1)
+                # check package
+                if get_data in self.model1.results:
+                    result = self.model1.results.pop(get_data)
+                    break
+            print(get_data, result)
             self.using_line_trainers.remove(get_data)
             return line_trainer
         else:
