@@ -1,16 +1,8 @@
 import threading
 
-from theano.gradient import np
-
-from model.stateinfo import StateInfo
-from util.httputil import HttpUtil
-from util.linetrainer_ppo import LineTrainerPPO
+import time
 from util.modelthread import ModelThread
-from util.ppocache2 import PPO_CACHE2
 from util.singleton import Singleton
-import baselines.common.tf_util as U
-import json as JSON
-import tensorflow as tf
 
 
 class LineTrainerManager(metaclass=Singleton):
@@ -29,23 +21,45 @@ class LineTrainerManager(metaclass=Singleton):
     #     model2_initial_p=0.05,
     #     model2_final_p=0.05,
     #     )
-
-    def __init__(self):
-        self.model1 = ModelThread(name='model1')
-        self.init_model = False
+    model1 = ModelThread(name='model1')
+    init_model = False
+    line_trainers = {}
+    using_line_trainers = []
+    lock = threading.Lock()
 
     def response(self, get_data):
-        if not self.init_model:
-            self.model1.start()
-            self.init_model = True
+        with self.lock:
+            if not self.init_model:
+                self.init_model = True
+                print("model start")
+                self.model1.start()
+
+        with self.lock:
+            if get_data not in self.line_trainers.keys():
+                print(get_data, '开始创建')
+                self.line_trainers[get_data] = get_data + 10
+
+        if get_data not in self.using_line_trainers:
+            line_trainer = self.line_trainers[get_data]
+            self.using_line_trainers.append(get_data)
+            # 这里假装处理一段时间
+            print(get_data, '正在处理')
+            time.sleep(10)
+            print(get_data, line_trainer)
+            self.using_line_trainers.remove(get_data)
+            return line_trainer
+        else:
+            # 如果当前训练器正在被使用，直接返回空，本次请求超时，这样客户端会继续重试，直到训练器返回为止
+            print(get_data, '被占用，直接返回')
+            return None
 
         # sess = U.make_session(8)
         # sess.__enter__()
         # U.initialize()
         # norm = tf.random_normal([2, 3], mean=-1, stddev=4)
         # sess = U.get_session()
-        obj = JSON.loads(get_data)
-        self.model1.q.put('input')
+        # obj = JSON.loads(get_data)
+        # self.model1.q.put('input')
         # rsp_str = sess.run(norm)
         # raw_state_info = StateInfo.decode(obj)
         # if raw_state_info.battleid not in self.line_trainers:
