@@ -106,7 +106,7 @@ class LineTrainerPPO:
             if o4r is not None:
                 # 不用等待结果
                 #TODO 这里清空缓存是不是不太好
-                model_thread.train_queue.put(self.battle_id, model_name, o4r, batchsize)
+                model_thread.train_queue.put((self.battle_id, model_name, o4r, batchsize))
                 model_cache.clear_cache()
 
             ob = LineModel_PPO1.gen_input(state_info, hero_name, rival_hero)
