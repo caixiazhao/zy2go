@@ -27,10 +27,12 @@ define("port", default=8780, help="run on the given port", type=int)
 
 # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
+    def initialize(self, trainer_manager):
+        self.trainer_manager = trainer_manager
+
     def get(self, *args, **kwargs):
         content = tornado.escape.to_basestring(self.request.body)
-        manager = LineTrainerManager()
-        response = manager.response(content)
+        response = self.trainer_manager.response(content)
         self.write(response)
 
     def post(self, *args, **kwargs):
@@ -39,8 +41,10 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     tornado.options.parse_command_line()
+    manager = LineTrainerManager()
+    manager.init()
     application = tornado.web.Application([
-        (r"/", MainHandler),
+        (r"/", MainHandler, dict(trainer_manager=manager)),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
     # http_server.listen(options.port)

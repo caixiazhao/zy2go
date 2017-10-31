@@ -11,7 +11,7 @@ from util.ppocache2 import PPO_CACHE2
 from util.singleton import Singleton
 
 
-class LineTrainerManager(metaclass=Singleton):
+class LineTrainerManager:
     # sess = U.make_session(8)
     # sess.__enter__()
     # U.initialize()
@@ -33,7 +33,7 @@ class LineTrainerManager(metaclass=Singleton):
     using_line_trainers = []
     lock = threading.Lock()
 
-    def response(self, get_data):
+    def init(self):
         # 首先启动模型线程，注意这里需要等待模型加载完毕之后再开始服务
         # 不知道为什么后续模型线程的初始化和启动必须在这里进行，否则会出现线程其实没有启动起来的情况
         with self.lock:
@@ -43,6 +43,7 @@ class LineTrainerManager(metaclass=Singleton):
                 self.model_thread.start()
                 self.model_thread.init_signal.wait(200)
 
+    def response(self, get_data):
         obj = JSON.loads(get_data)
         raw_state_info = StateInfo.decode(obj)
         battle_id = raw_state_info.battleid

@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import random
 import threading
 import time
@@ -58,6 +59,7 @@ class ModelThread(threading.Thread):
     def run(self):
         # 在运行线程中启动tf模型，注意这里必须在运行线程中而不是在初始化线程中启动tf.session，否则会找不到默认线程
         if not self.inited:
+            print('初始化模型线程')
             self.init_models()
             self.inited = True
             self.init_signal.set()
