@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import collections
 
+import threading
 from baselines import logger
 import numpy as np
 import tensorflow as tf
@@ -24,6 +25,7 @@ from baselines.common.mpi_moments import mpi_moments
 from mpi4py import MPI
 from collections import deque
 import time
+import random
 
 
 class LineModel_PPO1:
@@ -33,7 +35,7 @@ class LineModel_PPO1:
                  policy_func=None,
                  update_target_period=100, scope="ppo1", schedule_timesteps=10000, initial_p=0, final_p=0,
                  gamma=0.99, lam=0.95,
-                 optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,  # optimization hypers
+                 optim_epochs=4, optim_stepsize=1e-3,  # optimization hypers
                  schedule='linear', max_timesteps=40e6
                  ):
         self.act = None
@@ -70,7 +72,6 @@ class LineModel_PPO1:
 
         self.optim_epochs = optim_epochs
         self.optim_stepsize = optim_stepsize
-        self.optim_batchsize = optim_batchsize
 
         self.ep_rets = []
         self.ep_lens = []
@@ -161,7 +162,8 @@ class LineModel_PPO1:
         sess = U.get_session()
         saver.save(sess, name)
 
-    def gen_input(self, cur_state, hero_name, rival_hero):
+    @staticmethod
+    def gen_input(cur_state, hero_name, rival_hero):
         cur_line_input = Line_Input_Lite(cur_state, hero_name, rival_hero)
         cur_state_input = cur_line_input.gen_line_input()
         return cur_state_input
@@ -222,11 +224,11 @@ class LineModel_PPO1:
             nonterminal = 1 - new[t + 1]
             delta = rew[t] + gamma * vpred[t + 1] * nonterminal - vpred[t]
             gaelam[t] = lastgaelam = delta + gamma * lam * nonterminal * lastgaelam
-            print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
+            # print('gaelam', gaelam[t], 'rew', rew[t], 'vpred_t+1', vpred[t+1], 'vpred_t', vpred[t])
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
-    def replay(self, seg):
+    def replay(self, seg, batch_size):
         print(self.scope + " training")
 
         if self.schedule == 'constant':
@@ -236,7 +238,7 @@ class LineModel_PPO1:
 
         self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
-        print(seg)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -253,12 +255,13 @@ class LineModel_PPO1:
         # Here we do a bunch of optimization epochs over the data
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
-            for batch in d.iterate_once(self.optim_batchsize):
-                print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
+            # 完整的拿所有行为
+            for batch in d.iterate_once(batch_size):
+                # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
                     self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
-                print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
-                      "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
+                # print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
+                #       "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
                 if np.isnan(np.mean(g)):
                     debug = 1
                     print('output nan, ignore it!')
@@ -269,9 +272,10 @@ class LineModel_PPO1:
 
         logger.log("Evaluating losses...")
         losses = []
-        for batch in d.iterate_once(self.optim_batchsize):
+        for batch in d.iterate_once(batch_size):
             newlosses = self.compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
             losses.append(newlosses)
+        print(losses)
         meanlosses, _, _ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
         for (lossval, name) in zipsame(meanlosses, loss_names):
@@ -320,9 +324,13 @@ class LineModel_PPO1:
         action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
         action.vpred = vpred
 
+        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
+        action_ratios = list(actions[0])
+        action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
+
         # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
         #        (str(action.output_index), input_detail, action_detail))
-        return action
+        return action, explor_value, action_ratios_masked
 
     @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算
@@ -410,4 +418,58 @@ class LineModel_PPO1:
         elif cur_hero.hp > 0 and next_hero.hp <= 0:
             print('英雄死亡')
             final_reward = -5
+        return final_reward
+
+    @staticmethod
+    # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算
+    # 另外最核心的是，ppo本身就不要要求奖惩值是根据上一个行动来得到的
+    def cal_target_ppo_2(prev_state, cur_state, next_state, hero_name, rival_hero_name, line_idx):
+        # 只计算当前帧的得失，得失为金币获取情况 + 敌方血量变化
+        # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        rival_team = cur_rival_hero.team
+        cur_hero = cur_state.get_hero(hero_name)
+        cur_rival_hero = cur_state.get_hero(rival_hero_name)
+        next_hero = next_state.get_hero(hero_name)
+        next_rival_hero = next_state.get_hero(rival_hero_name)
+        # 找到英雄附近死亡的敌方小兵
+        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero,
+                                                      StateUtil.GOLD_GAIN_RADIUS)
+        dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
+        dead_unit_str = (','.join([u.unit_name for u in dead_units]))
+
+        # 如果英雄有小额金币变化，则忽略
+        gold_delta = next_hero.gold - cur_hero.gold
+        if gold_delta % 10 == 3 or gold_delta % 10 == 8 or gold_delta == int(dead_golds / 2) + 3:
+            gold_delta -= 3
+
+        # 很难判断英雄的最后一击，所以我们计算金币变化，超过死亡单位一半的金币作为英雄获得金币
+        gold_delta = gold_delta * 2 - dead_golds
+        if gold_delta < 0:
+            print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain',
+                  (next_hero.gold - cur_hero.gold))
+            gold_delta = 0
+
+        if dead_golds > 0:
+            print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
+
+        reward = float(gold_delta) / 100
+
+        # 将所有奖励缩小
+        final_reward = reward / 100
+        final_reward = min(max(final_reward, -1), 1)
+
+        # 特殊奖励，放在最后面
+        # 英雄击杀最后一击，直接最大奖励(因为gamma的存在，扩大这个惩罚）
+        if cur_rival_hero.hp > 0 and next_rival_hero.hp <= 0:
+            # print('对线英雄%s死亡' % rival_hero_name)
+            dmg_hit_rival = next_state.get_hero_total_dmg(hero_name, rival_hero_name)
+            if dmg_hit_rival > 0:
+                # print('英雄%s对对方造成了最后一击' % hero_name)
+                final_reward = 1
+                if cur_hero.hp > 0 and next_hero.hp <= 0:
+                    final_reward = 0
+        elif cur_hero.hp > 0 and next_hero.hp <= 0:
+            print('英雄死亡')
+            final_reward = -1
         return final_reward

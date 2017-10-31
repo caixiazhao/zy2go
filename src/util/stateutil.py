@@ -17,6 +17,9 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 7  # 13.5
     ATTACK_UNIT_RADIUS = 7  # 10
+    TOWER_ATTACK_RADIUS = 8
+
+    # 需要和ATTACK_HERO_RADIUS一致才行
     LINE_MODEL_RADIUS = 7
     GOLD_GAIN_RADIUS = 11
     MAX_RADIUS = 50
@@ -46,7 +49,10 @@ class StateUtil:
     def if_hero_dead(prev_state, cur_state, hero_name):
         prev_hero = prev_state.get_hero(hero_name)
         cur_hero = cur_state.get_hero(hero_name)
-        return 1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
+        dead = 1 if prev_hero.hp > 0 and cur_hero.hp <= 0 else 0
+        if dead:
+            breakpoint = 1
+        return dead
 
     @staticmethod
     def get_attack_cast_dmg(cur_state, next_state, next_next_state, hero_name, rival_hero):
@@ -71,13 +77,13 @@ class StateUtil:
         return dmg
 
     @staticmethod
-    def if_first_tower_destroyed_in_line(state_info, line_idx):
+    # 固定检测中路第一个塔是否被摧毁了
+    def if_first_tower_destroyed_in_middle_line(state_info):
         for unit in state_info.units:
-            if int(unit.unit_name) <= 26:
-                if StateUtil.if_in_line(unit, line_idx) >= 0:
-                    if unit.hp <= 0:
-                        print(unit.unit_name + '塔被摧毁, win:' + str(unit.team))
-                        return unit.team
+            if unit.pos.x == 17110 or unit.pos.x == -17110:
+                if unit.hp <= 0:
+                    print(unit.unit_name + '塔被摧毁, win:' + str(unit.team) + " detail：" + unit.pos.to_string())
+                    return unit.team
         return None
 
     @staticmethod
@@ -107,6 +113,10 @@ class StateUtil:
             if skill_info.up:
                 skills.append(i)
         return skills
+
+    @staticmethod
+    def get_basement(hero_info):
+        return StateUtil.BASEMENT_TEAM_1 if hero_info.team == 1 else StateUtil.BASEMENT_TEAM_0
 
     @staticmethod
     def if_hero_at_basement(hero_info):

@@ -41,6 +41,7 @@ class Line_Input_Lite:
         nearest_towers = StateUtil.get_near_towers_in_line(self.stateInformation, my_hero_info, self.line_idx, self.NEAR_TOWER_RADIUS)
         nearest_towers_rival = [t for t in nearest_towers if t.team != my_hero_info.team]
         nearest_towers_team = [t for t in nearest_towers if t.team == my_hero_info.team]
+        print("input debug", ":", "hero", self.hero_name, 'rival_tower', nearest_towers_rival, 'team_tower', nearest_towers_team)
 
         # 添加双方英雄信息，对线模型暂时只考虑1v1的情况
         my_hero_input = self.gen_input_hero(my_hero_info, nearest_towers_rival)

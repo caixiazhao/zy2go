@@ -56,6 +56,9 @@ class StateInfo:
         for att in self.attack_infos:
             if str(att.atker) == unit_name and str(att.defer) == hero_name:
                 return att
+        for hit in self.hit_infos:
+            if hit.atker == unit_name and hit.tgt == hero_name:
+                return hit
         return None
 
     def get_hero_attack_info(self, hero_name):
@@ -160,8 +163,8 @@ class StateInfo:
         for action in self.actions:
             if action.hero_name == hero_name:
                 action.reward = reward
-                # print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
-                #      action.action, action.skillid, action.tgtid))
+                print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
+                     action.action, action.skillid, action.tgtid))
                 break
 
     def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):

@@ -19,7 +19,7 @@ import os
 import numpy as np
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from baselines.common import set_global_seeds
+from baselines.common import set_global_seeds, time
 from model.stateinfo import StateInfo
 from train.line_ppo_model import LinePPOModel
 from train.linemodel_dpn import LineModel_DQN
@@ -31,6 +31,7 @@ from datetime import datetime
 
 from util.linetrainer_ppo import LineTrainerPPO
 from util.ppocache import PPO_CACHE
+from util.ppocache2 import PPO_CACHE2
 
 
 class S(BaseHTTPRequestHandler):
@@ -64,11 +65,12 @@ class S(BaseHTTPRequestHandler):
             #                                                          )
             # PPO
             ob = np.zeros(183, dtype=float).tolist()
-            model1_cache = PPO_CACHE(ob, 1, horizon=self.model_1.optim_batchsize)
-            model2_cache = PPO_CACHE(ob, 1, horizon=self.model_2.optim_batchsize)
+            model1_cache = PPO_CACHE2(ob, 1, horizon=self.model_1.optim_batchsize)
+            model2_cache = PPO_CACHE2(ob, 1, horizon=self.model_2.optim_batchsize)
             self.line_trainers[raw_state_info.battleid] = LineTrainerPPO(self.save_dir, '27', self.model_1,
                              self.model1_save_header, model1_cache,
-                             '28', self.model_2, self.model2_save_header, model2_cache, real_hero=self.real_hero)
+                             '28', self.model_2, self.model2_save_header, model2_cache, real_hero=None,
+                             policy_ratio=-1, policy_continue_acts=3)
         # 交给对线训练器来进行训练
         rsp_str = self.line_trainers[raw_state_info.battleid].train_line_model(get_data)
         print(rsp_str)
@@ -81,19 +83,30 @@ class S(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self._set_headers()
 
-    # 通过命令来要求模型存储结果
+    # 通过命令来要求模型存储结果，打开或者关闭决策策略
     # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
+    # curl -l -H "Content-type: application/json" -X POST -d 'disable_policy' http://localhost:8780
+    # curl -l -H "Content-type: application/json" -X POST -d 'enable_policy' http://localhost:8780
     def do_POST(self):
         # Doesn't do anything with posted data
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
         post_data = post_data.decode()
         if post_data == 'save':
-            print('save model(s)')
+            print('commmand: save model(s)')
             replay_time = self.model_1.iters_so_far
             self.model_1.save(self.model1_save_header + str(replay_time) + '/model')
             replay_time = self.model_2.iters_so_far
             self.model_2.save(self.model2_save_header + str(replay_time) + '/model')
+        elif post_data == 'disable_policy':
+            print('commmand: disable policy')
+            # time.sleep(1000)
+            for key, trainer in self.line_trainers.items():
+                trainer.policy_ratio = -1
+        elif post_data == 'enable_policy':
+            print('commmand: enable policy')
+            for key, trainer in self.line_trainers.items():
+                trainer.policy_ratio = 0.3
         self._set_headers()
         self.wfile.write("copy that! ".encode(encoding="utf-8"))
 
@@ -103,12 +116,14 @@ class S(BaseHTTPRequestHandler):
     line_trainers = {}
     save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
         model1_path=None,
-        model2_path='/Users/sky4star/Github/zy2go/data/line_model_2_v6380/model',
-        schedule_timesteps=10000,
-        initial_p=0.05,
-        final_p=0.05
+        model2_path=None,
+        schedule_timesteps=200000,
+        model1_initial_p=0.05,
+        model1_final_p=0.05,
+        model2_initial_p=0.05,
+        model2_final_p=0.05,
         )
-    real_hero = '27'
+    real_hero = None
 
 def run(server_class=HTTPServer, handler_class=S, port=8780):
     server_address = ('', port)
