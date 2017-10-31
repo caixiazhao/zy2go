@@ -11,17 +11,17 @@ import numpy as np
 class HttpUtil:
     @staticmethod
     def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000,
-                         model1_initial_p=1.0, model1_final_p=0.02,
-                         model2_initial_p=1.0, model2_final_p=0.02):
+                         model1_initial_p=1.0, model1_final_p=0.02, model1_gamma=0.99,
+                         model2_initial_p=1.0, model2_final_p=0.02, model2_gamma=0.99):
         ob_size = 183
         act_size = 49
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
         model1_hero = '27'
         model2_hero = '28'
-        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, optim_batchsize=64, gamma=0.99,
+        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, gamma=model1_gamma,
                             scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model1_initial_p, final_p=model1_final_p)
-        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, optim_batchsize=64,  gamma=0.99,
+        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel,  gamma=model2_gamma,
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
 
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')

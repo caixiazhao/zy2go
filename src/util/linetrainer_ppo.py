@@ -49,9 +49,9 @@ class LineTrainerPPO:
         self.time_cache = []
 
         # 创建存储文件路径
-        self.raw_log_file = open(save_dir + '/raw.log', 'w')
-        self.state_file = open(save_dir + '/state.log', 'w')
-        self.state_reward_file = open(save_dir + '/state_reward.log', 'w')
+        self.raw_log_file = open(save_dir + '/raw_' + str(battle_id) + '.log', 'w')
+        self.state_file = open(save_dir + '/state_' + str(battle_id) + '.log', 'w')
+        self.state_reward_file = open(save_dir + '/state_reward_' + str(battle_id) + '.log', 'w')
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
@@ -130,18 +130,13 @@ class LineTrainerPPO:
             rew = 10 if loss_team != hero_info.team else -10
             model_cache.change_last(new, rew)
             prev_new = model_cache.get_prev_new()
-            o4r, batchsize = model_cache.output4replay(prev_new, -1)
+            o4r, batch_size = model_cache.output4replay(prev_new, -1)
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
-                begin_time = datetime.now()
-                model_thread.train_queue.put(self.battle_id, model_name, o4r, batchsize)
-                model_cache.clear_cache()
-                end_time = datetime.now()
-                delta = end_time - begin_time
-                print("average train time", delta)
+                model_thread.train_queue.put((self.battle_id, model_name, o4r, batch_size))
 
     def train_line_model(self, raw_state_str):
-        # self.save_raw_log(raw_state_str)
+        self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求
@@ -171,22 +166,22 @@ class LineTrainerPPO:
 
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
-        actions_model1 = self.build_response(self.state_cache, -1, self.model_thread, self.model1_hero)
-        action_strs.extend(actions_model1)
-        actions_model2 = self.build_response(self.state_cache, -1, self.model_thread, self.model2_hero)
-        action_strs.extend(actions_model2)
+        if self.model1_hero is not None:
+            actions_model1 = self.build_response(self.state_cache, -1, self.model_thread, self.model1_hero)
+            action_strs.extend(actions_model1)
+        if self.model2_hero is not None:
+            actions_model2 = self.build_response(self.state_cache, -1, self.model_thread, self.model2_hero)
+            action_strs.extend(actions_model2)
 
         # 计算奖励值，如果有真实玩家，因为需要推测行为的原因，则多往前回朔几帧
         reward_state_idx = -2 if self.real_hero is None else -4
         new = 0
         if len(self.state_cache) + reward_state_idx > 0:
-            print('state_cache len', len(self.state_cache))
             new, loss_team = self.if_restart(self.state_cache, reward_state_idx)
-            print('restart check', 'done')
-            if self.model1 is not None:
+            if self.model1_hero is not None:
                 self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model_thread,
                                          self.model1_hero, self.model2_hero, new, loss_team)
-            if self.model2 is not None:
+            if self.model2_hero is not None:
                 self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model_thread,
                                          self.model2_hero, self.model1_hero, new, loss_team)
 
@@ -290,18 +285,7 @@ class LineTrainerPPO:
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
                 begin_time = datetime.now()
-
-                model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
-                self.model_thread.action_queue.put(self.battle_id, model_name, state_info, hero.hero_name, rival_hero)
-                while True:
-                    # 超时会有异常抛出
-                    self.model_thread.done_signal.wait(10)
-                    # check package
-                    if (self.battle_id, model_name) in self.model1.results.keys:
-                        action, explorer_ratio, action_ratios = self.model1.results.pop((self.battle_id, model_name))
-                        break
-
-                print('action', action)
+                action, explorer_ratio, action_ratios = self.get_action(state_info, hero_name, rival_hero)
                 end_time = datetime.now()
                 delta = end_time - begin_time
                 self.time_cache.append(delta.microseconds)
@@ -350,7 +334,7 @@ class LineTrainerPPO:
             else:
                 # 还是需要模型来计算出一个vpred
                 rival_hero = '28' if hero.hero_name == '27' else '27'
-                action, explorer_ratio, action_ratios = line_model.get_action(state_info, hero.hero_name, rival_hero)
+                action, explorer_ratio, action_ratios = self.get_action(state_info, hero_name, rival_hero)
 
                 # 推测玩家的行为
                 guess_action = Replayer.guess_player_action(state_info, next1_state_info, next2_state_info,
@@ -368,3 +352,22 @@ class LineTrainerPPO:
         # rsp_str = JSON.dumps(rsp_obj)
         # return rsp_str
 
+    def get_action(self, state_info, hero_name, rival_hero):
+        model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+        self.model_thread.action_queue.put((self.battle_id, model_name, state_info, hero_name, rival_hero))
+
+        # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
+        timeout = time.time() + 60
+        while True:
+            if time.time() > timeout:
+                print(self.battle_id, '很久没有收到模型的计算结果')
+                return None
+
+            # 超时会有异常抛出
+            self.model_thread.done_signal.wait(10)
+            print(self.battle_id, '等到一个信号')
+            # check package
+            if (self.battle_id, model_name) in self.model_thread.results.keys():
+                action, explorer_ratio, action_ratios = self.model_thread.results.pop((self.battle_id, model_name))
+                self.model_thread.done_signal.clear()
+                return action, explorer_ratio, action_ratios

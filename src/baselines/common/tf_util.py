@@ -223,7 +223,7 @@ def get_session():
 def make_session(num_cpu):
     """Returns a session that will use <num_cpu> CPU's only"""
     tf_config = tf.ConfigProto(
-        log_device_placement=True,
+        # log_device_placement=True,
         inter_op_parallelism_threads=num_cpu,
         intra_op_parallelism_threads=num_cpu)
     return tf.Session(config=tf_config)
@@ -422,34 +422,31 @@ class _Function(object):
             feed_dict[inpt] = value
 
     def __call__(self, *args, **kwargs):
-        try:
-            assert len(args) <= len(self.inputs), "Too many arguments provided"
-            feed_dict = {}
-            # Update the args
-            for inpt, value in zip(self.inputs, args):
-                self._feed_input(feed_dict, inpt, value)
-            # Update the kwargs
-            kwargs_passed_inpt_names = set()
-            for inpt in self.inputs[len(args):]:
-                inpt_name = inpt.name.split(':')[0]
-                inpt_name = inpt_name.split('/')[-1]
-                assert inpt_name not in kwargs_passed_inpt_names, \
-                    "this function has two arguments with the same name \"{}\", so kwargs cannot be used.".format(inpt_name)
-                if inpt_name in kwargs:
-                    kwargs_passed_inpt_names.add(inpt_name)
-                    self._feed_input(feed_dict, inpt, kwargs.pop(inpt_name))
-                else:
-                    assert inpt in self.givens, "Missing argument " + inpt_name
-            assert len(kwargs) == 0, "Function got extra arguments " + str(list(kwargs.keys()))
-            # Update feed dict with givens.
-            for inpt in self.givens:
-                feed_dict[inpt] = feed_dict.get(inpt, self.givens[inpt])
-            results = get_session().run(self.outputs_update, feed_dict=feed_dict)[:-1]
-            if self.check_nan:
-                if any(np.isnan(r).any() for r in results):
-                    raise RuntimeError("Nan detected")
-        except Exception as e:
-            print(e)
+        assert len(args) <= len(self.inputs), "Too many arguments provided"
+        feed_dict = {}
+        # Update the args
+        for inpt, value in zip(self.inputs, args):
+            self._feed_input(feed_dict, inpt, value)
+        # Update the kwargs
+        kwargs_passed_inpt_names = set()
+        for inpt in self.inputs[len(args):]:
+            inpt_name = inpt.name.split(':')[0]
+            inpt_name = inpt_name.split('/')[-1]
+            assert inpt_name not in kwargs_passed_inpt_names, \
+                "this function has two arguments with the same name \"{}\", so kwargs cannot be used.".format(inpt_name)
+            if inpt_name in kwargs:
+                kwargs_passed_inpt_names.add(inpt_name)
+                self._feed_input(feed_dict, inpt, kwargs.pop(inpt_name))
+            else:
+                assert inpt in self.givens, "Missing argument " + inpt_name
+        assert len(kwargs) == 0, "Function got extra arguments " + str(list(kwargs.keys()))
+        # Update feed dict with givens.
+        for inpt in self.givens:
+            feed_dict[inpt] = feed_dict.get(inpt, self.givens[inpt])
+        results = get_session().run(self.outputs_update, feed_dict=feed_dict)[:-1]
+        if self.check_nan:
+            if any(np.isnan(r).any() for r in results):
+                raise RuntimeError("Nan detected")
         return results
 
 

@@ -27,21 +27,27 @@ class ModelThread(threading.Thread):
         self.results = {}
         self.done_signal = threading.Event()
         self.save_batch = 200
+        self.inited = False
 
-        # self.sess = U.make_session(8)
-        # self.sess.__enter__()
-        # U.initialize()
-        # self.norm = tf.random_normal([2, 3], mean=-1, stddev=4)
+        self.save_dir = None
+        self.model_1 = None
+        self.model1_save_header = None
+        self.model_2 = None
+        self.model2_save_header = None
+        self.init_signal = threading.Event()
 
+    def init_models(self):
         self.save_dir, self.model_1, self.model1_save_header, self.model_2, self.model2_save_header = HttpUtil.build_models_ppo(
             model1_path=None,
             model2_path=None,
             schedule_timesteps=200000,
             model1_initial_p=0.05,
             model1_final_p=0.05,
+            model1_gamma=0.95,
             model2_initial_p=0.05,
             model2_final_p=0.05,
-            )
+            model2_gamma=0.95
+        )
 
     def if_save_model(self, model, save_header):
         # 训练之后检查是否保存
@@ -50,11 +56,18 @@ class ModelThread(threading.Thread):
             model.save(save_header + str(replay_time) + '/model')
 
     def run(self):
+        # 在运行线程中启动tf模型，注意这里必须在运行线程中而不是在初始化线程中启动tf.session，否则会找不到默认线程
+        if not self.inited:
+            self.init_models()
+            self.inited = True
+            self.init_signal.set()
+
         while True:
             try:
                 # 优先从save队列中取请求
                 if not self.save_queue.empty():
                     (battle_id, save_model_name, path) = self.save_queue.get()
+                    print(battle_id, 'receive save signal')
                     if save_model_name == ModelThread.NAME_MODEL_1:
                         self.model_1.save(path)
                         self.if_save_model(self.model_1, self.model1_save_header)
@@ -62,19 +75,31 @@ class ModelThread(threading.Thread):
                         self.model_2.save(path)
                         self.if_save_model(self.model_2, self.model2_save_header)
 
+                # 其次从训练队列中提取请求
+                if not self.train_queue.empty():
+                    (battle_id, train_model_name, o4r, batch_size) = self.train_queue.get()
+                    print(battle_id, train_model_name, 'receive train signal, batch size', batch_size)
+                    if train_model_name == ModelThread.NAME_MODEL_1:
+                        self.model_1.replay(o4r, batch_size)
+                    elif train_model_name == ModelThread.NAME_MODEL_2:
+                        self.model_2.replay(o4r, batch_size)
+
                 # 最后从行为队列中拿请求
                 # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
                 (battle_id, act_model_name, state_info, hero_name, rival_hero) = self.action_queue.get(timeout=1)
+                print(battle_id, 'receive act signal', act_model_name, hero_name)
                 if act_model_name == ModelThread.NAME_MODEL_1:
                     action, explorer_ratio, action_ratios = self.model_1.get_action(state_info, hero_name, rival_hero)
                 elif act_model_name == ModelThread.NAME_MODEL_2:
                     action, explorer_ratio, action_ratios = self.model_2.get_action(state_info, hero_name, rival_hero)
-                print(battle_id + ' Getting for ' + str(act_model_name)
+                print(str(battle_id) + ' Getting for ' + str(act_model_name)
                                   + ' : ' + str(self.action_queue.qsize()) + ' items in queue ')
                 self.results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
                 self.done_signal.set()
                 self.action_queue.task_done()
-            except Exception as e:
+            except queue.Empty:
+                continue
+            except BaseException as e:
                 print(e)
 
 class ProducerThread(threading.Thread):

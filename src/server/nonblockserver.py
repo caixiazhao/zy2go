@@ -13,7 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
+import logging
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
@@ -31,7 +31,6 @@ class MainHandler(tornado.web.RequestHandler):
         content = tornado.escape.to_basestring(self.request.body)
         manager = LineTrainerManager()
         response = manager.response(content)
-        print(response)
         self.write(response)
 
     def post(self, *args, **kwargs):
@@ -48,6 +47,12 @@ def main():
 
     http_server.bind(options.port)
     http_server.start(0)    # multi-process
+
+    hn = logging.NullHandler()
+    hn.setLevel(logging.DEBUG)
+    logging.getLogger("tornado.access").addHandler(hn)
+    logging.getLogger("tornado.access").propagate = False
+
     try:
         tornado.ioloop.IOLoop.current().start()
     except KeyboardInterrupt:

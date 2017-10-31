@@ -35,7 +35,7 @@ class LineModel_PPO1:
                  policy_func=None,
                  update_target_period=100, scope="ppo1", schedule_timesteps=10000, initial_p=0, final_p=0,
                  gamma=0.99, lam=0.95,
-                 optim_epochs=4, optim_stepsize=1e-3, optim_batchsize=64,  # optimization hypers
+                 optim_epochs=4, optim_stepsize=1e-3,  # optimization hypers
                  schedule='linear', max_timesteps=40e6
                  ):
         self.act = None
@@ -72,7 +72,6 @@ class LineModel_PPO1:
 
         self.optim_epochs = optim_epochs
         self.optim_stepsize = optim_stepsize
-        self.optim_batchsize = optim_batchsize
 
         self.ep_rets = []
         self.ep_lens = []
@@ -229,7 +228,7 @@ class LineModel_PPO1:
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
-    def replay(self, seg, batch_type):
+    def replay(self, seg, batch_size):
         print(self.scope + " training")
 
         if self.schedule == 'constant':
@@ -254,7 +253,6 @@ class LineModel_PPO1:
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
         logger.log(fmt_row(13, loss_names))
         # Here we do a bunch of optimization epochs over the data
-        batch_size = self.optim_batchsize if batch_type == 0 else d.n
         for _ in range(self.optim_epochs):
             losses = []  # list of tuples, each of which gives the loss for a minibatch
             # 完整的拿所有行为
