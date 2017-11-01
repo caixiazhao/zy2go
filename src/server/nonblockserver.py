@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #
 # Copyright 2009 Facebook
@@ -14,6 +15,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
+
+import sys
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
@@ -27,24 +30,33 @@ define("port", default=8780, help="run on the given port", type=int)
 
 # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
-    def initialize(self, trainer_manager):
-        self.trainer_manager = trainer_manager
+    def initialize(self, p_request_dict, p_result_dict, p_request_signal, p_done_signal, lock):
+        self.p_request_dict = p_request_dict
+        self.p_result_dict = p_result_dict
+        self.p_request_signal = p_request_signal
+        self.p_done_signal = p_done_signal
+        self.lock = lock
 
     def get(self, *args, **kwargs):
         content = tornado.escape.to_basestring(self.request.body)
-        response = self.trainer_manager.response(content)
+        response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict,
+                                                   self.p_request_signal, self.p_done_signal, self.lock)
         self.write(response)
 
     def post(self, *args, **kwargs):
-        self.write("Hello, world")
+        self.write("not implement yet")
 
 
 def main():
+    trainer_num = int(sys.argv[1])
+    manager = LineTrainerManager(trainer_num)
+    manager.start()
+
     tornado.options.parse_command_line()
-    manager = LineTrainerManager()
-    manager.init()
     application = tornado.web.Application([
-        (r"/", MainHandler, dict(trainer_manager=manager)),
+        (r"/", MainHandler,
+         dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict,
+              p_request_signal=manager.request_signal, p_done_signal=manager.done_signal, lock=manager.lock)),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
     # http_server.listen(options.port)
