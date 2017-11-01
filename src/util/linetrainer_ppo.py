@@ -25,7 +25,7 @@ from datetime import datetime
 class LineTrainerPPO:
     TOWN_HP_THRESHOLD = 0.3
 
-    def __init__(self, battle_id, save_dir, model_thread, model1_hero, model1_cache,
+    def __init__(self, battle_id, save_dir, model_process, model1_hero, model1_cache,
                  model2_hero=None, model2_cache=None, real_hero=None,
                  policy_ratio=-1, policy_continue_acts=3):
         self.battle_id = battle_id
@@ -55,7 +55,7 @@ class LineTrainerPPO:
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
-        self.model_thread = model_thread
+        self.model_process = model_process
 
         self.model1_cache = model1_cache
         self.model2_cache = model2_cache
@@ -86,7 +86,7 @@ class LineTrainerPPO:
                 return new, loss_team
         return new, loss_team
 
-    def remember_replay(self, state_infos, state_index, model_cache, model_thread, hero_name, rival_hero,
+    def remember_replay(self, state_infos, state_index, model_cache, model_process, hero_name, rival_hero,
                         new, loss_team, line_idx=1):
         #TODO 这里有个问题，如果prev不是模型选择的，那实际上这时候不是模型的问题
         # 比如英雄在塔边缘被塔打死了，这时候在执行撤退，其实应该算是模型最后一个动作的锅。
@@ -106,7 +106,7 @@ class LineTrainerPPO:
             if o4r is not None:
                 # 不用等待结果
                 #TODO 这里清空缓存是不是不太好
-                model_thread.train_queue.put((self.battle_id, model_name, o4r, batchsize))
+                model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
                 model_cache.clear_cache()
 
             ob = LineModel_PPO1.gen_input(state_info, hero_name, rival_hero)
@@ -133,7 +133,7 @@ class LineTrainerPPO:
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
-                model_thread.train_queue.put((self.battle_id, model_name, o4r, batch_size))
+                model_process.train_queue.put((self.battle_id, model_name, o4r, batch_size))
 
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
@@ -167,10 +167,10 @@ class LineTrainerPPO:
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
         if self.model1_hero is not None:
-            actions_model1 = self.build_response(self.state_cache, -1, self.model_thread, self.model1_hero)
+            actions_model1 = self.build_response(self.state_cache, -1, self.model1_hero)
             action_strs.extend(actions_model1)
         if self.model2_hero is not None:
-            actions_model2 = self.build_response(self.state_cache, -1, self.model_thread, self.model2_hero)
+            actions_model2 = self.build_response(self.state_cache, -1, self.model2_hero)
             action_strs.extend(actions_model2)
 
         # 计算奖励值，如果有真实玩家，因为需要推测行为的原因，则多往前回朔几帧
@@ -179,10 +179,10 @@ class LineTrainerPPO:
         if len(self.state_cache) + reward_state_idx > 0:
             new, loss_team = self.if_restart(self.state_cache, reward_state_idx)
             if self.model1_hero is not None:
-                self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model_thread,
+                self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model_process,
                                          self.model1_hero, self.model2_hero, new, loss_team)
             if self.model2_hero is not None:
-                self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model_thread,
+                self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model_process,
                                          self.model2_hero, self.model1_hero, new, loss_team)
 
         # 如果达到了重开条件，重新开始游戏
@@ -213,7 +213,7 @@ class LineTrainerPPO:
 
     # 双方英雄集中到中路中间区域，进行对线
     # 一方英雄回城之后，负责等他满血后回到对战区
-    def build_response(self, state_cache, state_index, model_thread, hero_name):
+    def build_response(self, state_cache, state_index, hero_name):
         action_strs=[]
 
         # 对于模型，分析当前帧的行为
@@ -354,7 +354,7 @@ class LineTrainerPPO:
 
     def get_action(self, state_info, hero_name, rival_hero):
         model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
-        self.model_thread.action_queue.put((self.battle_id, model_name, state_info, hero_name, rival_hero))
+        self.model_process.action_queue.put((self.battle_id, model_name, state_info, hero_name, rival_hero))
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         timeout = time.time() + 60
@@ -364,10 +364,11 @@ class LineTrainerPPO:
                 return None
 
             # 超时会有异常抛出
-            self.model_thread.done_signal.wait(10)
+            self.model_process.done_signal.wait(10)
             print(self.battle_id, '等到一个信号')
             # check package
-            if (self.battle_id, model_name) in self.model_thread.results.keys():
-                action, explorer_ratio, action_ratios = self.model_thread.results.pop((self.battle_id, model_name))
-                self.model_thread.done_signal.clear()
-                return action, explorer_ratio, action_ratios
+            with self.model_process.lock:
+                if (self.battle_id, model_name) in self.model_process.results.keys():
+                    action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
+                    self.model_process.done_signal.clear()
+                    return action, explorer_ratio, action_ratios

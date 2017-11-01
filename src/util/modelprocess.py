@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+import sys
 import random
 import threading
 import time
@@ -20,7 +21,7 @@ def if_save_model(model, save_header, save_batch):
         model.save(save_header + str(replay_time) + '/model')
 
 
-def start_model_process(init_signal, save_queue, train_queue, action_queue, results, done_signal, save_batch, save_dir):
+def start_model_process(init_signal, save_queue, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
             model1_path=None,
@@ -66,15 +67,16 @@ def start_model_process(init_signal, save_queue, train_queue, action_queue, resu
                 action, explorer_ratio, action_ratios = model_1.get_action(state_info, hero_name, rival_hero)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
                 action, explorer_ratio, action_ratios = model_2.get_action(state_info, hero_name, rival_hero)
-            print(str(battle_id) + ' Getting for ' + str(act_model_name)
-                  + ' : ' + str(action_queue.qsize()) + ' items in queue ')
-            results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
-            done_signal.set()
-            action_queue.task_done()
+            print(battle_id, 'get_action done')
+
+            with lock:
+                results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
+                done_signal.set()
         except queue.Empty:
             continue
-        except BaseException as e:
-            print(e)
+        except BaseException:
+            type, value, traceback = sys.exc_info()
+            traceback.print_exc()
 
 
 class ModelProcess:
@@ -90,12 +92,13 @@ class ModelProcess:
         self.done_signal = Event()
         self.save_batch = 200
         self.init_signal = Event()
+        self.lock = Lock()
         self.save_dir = HttpUtil.get_save_root_path()
 
     def start(self):
         p = Process(target=start_model_process, args=(self.init_signal, self.save_queue, self.train_queue,
                                                       self.action_queue, self.results, self.done_signal,
-                                                      self.save_batch, self.save_dir))
+                                                      self.save_batch, self.save_dir, self.lock))
         p.start()
 
 if __name__ == '__main__':
