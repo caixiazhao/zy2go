@@ -17,6 +17,12 @@ class HttpUtil:
         return save_dir
 
     @staticmethod
+    def get_linetrainer_save_path(root_save_path, trainer_name):
+        save_dir = root_save_path + '/' + str(trainer_name)
+        os.mkdir(save_dir)
+        return save_dir
+
+    @staticmethod
     def build_models_ppo(save_dir, model1_path=None, model2_path=None, schedule_timesteps=10000,
                          model1_initial_p=1.0, model1_final_p=0.02, model1_gamma=0.99,
                          model2_initial_p=1.0, model2_final_p=0.02, model2_gamma=0.99):

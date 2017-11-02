@@ -1,12 +1,6 @@
 # -*- coding: utf8 -*-
 import sys
-import random
-import threading
-import time
-import logging
 import queue
-import baselines.common.tf_util as U
-import tensorflow as tf
 
 from util.httputil import HttpUtil
 from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
