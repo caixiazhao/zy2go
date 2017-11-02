@@ -1,12 +1,6 @@
 # -*- coding: utf8 -*-
 import sys
-import random
-import threading
-import time
-import logging
 import queue
-import baselines.common.tf_util as U
-import tensorflow as tf
 
 from util.httputil import HttpUtil
 from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
@@ -21,7 +15,7 @@ def if_save_model(model, save_header, save_batch):
         model.save(save_header + str(replay_time) + '/model')
 
 
-def start_model_process(init_signal, save_queue, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
+def start_model_process(init_signal, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
             model1_path=None,
@@ -39,27 +33,22 @@ def start_model_process(init_signal, save_queue, train_queue, action_queue, resu
 
     while True:
         try:
-            # 优先从save队列中取请求
-            if not save_queue.empty():
-                (battle_id, save_model_name, path) = save_queue.get()
-                print(battle_id, 'receive save signal')
-                if save_model_name == ModelProcess.NAME_MODEL_1:
-                    model_1.save(path)
-                    if_save_model(model_1, model1_save_header, save_batch)
-                elif save_model_name == ModelProcess.NAME_MODEL_2:
-                    model_2.save(path)
-                    if_save_model(model_2, model2_save_header, save_batch)
-
-            # 其次从训练队列中提取请求
+            # 从训练队列中提取请求
             if not train_queue.empty():
                 (battle_id, train_model_name, o4r, batch_size) = train_queue.get()
                 print(battle_id, train_model_name, 'receive train signal, batch size', batch_size)
                 if train_model_name == ModelProcess.NAME_MODEL_1:
                     model_1.replay(o4r, batch_size)
+
+                    # 由自己来决定什么时候缓存模型
+                    if_save_model(model_1, model1_save_header, save_batch)
                 elif train_model_name == ModelProcess.NAME_MODEL_2:
                     model_2.replay(o4r, batch_size)
 
-            # 最后从行为队列中拿请求
+                    # 由自己来决定什么时候缓存模型
+                    if_save_model(model_2, model2_save_header, save_batch)
+
+            # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
             (battle_id, act_model_name, state_info, hero_name, rival_hero) = action_queue.get(timeout=1)
             print(battle_id, 'receive act signal', act_model_name, hero_name)
@@ -87,7 +76,6 @@ class ModelProcess:
         manager = Manager()
         self.action_queue = Queue()
         self.train_queue = Queue()
-        self.save_queue = Queue()
         self.results = manager.dict()
         self.done_signal = Event()
         self.save_batch = 200
@@ -96,7 +84,7 @@ class ModelProcess:
         self.save_dir = HttpUtil.get_save_root_path()
 
     def start(self):
-        p = Process(target=start_model_process, args=(self.init_signal, self.save_queue, self.train_queue,
+        p = Process(target=start_model_process, args=(self.init_signal, self.train_queue,
                                                       self.action_queue, self.results, self.done_signal,
                                                       self.save_batch, self.save_dir, self.lock))
         p.start()
