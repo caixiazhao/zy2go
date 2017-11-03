@@ -52,6 +52,11 @@ class StateInfo:
                 return dmg.tgt
         return None
 
+    def if_tower_attack_hero(self, hero_name):
+        for att in self.attack_infos:
+            if int(att.atker) < 26 and str(att.defer) == hero_name:
+                return att
+
     def if_unit_attack_hero(self, unit_name, hero_name):
         for att in self.attack_infos:
             if str(att.atker) == unit_name and str(att.defer) == hero_name:

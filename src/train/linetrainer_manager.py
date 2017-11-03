@@ -55,7 +55,7 @@ class LineTrainerManager:
         self.request_signal = Event()
         self.done_signal = Event()
         self.lock = Lock()
-        self.model_process = ModelProcess()
+        self.model_process = ModelProcess(battle_id_num)
         self.line_trainer_process_list = []
 
         for battle_id in range(1, battle_id_num+1):

@@ -97,17 +97,17 @@ class LineTrainerPPO:
         hero_info = state_info.get_hero(hero_name)
         hero_act = state_info.get_hero_action(hero_name)
 
-        o4r = None
         if hero_act is not None:
             # prev_new 简单计算，可能会有问题
             prev_new = model_cache.get_prev_new()
             o4r, batchsize = model_cache.output4replay(prev_new, hero_act.vpred)
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
-                # 不用等待结果
-                #TODO 这里清空缓存是不是不太好
-                model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
-                model_cache.clear_cache()
+                # 批量计算的情况下等待结果。但是不清空训练完成信号，防止还有训练器没有收到这个信号。
+                # 等到下次训练开始再清空
+                # 一直等待，这里需要观察客户端连接超时开始重试后的情况
+                # TODO 这里清空缓存是不是不太好
+                self.wait_train(self.battle_id, model_name, o4r, batchsize, model_cache, model_process)
 
             ob = LineModel_PPO1.gen_input(state_info, hero_name, rival_hero)
             ac = hero_act.output_index
@@ -133,7 +133,7 @@ class LineTrainerPPO:
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
-                model_process.train_queue.put((self.battle_id, model_name, o4r, batch_size))
+                self.wait_train(self.battle_id, model_name, o4r, batch_size, model_cache, model_process)
 
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
@@ -147,7 +147,7 @@ class LineTrainerPPO:
         if raw_state_info.tick == -1:
             return ''
 
-        if raw_state_info.tick >= 241032:
+        if raw_state_info.tick == 43560:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -360,15 +360,23 @@ class LineTrainerPPO:
         timeout = time.time() + 60
         while True:
             if time.time() > timeout:
-                print(self.battle_id, '很久没有收到模型的计算结果')
+                print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
                 return None
 
             # 超时会有异常抛出
             self.model_process.done_signal.wait(10)
-            print(self.battle_id, '等到一个信号')
+            print('line_trainer ', self.battle_id, '等到一个信号')
             # check package
             with self.model_process.lock:
                 if (self.battle_id, model_name) in self.model_process.results.keys():
                     action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
                     self.model_process.done_signal.clear()
                     return action, explorer_ratio, action_ratios
+
+    def wait_train(self, battle_id, model_name, o4r, batchsize, model_cache, model_process):
+        if model_process.train_done_signal.is_set():
+            model_process.train_done_signal.clear()
+        model_process.train_queue.put((battle_id, model_name, o4r, batchsize))
+        print('line_trainer', battle_id, '开始等待训练结果')
+        model_process.train_done_signal.wait()
+        model_cache.clear_cache()

@@ -103,6 +103,10 @@ class Line_Input_Lite:
     def normalize_value(self, value):
         return float(value)/Line_Input_Lite.NORMARLIZE
 
+    @staticmethod
+    def normalize_value_static(value):
+        return float(value)/Line_Input_Lite.NORMARLIZE
+
     def normalize_skill_value(self, value):
         return float(value)/10
 

@@ -213,8 +213,7 @@ class LineModel_PPO1:
         """
         Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
         """
-        new = np.append(seg["new"],
-                        0)  # last element is only used for last vtarg, but we already zeroed it if last new = 1
+        new = np.append(seg["new"], 0)  # last element is only used for last vtarg, but we already zeroed it if last new = 1
         vpred = np.append(seg["vpred"], seg["nextvpred"])
         T = len(seg["rew"])
         seg["adv"] = gaelam = np.empty(T, 'float32')
@@ -228,7 +227,7 @@ class LineModel_PPO1:
         seg["tdlamret"] = seg["adv"] + seg["vpred"]
 
     # 需要下一次行动的vpred，所以需要在执行完一次act之后计算是否replay
-    def replay(self, seg, batch_size):
+    def replay(self, seg_list, batch_size):
         print(self.scope + " training")
 
         if self.schedule == 'constant':
@@ -236,46 +235,67 @@ class LineModel_PPO1:
         elif self.schedule == 'linear':
             cur_lrmult = max(1.0 - float(self.timesteps_so_far) / self.max_timesteps, 0)
 
-        self.add_vtarg_and_adv(seg, self.gamma, self.lam)
-
-        # print(seg)
-
-        # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
-        ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
-        vpredbefore = seg["vpred"]  # predicted value function before udpate
-        atarg = (atarg - atarg.mean()) / atarg.std()  # standardized advantage function estimate
-        d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not self.pi.recurrent)
-
-        if hasattr(self.pi, "ob_rms"): self.pi.ob_rms.update(ob)  # update running mean/std for policy
-
-        self.assign_old_eq_new()  # set old parameter values to new parameter values
+        # Here we do a bunch of optimization epochs over the data
+        # 批量计算的思路是，每次将所有战斗的g值得到，然后求平均，优化。循环多次
+        newlosses_list = []
         logger.log("Optimizing...")
         loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
         logger.log(fmt_row(13, loss_names))
-        # Here we do a bunch of optimization epochs over the data
         for _ in range(self.optim_epochs):
-            losses = []  # list of tuples, each of which gives the loss for a minibatch
-            # 完整的拿所有行为
-            for batch in d.iterate_once(batch_size):
+            g_list = []
+            for seg in seg_list:
+
+                self.add_vtarg_and_adv(seg, self.gamma, self.lam)
+
+                # print(seg)
+
+                # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
+                ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
+                vpredbefore = seg["vpred"]  # predicted value function before udpate
+                atarg = (atarg - atarg.mean()) / atarg.std()  # standardized advantage function estimate
+                d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not self.pi.recurrent)
+
+                if hasattr(self.pi, "ob_rms"): self.pi.ob_rms.update(ob)  # update running mean/std for policy
+
+                self.assign_old_eq_new()  # set old parameter values to new parameter values
+
+                # 完整的拿所有行为
+                batch =  d.next_batch(d.n)
                 # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
                     self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
                 # print("debug_atarg", debug_atarg, "pi_ac", pi_ac, "opi_ac", opi_ac, "vpred", vpred, "pi_pd", pi_pd,
                 #       "opi_pd", opi_pd, "kl_oldnew", kl_oldnew, "var_mean", np.mean(g), "total_loss", total_loss)
                 if np.isnan(np.mean(g)):
-                    debug = 1
                     print('output nan, ignore it!')
                 else:
-                    self.adam.update(g, self.optim_stepsize * cur_lrmult)
-                losses.append(newlosses)
-            logger.log(fmt_row(13, np.mean(losses, axis=0)))
+                    g_list.append(g)
+                    newlosses_list.append(newlosses)
+
+            # 批量计算之后求平均在优化模型
+            if len(g_list) > 0:
+                avg_g = np.mean(g_list, axis=0)
+                self.adam.update(avg_g, self.optim_stepsize * cur_lrmult)
+                logger.log(fmt_row(13, np.mean(newlosses_list, axis=0)))
 
         logger.log("Evaluating losses...")
         losses = []
-        for batch in d.iterate_once(batch_size):
+        for seg in seg_list:
+            self.add_vtarg_and_adv(seg, self.gamma, self.lam)
+
+            # print(seg)
+
+            # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
+            ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
+            vpredbefore = seg["vpred"]  # predicted value function before udpate
+            atarg = (atarg - atarg.mean()) / atarg.std()  # standardized advantage function estimate
+            d = Dataset(dict(ob=ob, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not self.pi.recurrent)
+            # 完整的拿所有行为
+            batch = d.next_batch(d.n)
             newlosses = self.compute_losses(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
             losses.append(newlosses)
         print(losses)
+
         meanlosses, _, _ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
         for (lossval, name) in zipsame(meanlosses, loss_names):
@@ -421,9 +441,24 @@ class LineModel_PPO1:
         return final_reward
 
     @staticmethod
+    def assert_tower_in_input(cur_state, hero_name, rival_hero):
+        # 如果敌方塔要攻击英雄的话，检查塔的信息是不是在input中
+        att_info = cur_state.if_tower_attack_hero(hero_name)
+        if att_info is not None:
+            tower = str(att_info.atker)
+            tower_info = cur_state.get_obj(tower)
+            hero_info = cur_state.get_hero(hero_name)
+            model_input = LineModel_PPO1.gen_input(cur_state, hero_name, rival_hero)
+            if model_input[44] == Line_Input_Lite.normalize_value_static(int(tower)):
+                print('found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
+                      StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
+
+    @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算
     # 另外最核心的是，ppo本身就不要要求奖惩值是根据上一个行动来得到的
     def cal_target_ppo_2(prev_state, cur_state, next_state, hero_name, rival_hero_name, line_idx):
+        LineModel_PPO1.assert_tower_in_input(cur_state, hero_name, rival_hero_name)
+
         # 只计算当前帧的得失，得失为金币获取情况 + 敌方血量变化
         # 获得小兵死亡情况, 根据小兵属性计算他们的金币情况
         cur_rival_hero = cur_state.get_hero(rival_hero_name)
