@@ -29,10 +29,10 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
 
     while True:
         p_request_signal.wait()
-        print('trainer_process', p_battle_id, 'receive', 'request signal')
 
         json_str = None
         with lock:
+            print('trainer_process', p_battle_id, 'receive', 'request signal', ';'.join((str(k) for k in p_request_dict.keys())))
             if p_battle_id in p_request_dict.keys():
                 print('trainer_process', p_battle_id, 'get', 'a request')
                 p_request_signal.clear()
@@ -79,18 +79,22 @@ class LineTrainerManager:
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
+        if raw_state_info.tick == -1:
+            print('read_process: need to handle ', p_battle_id, raw_state_info.tick, 'raw log', json_str)
+        else:
+            print('read_process: need to handle ', p_battle_id, raw_state_info.tick)
 
         with lock:
-            print('read_process', p_battle_id, 'send', 'a request')
+            print('read_process', p_battle_id, 'send a request', raw_state_info.tick)
             p_request_dict[p_battle_id] = json_str
             p_request_signal.set()
 
         while True:
             p_done_signal.wait(10)
-            print('read_process', p_battle_id, 'receive', 'a signal')
+            print('read_process', p_battle_id, 'receive a signal')
             with lock:
                 if p_battle_id in p_result_dict.keys():
-                    print('read_process', p_battle_id, 'get', 'a result')
+                    print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
                     p_done_signal.clear()
                     result = p_result_dict[p_battle_id]
                     del p_result_dict[p_battle_id]

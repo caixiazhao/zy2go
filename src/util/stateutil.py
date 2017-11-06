@@ -459,6 +459,8 @@ class StateUtil:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         if action.action == CmdActionEnum.RETREAT:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
+        if action.action == CmdActionEnum.RESTART:
+            return {"hero_id": action.hero_name, "action": 'RESTART'}
         raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod

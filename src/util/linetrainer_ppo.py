@@ -78,7 +78,7 @@ class LineTrainerPPO:
             tower_destroyed_next = StateUtil.if_first_tower_destroyed_in_middle_line(next_state)
             if total_death >= 2 or (tower_destroyed_cur is None and tower_destroyed_next is not None):
                 # 这里是唯一的结束当前局，重开的点
-                print('重开游戏')
+                print('battle_id', state_info.tick, '重开游戏')
                 new = 1
                 loss_team = hero_info.team if total_death >= 2 else tower_destroyed_next
                 self.model1_total_death = 0
@@ -107,7 +107,8 @@ class LineTrainerPPO:
                 # 等到下次训练开始再清空
                 # 一直等待，这里需要观察客户端连接超时开始重试后的情况
                 # TODO 这里清空缓存是不是不太好
-                self.wait_train(self.battle_id, model_name, o4r, batchsize, model_cache, model_process)
+                model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
+                print('line_trainer', self.battle_id, '添加训练集')
 
             ob = LineModel_PPO1.gen_input(state_info, hero_name, rival_hero)
             ac = hero_act.output_index
@@ -133,7 +134,8 @@ class LineTrainerPPO:
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
-                self.wait_train(self.battle_id, model_name, o4r, batch_size, model_cache, model_process)
+                model_process.train_queue.put((self.battle_id, model_name, o4r, batch_size))
+                print('line_trainer', self.battle_id, '添加训练集')
 
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
@@ -329,8 +331,14 @@ class LineTrainerPPO:
                     self.hero_strategy[hero.hero_name] = ActionEnum.retreat
                     self.retreat_pos = action.tgtpos
 
-                # 保存action信息到状态帧中
-                state_info.add_action(action)
+                # 如果批量训练结束了，这时候需要清空未使用的训练集，然后重启游戏
+                if action.action == CmdActionEnum.RESTART:
+                    print(self.battle_id, '训练结束，重启游戏')
+                    self.model1_cache.clear_cache()
+                    self.model2_cache.clear_cache()
+                else:
+                    # 保存action信息到状态帧中
+                    state_info.add_action(action)
             else:
                 # 还是需要模型来计算出一个vpred
                 rival_hero = '28' if hero.hero_name == '27' else '27'
@@ -372,6 +380,7 @@ class LineTrainerPPO:
                     action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
                     self.model_process.done_signal.clear()
                     return action, explorer_ratio, action_ratios
+
 
     def wait_train(self, battle_id, model_name, o4r, batchsize, model_cache, model_process):
         if model_process.train_done_signal.is_set():

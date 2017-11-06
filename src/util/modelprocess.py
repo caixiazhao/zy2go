@@ -2,6 +2,8 @@
 import sys
 import queue
 
+from model.cmdaction import CmdAction
+from train.cmdactionenum import CmdActionEnum
 from util.httputil import HttpUtil
 from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
 
@@ -15,7 +17,7 @@ def if_save_model(model, save_header, save_batch):
         model.save(save_header + str(replay_time) + '/model')
 
 
-def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, train_done_signal, done_signal, save_batch, save_dir, lock):
+def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
             model1_path=None,
@@ -31,19 +33,20 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
     init_signal.set()
     print('模型进程启动')
 
-    o4r_list_model1 = []
-    o4r_list_model2 = []
+    o4r_list_model1 = {}
+    o4r_list_model2 = {}
     while True:
         try:
             # 从训练队列中提取请求
+            # 只有当训练集中有所有的战斗的数据时候才会开始训练
             with lock:
                 if not train_queue.empty():
                     (battle_id, train_model_name, o4r, batch_size) = train_queue.get()
                     print('model_process', battle_id, train_model_name, 'receive train signal, batch size', batch_size)
                     if train_model_name == ModelProcess.NAME_MODEL_1:
-                        o4r_list_model1.append(o4r)
+                        o4r_list_model1[battle_id] = o4r
                     elif train_model_name == ModelProcess.NAME_MODEL_2:
-                        o4r_list_model2.append(o4r)
+                        o4r_list_model2[battle_id] = o4r
 
             trained = False
             if len(o4r_list_model1) >= battle_id_num:
@@ -65,8 +68,12 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                 if_save_model(model_2, model2_save_header, save_batch)
 
             if trained:
-                train_done_signal.set()
-                print('model process, train signal sent')
+                with lock:
+                    print('model process, add trained events')
+                    restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None, None, None)
+                    for battle_id in range(battle_id_num):
+                        # 给每个客户端添加一个训练结束的通知
+                        results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, explorer_ratio, action_ratios)
 
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
@@ -79,7 +86,8 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             print('model_process', battle_id, 'get_action done')
 
             with lock:
-                results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
+                if (battle_id, act_model_name) not in results:
+                    results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
                 done_signal.set()
         except queue.Empty:
             continue
@@ -97,7 +105,6 @@ class ModelProcess:
         self.action_queue = Queue()
         self.train_queue = Queue()
         self.results = manager.dict()
-        self.train_done_signal = Event()
         self.done_signal = Event()
         self.save_batch = 200
         self.init_signal = Event()
@@ -107,7 +114,7 @@ class ModelProcess:
 
     def start(self):
         p = Process(target=start_model_process, args=(self.battle_id_num, self.init_signal, self.train_queue,
-                                                      self.action_queue, self.results, self.train_done_signal,
+                                                      self.action_queue, self.results,
                                                       self.done_signal, self.save_batch, self.save_dir, self.lock))
         p.start()
 
