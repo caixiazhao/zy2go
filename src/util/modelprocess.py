@@ -23,10 +23,10 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             model1_path=None,
             model2_path=None,
             schedule_timesteps=200000,
-            model1_initial_p=0.05,
+            model1_initial_p=0.5,
             model1_final_p=0.05,
             model1_gamma=0.95,
-            model2_initial_p=0.05,
+            model2_initial_p=0.5,
             model2_final_p=0.05,
             model2_gamma=0.95
         )
@@ -51,7 +51,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             trained = False
             if len(o4r_list_model1) >= battle_id_num:
                 print('model_process', train_model_name, 'begin to train')
-                model_1.replay(o4r_list_model1, batch_size)
+                model_1.replay(o4r_list_model1.values(), batch_size)
                 o4r_list_model1.clear()
                 trained = True
 
@@ -60,7 +60,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
 
             if len(o4r_list_model2) >= battle_id_num:
                 print('model_process', train_model_name, 'begin to train')
-                model_2.replay(o4r_list_model2, batch_size)
+                model_2.replay(o4r_list_model2.values(), batch_size)
                 o4r_list_model2.clear()
                 trained = True
 
@@ -71,7 +71,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                 with lock:
                     print('model process, add trained events')
                     restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None, None, None)
-                    for battle_id in range(battle_id_num):
+                    for battle_id in range(1, battle_id_num+1):
                         # 给每个客户端添加一个训练结束的通知
                         results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, explorer_ratio, action_ratios)
 
