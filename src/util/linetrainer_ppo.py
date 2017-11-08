@@ -108,6 +108,7 @@ class LineTrainerPPO:
                 # 一直等待，这里需要观察客户端连接超时开始重试后的情况
                 # TODO 这里清空缓存是不是不太好
                 model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
+                model_cache.clear_cache()
                 print('line_trainer', self.battle_id, '添加训练集')
 
             ob = LineModel_PPO1.gen_input(state_info, hero_name, rival_hero)
@@ -135,6 +136,7 @@ class LineTrainerPPO:
             model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
             if o4r is not None:
                 model_process.train_queue.put((self.battle_id, model_name, o4r, batch_size))
+                model_cache.clear_cache()
                 print('line_trainer', self.battle_id, '添加训练集')
 
     def train_line_model(self, raw_state_str):
@@ -169,10 +171,10 @@ class LineTrainerPPO:
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
         if self.model1_hero is not None:
-            actions_model1 = self.build_response(self.state_cache, -1, self.model1_hero)
+            actions_model1, restart = self.build_response(self.state_cache, -1, self.model1_hero)
             action_strs.extend(actions_model1)
-        if self.model2_hero is not None:
-            actions_model2 = self.build_response(self.state_cache, -1, self.model2_hero)
+        if self.model2_hero is not None and not restart:
+            actions_model2, restart = self.build_response(self.state_cache, -1, self.model2_hero)
             action_strs.extend(actions_model2)
 
         # 计算奖励值，如果有真实玩家，因为需要推测行为的原因，则多往前回朔几帧
@@ -189,7 +191,7 @@ class LineTrainerPPO:
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
-        if new == 1:
+        if new == 1 or restart:
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
         # 返回结果给游戏端
@@ -217,6 +219,7 @@ class LineTrainerPPO:
     # 一方英雄回城之后，负责等他满血后回到对战区
     def build_response(self, state_cache, state_index, hero_name):
         action_strs=[]
+        restart = False
 
         # 对于模型，分析当前帧的行为
         if self.real_hero != hero_name:
@@ -333,9 +336,8 @@ class LineTrainerPPO:
 
                 # 如果批量训练结束了，这时候需要清空未使用的训练集，然后重启游戏
                 if action.action == CmdActionEnum.RESTART:
-                    print(self.battle_id, '训练结束，重启游戏')
-                    self.model1_cache.clear_cache()
-                    self.model2_cache.clear_cache()
+                    print('battle_id', self.battle_id, '训练结束，重启游戏')
+                    restart = True
                 else:
                     # 保存action信息到状态帧中
                     state_info.add_action(action)
@@ -355,7 +357,7 @@ class LineTrainerPPO:
                 # 保存action信息到状态帧中
                 state_info.add_action(guess_action)
 
-        return action_strs
+        return action_strs, restart
         # rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         # rsp_str = JSON.dumps(rsp_obj)
         # return rsp_str

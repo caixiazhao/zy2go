@@ -20,15 +20,15 @@ def if_save_model(model, save_header, save_batch):
 def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            model1_path=None,
+            model1_path='/data/battle_logs/model_2017-11-07101546.798313/line_model_1_v11400/model',
             model2_path=None,
-            schedule_timesteps=200000,
-            model1_initial_p=0.5,
-            model1_final_p=0.05,
-            model1_gamma=0.95,
+            schedule_timesteps=1000000,
+            model1_initial_p=0.2,
+            model1_final_p=0.1,
+            model1_gamma=0.9,
             model2_initial_p=0.5,
-            model2_final_p=0.05,
-            model2_gamma=0.95
+            model2_final_p=0.1,
+            model2_gamma=0.9
         )
     init_signal.set()
     print('模型进程启动')
@@ -49,23 +49,22 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                         o4r_list_model2[battle_id] = o4r
 
             trained = False
-            if len(o4r_list_model1) >= battle_id_num:
-                print('model_process', train_model_name, 'begin to train')
+            if len(o4r_list_model1) >= battle_id_num and len(o4r_list_model2) >= battle_id_num:
+                print('model_process1', train_model_name, 'begin to train')
                 model_1.replay(o4r_list_model1.values(), batch_size)
                 o4r_list_model1.clear()
-                trained = True
 
                 # 由自己来决定什么时候缓存模型
                 if_save_model(model_1, model1_save_header, save_batch)
 
-            if len(o4r_list_model2) >= battle_id_num:
-                print('model_process', train_model_name, 'begin to train')
+                print('model_process2', train_model_name, 'begin to train')
                 model_2.replay(o4r_list_model2.values(), batch_size)
                 o4r_list_model2.clear()
-                trained = True
 
                 # 由自己来决定什么时候缓存模型
                 if_save_model(model_2, model2_save_header, save_batch)
+
+                trained = True
 
             if trained:
                 with lock:

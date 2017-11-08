@@ -91,8 +91,8 @@ class LineTrainerManager:
 
         while True:
             p_done_signal.wait(10)
-            print('read_process', p_battle_id, 'receive a signal')
             with lock:
+                print('read_process', p_battle_id, 'receive a signal', ';'.join((str(k) for k in p_result_dict.keys())))
                 if p_battle_id in p_result_dict.keys():
                     print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
                     p_done_signal.clear()
