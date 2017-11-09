@@ -45,8 +45,10 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                     print('model_process', battle_id, train_model_name, 'receive train signal, batch size', batch_size)
                     if train_model_name == ModelProcess.NAME_MODEL_1:
                         o4r_list_model1[battle_id] = o4r
+                        print('model_process model1 train collection', ';'.join((str(k) for k in o4r_list_model1.keys())))
                     elif train_model_name == ModelProcess.NAME_MODEL_2:
                         o4r_list_model2[battle_id] = o4r
+                        print('model_process model2 train collection', ';'.join((str(k) for k in o4r_list_model2.keys())))
 
             trained = False
             if len(o4r_list_model1) >= battle_id_num and len(o4r_list_model2) >= battle_id_num:
@@ -77,12 +79,12 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
             (battle_id, act_model_name, state_info, hero_name, rival_hero) = action_queue.get(timeout=1)
-            print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
+            # print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
             if act_model_name == ModelProcess.NAME_MODEL_1:
                 action, explorer_ratio, action_ratios = model_1.get_action(state_info, hero_name, rival_hero)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
                 action, explorer_ratio, action_ratios = model_2.get_action(state_info, hero_name, rival_hero)
-            print('model_process', battle_id, 'get_action done')
+            # print('model_process', battle_id, 'get_action done')
 
             with lock:
                 if (battle_id, act_model_name) not in results:

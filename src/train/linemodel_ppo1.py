@@ -319,6 +319,7 @@ class LineModel_PPO1:
         logger.record_tabular("TimestepsSoFar", self.timesteps_so_far)
         logger.record_tabular("TimeElapsed", time.time() - self.tstart)
         logger.record_tabular("IterSoFar", self.iters_so_far)
+        logger.record_tabular("CalulateActions", self.act_times)
         if MPI.COMM_WORLD.Get_rank() == 0:
             logger.dump_tabular()
 
@@ -450,7 +451,10 @@ class LineModel_PPO1:
             hero_info = cur_state.get_hero(hero_name)
             model_input = LineModel_PPO1.gen_input(cur_state, hero_name, rival_hero)
             if model_input[44] == Line_Input_Lite.normalize_value_static(int(tower)):
-                print('found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
+                print('yes found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
+                      StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
+            else:
+                print('not found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
                       StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
 
     @staticmethod

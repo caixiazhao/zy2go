@@ -370,12 +370,12 @@ class LineTrainerPPO:
         timeout = time.time() + 60
         while True:
             if time.time() > timeout:
-                print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
+                # print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
                 return None
 
             # 超时会有异常抛出
             self.model_process.done_signal.wait(10)
-            print('line_trainer ', self.battle_id, '等到一个信号')
+            # print('line_trainer ', self.battle_id, '等到一个信号')
             # check package
             with self.model_process.lock:
                 if (self.battle_id, model_name) in self.model_process.results.keys():
@@ -388,6 +388,6 @@ class LineTrainerPPO:
         if model_process.train_done_signal.is_set():
             model_process.train_done_signal.clear()
         model_process.train_queue.put((battle_id, model_name, o4r, batchsize))
-        print('line_trainer', battle_id, '开始等待训练结果')
+        # print('line_trainer', battle_id, '开始等待训练结果')
         model_process.train_done_signal.wait()
         model_cache.clear_cache()
