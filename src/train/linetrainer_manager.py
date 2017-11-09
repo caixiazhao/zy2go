@@ -3,6 +3,8 @@
 
 from multiprocessing import Process, Manager, Lock
 
+import queue
+import sys
 import json as JSON
 import numpy as np
 from multiprocessing import Event
@@ -89,14 +91,21 @@ class LineTrainerManager:
             p_request_dict[p_battle_id] = json_str
             p_request_signal.set()
 
-        while True:
-            p_done_signal.wait(10)
-            with lock:
-                # print('read_process', p_battle_id, 'receive a signal', ';'.join((str(k) for k in p_result_dict.keys())))
-                if p_battle_id in p_result_dict.keys():
-                    # print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
-                    p_done_signal.clear()
-                    result = p_result_dict[p_battle_id]
-                    del p_result_dict[p_battle_id]
-                    print(result)
-                    return result
+        try:
+            while True:
+                p_done_signal.wait(10)
+                with lock:
+                    # print('read_process', p_battle_id, 'receive a signal', ';'.join((str(k) for k in p_result_dict.keys())))
+                    if p_battle_id in p_result_dict.keys():
+                        # print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
+                        p_done_signal.clear()
+                        result = p_result_dict[p_battle_id]
+                        del p_result_dict[p_battle_id]
+                        print('p_battle_id', '取得结果', result)
+                        return result
+        except queue.Empty:
+            print("LineTrainerManager Exception empty")
+        except BaseException:
+            print("LineTrainerManager BaseException")
+            type, value, traceback = sys.exc_info()
+            traceback.print_exc()

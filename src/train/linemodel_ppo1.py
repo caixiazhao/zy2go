@@ -381,8 +381,8 @@ class LineModel_PPO1:
             print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain', (next_hero.gold - cur_hero.gold))
             gold_delta = 0
 
-        if dead_golds > 0:
-            print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
+        # if dead_golds > 0:
+            # print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
         # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
@@ -475,7 +475,6 @@ class LineModel_PPO1:
         dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero,
                                                       StateUtil.GOLD_GAIN_RADIUS)
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
-        dead_unit_str = (','.join([u.unit_name for u in dead_units]))
 
         # 如果英雄有小额金币变化，则忽略
         gold_delta = next_hero.gold - cur_hero.gold
@@ -483,14 +482,15 @@ class LineModel_PPO1:
             gold_delta -= 3
 
         # 很难判断英雄的最后一击，所以我们计算金币变化，超过死亡单位一半的金币作为英雄获得金币
-        gold_delta = gold_delta * 2 - dead_golds
-        if gold_delta < 0:
-            print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain',
-                  (next_hero.gold - cur_hero.gold))
-            gold_delta = 0
+        if gold_delta > 0:
+            gold_delta = gold_delta * 2 - dead_golds
+            if gold_delta < 0:
+                print('获得击杀金币不应该小于零', cur_state.tick, 'dead_golds', dead_golds, 'gold_delta',
+                      (next_hero.gold - cur_hero.gold))
+                gold_delta = 0
 
-        if dead_golds > 0:
-            print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
+        # if dead_golds > 0:
+        #     print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
 
         reward = float(gold_delta) / 100
 

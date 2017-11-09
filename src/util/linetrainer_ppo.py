@@ -5,6 +5,8 @@
 
 import json as JSON
 import random
+import queue
+import sys
 
 import tensorflow as tf
 import time
@@ -368,20 +370,27 @@ class LineTrainerPPO:
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         timeout = time.time() + 60
-        while True:
-            if time.time() > timeout:
-                # print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
-                return None
+        try:
+            while True:
+                if time.time() > timeout:
+                    # print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
+                    return None
 
-            # 超时会有异常抛出
-            self.model_process.done_signal.wait(10)
-            # print('line_trainer ', self.battle_id, '等到一个信号')
-            # check package
-            with self.model_process.lock:
-                if (self.battle_id, model_name) in self.model_process.results.keys():
-                    action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
-                    self.model_process.done_signal.clear()
-                    return action, explorer_ratio, action_ratios
+                # 超时会有异常抛出
+                self.model_process.done_signal.wait(10)
+                # print('line_trainer ', self.battle_id, '等到一个信号')
+                # check package
+                with self.model_process.lock:
+                    if (self.battle_id, model_name) in self.model_process.results.keys():
+                        action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
+                        self.model_process.done_signal.clear()
+                        return action, explorer_ratio, action_ratios
+        except queue.Empty:
+            print("LineTrainer Exception empty")
+        except BaseException:
+            print("LineTrainer BaseException")
+            type, value, traceback = sys.exc_info()
+            traceback.print_exc()
 
 
     def wait_train(self, battle_id, model_name, o4r, batchsize, model_cache, model_process):
