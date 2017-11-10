@@ -16,6 +16,7 @@
 # under the License.
 import logging
 
+import os
 import sys
 import tornado.httpserver
 import tornado.ioloop
@@ -59,15 +60,18 @@ def main():
               p_request_signal=manager.request_signal, p_done_signal=manager.done_signal, lock=manager.lock)),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
-    # http_server.listen(options.port)
 
-    http_server.bind(options.port)
-    http_server.start(0)    # multi-process
+    # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
+    if hasattr(os, 'fork'):
+        http_server.bind(options.port)
+        http_server.start(0)    # multi-process
 
-    hn = logging.NullHandler()
-    hn.setLevel(logging.DEBUG)
-    logging.getLogger("tornado.access").addHandler(hn)
-    logging.getLogger("tornado.access").propagate = False
+        hn = logging.NullHandler()
+        hn.setLevel(logging.DEBUG)
+        logging.getLogger("tornado.access").addHandler(hn)
+        logging.getLogger("tornado.access").propagate = False
+    else:
+        http_server.listen(options.port)
 
     try:
         tornado.ioloop.IOLoop.current().start()
