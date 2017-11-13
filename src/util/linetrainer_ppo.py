@@ -193,7 +193,17 @@ class LineTrainerPPO:
 
         # 如果达到了重开条件，重新开始游戏
         # 当线上第一个塔被摧毁时候重开
-        if new == 1 or restart:
+        # 这里为了尽量减少重启次数，在训练结束之后，我们检查如果缓存为空则不需要重启
+        if restart:
+            prev_action_hero1 = self.state_cache[-1].get_hero_action(self.model1_hero)
+            prev_action_hero2 = self.state_cache[-1].get_hero_action(self.model1_hero)
+            if self.model1_cache.isempty() and self.model2_cache.isempty() and\
+                            prev_action_hero1 is None and prev_action_hero2 is None:
+                print(self.battle_id, '不需要重启')
+            else:
+                print(self.battle_id, '训练结束，重启游戏', len(self.model1_cache.obs), len(self.model2_cache.obs))
+                action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+        elif new == 1:
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
         # 返回结果给游戏端
@@ -338,7 +348,6 @@ class LineTrainerPPO:
 
                 # 如果批量训练结束了，这时候需要清空未使用的训练集，然后重启游戏
                 if action.action == CmdActionEnum.RESTART:
-                    print('battle_id', self.battle_id, '训练结束，重启游戏')
                     restart = True
                 else:
                     # 保存action信息到状态帧中
