@@ -101,7 +101,7 @@ class LineTrainerManager:
                         p_done_signal.clear()
                         result = p_result_dict[p_battle_id]
                         del p_result_dict[p_battle_id]
-                        print('p_battle_id', '取得结果', result)
+                        print(p_battle_id, '取得结果', result)
                         return result
         except queue.Empty:
             print("LineTrainerManager Exception empty")

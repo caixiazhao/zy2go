@@ -61,6 +61,9 @@ class PPO_CACHE2:
         self.rews[-1] = rew
         self.nextnew = new
 
+    def isempty(self):
+        return len(self.obs) == 0
+
     def clear_cache(self):
         self.ep_rets = []
         self.ep_lens = []
