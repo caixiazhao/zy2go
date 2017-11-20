@@ -7,6 +7,7 @@ import json as JSON
 import random
 import queue
 import sys
+import numpy as np
 
 import tensorflow as tf
 import time
@@ -16,6 +17,8 @@ from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
 from model.stateinfo import StateInfo
 from train.cmdactionenum import CmdActionEnum
+from train.line_input_lite import Line_Input_Lite
+from train.linemodel import LineModel
 from train.linemodel_ppo1 import LineModel_PPO1
 from util.linetrainer_policy import LineTrainerPolicy
 from util.modelthread import ModelThread
@@ -160,7 +163,7 @@ class LineTrainerPPO:
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
-            return ''
+            return {"ID": raw_state_info.battleid, "tick": -1}
 
         if raw_state_info.tick == 63558:
             debug_i = 1
@@ -271,10 +274,10 @@ class LineTrainerPPO:
                     and prev_hero.hp <= hero.hp \
                     and not StateUtil.if_hero_at_basement(hero):
                 if not hero.skills[6].canuse:
-                    print('回城中，继续回城')
+                    print(self.battle_id, hero.hero_name, '回城中，继续回城')
                     return action_strs, False
                 else:
-                    print('回城失败')
+                    print(self.battle_id, hero.hero_name, '回城失败')
                     town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None,
                                             None, None)
                     action_str = StateUtil.build_command(town_action)
@@ -466,7 +469,12 @@ class LineTrainerPPO:
 
     def get_action(self, state_info, hero_name, rival_hero):
         model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
-        self.model_process.action_queue.put((self.battle_id, model_name, state_info, hero_name, rival_hero))
+
+        # 获得并传入输入信息
+        line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
+        state_input = line_input.gen_line_input()
+        state_input = np.array(state_input)
+        self.model_process.action_queue.put((self.battle_id, model_name, state_input))
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         timeout = time.time() + 60
@@ -480,11 +488,25 @@ class LineTrainerPPO:
                 self.model_process.done_signal.wait(10)
                 # print('line_trainer ', self.battle_id, '等到一个信号')
                 # check package
+                actions = None
                 with self.model_process.lock:
                     if (self.battle_id, model_name) in self.model_process.results.keys():
-                        action, explorer_ratio, action_ratios = self.model_process.results.pop((self.battle_id, model_name))
+                        actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
                         self.model_process.done_signal.clear()
-                        return action, explorer_ratio, action_ratios
+
+                if actions is not None:
+                    # 特殊情况为模型通知我们它已经训练完成
+                    if isinstance(actions, CmdAction):
+                        actions, None, None
+                    else:
+                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
+                        action.vpred = vpred
+
+                        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
+                        action_ratios = list(actions[0])
+                        action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name,
+                                                                               rival_hero)
+                        return action, explorer_ratio, action_ratios_masked
         except queue.Empty:
             print("LineTrainer Exception empty")
         except BaseException:

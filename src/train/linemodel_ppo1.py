@@ -299,6 +299,8 @@ class LineModel_PPO1:
         meanlosses, _, _ = mpi_moments(losses, axis=0)
         logger.log(fmt_row(13, meanlosses))
         for (lossval, name) in zipsame(meanlosses, loss_names):
+            if np.isinf(lossval):
+                debug = True
             logger.record_tabular("loss_" + name, lossval)
         logger.record_tabular("ev_tdlam_before", explained_variance(vpredbefore, tdlamret))
         lrlocal = (seg["ep_lens"], seg["ep_rets"])  # local values
@@ -326,32 +328,13 @@ class LineModel_PPO1:
     def flatten_lists(self, listoflists):
         return [el for list_ in listoflists for el in list_]
 
-    def get_action(self, state_info, hero_name, rival_hero):
+    def get_action(self, state_input):
         self.act_times += 1
-
-        line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
-        state_input = line_input.gen_line_input()
-        state_input = np.array(state_input)
-
-        # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
-        # print(input_detail)
-
         stochastic = True
         explor_value = self.exploration.value(self.act_times)
-        # print("ppo1 model exploration value is ", explor_value)
         actions, vpred = self.pi.act(stochastic=stochastic, update_eps=explor_value, ob=state_input)
         actions = np.array([actions])
-
-        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
-        action.vpred = vpred
-
-        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
-        action_ratios = list(actions[0])
-        action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
-
-        # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
-        #        (str(action.output_index), input_detail, action_detail))
-        return action, explor_value, action_ratios_masked
+        return actions, explor_value, vpred
 
     @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算

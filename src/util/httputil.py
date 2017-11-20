@@ -12,7 +12,7 @@ class HttpUtil:
     @staticmethod
     def get_save_root_path():
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
+        save_dir = '/data/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
         os.makedirs(save_dir)
         return save_dir
 

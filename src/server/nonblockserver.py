@@ -22,6 +22,7 @@ import tornado.httpserver
 import tornado.ioloop
 import tornado.options
 import tornado.web
+import traceback
 
 from tornado.options import define, options
 
@@ -39,10 +40,13 @@ class MainHandler(tornado.web.RequestHandler):
         self.lock = lock
 
     def get(self, *args, **kwargs):
-        content = tornado.escape.to_basestring(self.request.body)
-        response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict,
+        try:
+            content = tornado.escape.to_basestring(self.request.body)
+            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict,
                                                    self.p_request_signal, self.p_done_signal, self.lock)
-        self.write(response)
+            self.write(response)
+        except Exception as e:
+            print('nonblock server catch exaception', traceback.format_exc())
 
     def post(self, *args, **kwargs):
         self.write("not implement yet")

@@ -8,6 +8,7 @@ import sys
 import json as JSON
 import numpy as np
 from multiprocessing import Event
+import traceback
 
 from model.stateinfo import StateInfo
 from util.httputil import HttpUtil
@@ -42,12 +43,14 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
                 del p_request_dict[p_battle_id]
 
         if json_str is not None:
-            response = line_trainer.train_line_model(json_str)
-            with lock:
-                # print('trainer_process', p_battle_id, 'put', 'a result')
-                p_result_dict[p_battle_id] = response
-                p_done_signal.set()
-
+            try:
+                response = line_trainer.train_line_model(json_str)
+                with lock:
+                    # print('trainer_process', p_battle_id, 'put', 'a result')
+                    p_result_dict[p_battle_id] = response
+                    p_done_signal.set()
+            except Exception as e:
+                print('linetrainer manager catch exaception', traceback.format_exc())
 
 class LineTrainerManager:
     def __init__(self, battle_id_num):

@@ -20,15 +20,15 @@ def if_save_model(model, save_header, save_batch):
 def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            model1_path='/data/battle_logs/model_2017-11-07101546.798313/line_model_1_v11400/model',
-            model2_path=None,
+            model1_path=None, #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
+            model2_path=None, #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_2_v10/model',
             schedule_timesteps=1000000,
-            model1_initial_p=0.2,
+            model1_initial_p=0.5,
             model1_final_p=0.1,
-            model1_gamma=0.9,
+            model1_gamma=0.95,
             model2_initial_p=0.5,
             model2_final_p=0.1,
-            model2_gamma=0.9
+            model2_gamma=0.95
         )
     init_signal.set()
     print('模型进程启动')
@@ -74,25 +74,25 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                     restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None, None, None)
                     for battle_id in range(1, battle_id_num+1):
                         # 给每个客户端添加一个训练结束的通知
-                        results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, explorer_ratio, action_ratios)
+                        results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, None, None)
 
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
-            (battle_id, act_model_name, state_info, hero_name, rival_hero) = action_queue.get(timeout=1)
+            (battle_id, act_model_name, state_input) = action_queue.get(timeout=1)
             # print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
             if act_model_name == ModelProcess.NAME_MODEL_1:
-                action, explorer_ratio, action_ratios = model_1.get_action(state_info, hero_name, rival_hero)
+                actions, explor_value, vpred = model_1.get_action(state_input)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
-                action, explorer_ratio, action_ratios = model_2.get_action(state_info, hero_name, rival_hero)
+                actions, explor_value, vpred = model_2.get_action(state_input)
             # print('model_process', battle_id, 'get_action done')
 
             with lock:
                 if (battle_id, act_model_name) not in results:
-                    results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
+                    results[(battle_id, act_model_name)] = (actions, explor_value, vpred)
                 done_signal.set()
         except queue.Empty:
             continue
-        except BaseException:
+        except Exception as e:
             type, value, traceback = sys.exc_info()
             traceback.print_exc()
 
