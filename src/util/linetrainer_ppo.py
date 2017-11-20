@@ -497,7 +497,7 @@ class LineTrainerPPO:
                 if actions is not None:
                     # 特殊情况为模型通知我们它已经训练完成
                     if isinstance(actions, CmdAction):
-                        actions, None, None
+                        return actions, None, None
                     else:
                         action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
                         action.vpred = vpred
@@ -509,8 +509,8 @@ class LineTrainerPPO:
                         return action, explorer_ratio, action_ratios_masked
         except queue.Empty:
             print("LineTrainer Exception empty")
-        except BaseException:
-            print("LineTrainer BaseException")
+        except Exception:
+            print("LineTrainer Exception")
             type, value, traceback = sys.exc_info()
             traceback.print_exc()
 

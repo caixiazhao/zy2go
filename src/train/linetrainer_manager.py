@@ -50,7 +50,10 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
                     p_result_dict[p_battle_id] = response
                     p_done_signal.set()
             except Exception as e:
-                print('linetrainer manager catch exaception', traceback.format_exc())
+                print('linetrainer manager catch exception', traceback.format_exc())
+                with lock:
+                    p_result_dict[p_battle_id] = '{}'
+                    p_done_signal.set()
 
 class LineTrainerManager:
     def __init__(self, battle_id_num):
@@ -108,7 +111,9 @@ class LineTrainerManager:
                         return result
         except queue.Empty:
             print("LineTrainerManager Exception empty")
-        except BaseException:
-            print("LineTrainerManager BaseException")
+            return ''
+        except Exception:
+            print("LineTrainerManager Exception")
             type, value, traceback = sys.exc_info()
             traceback.print_exc()
+            return ''

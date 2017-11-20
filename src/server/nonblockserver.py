@@ -46,7 +46,8 @@ class MainHandler(tornado.web.RequestHandler):
                                                    self.p_request_signal, self.p_done_signal, self.lock)
             self.write(response)
         except Exception as e:
-            print('nonblock server catch exaception', traceback.format_exc())
+            print('nonblock server catch exception', traceback.format_exc())
+            self.write('')
 
     def post(self, *args, **kwargs):
         self.write("not implement yet")

@@ -101,7 +101,7 @@ class ModelThread(threading.Thread):
                 self.action_queue.task_done()
             except queue.Empty:
                 continue
-            except BaseException as e:
+            except Exception as e:
                 print(e)
 
 class ProducerThread(threading.Thread):
