@@ -142,7 +142,12 @@ class LineTrainerPPO:
         # 特殊情况为这一帧没有模型决策，但是触发了重开条件，这种情况下我们也开始训练（在新策略下，只有重开才会开始训练）
         # 如果上一个行为会触发游戏结束，那也会启动这里的训练
         if new == 1:
+            if model_cache.isempty():
+                print(self.battle_id, '进入第二个训练条件，但是cache为空', prev_new)
+                return
+
             # 即使在当前帧模型没有决策的情况下，也可能触发结束条件和启动训练
+            print(self.battle_id, '启动第二个训练条件')
             rew = 10 if loss_team != hero_info.team else -10
             model_cache.change_last(new, rew)
             prev_new = model_cache.get_prev_new()
@@ -165,7 +170,7 @@ class LineTrainerPPO:
         if raw_state_info.tick == -1:
             return {"ID": raw_state_info.battleid, "tick": -1}
 
-        if raw_state_info.tick == 63558:
+        if raw_state_info.tick == 328548:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -329,22 +334,25 @@ class LineTrainerPPO:
         # 如果击杀对面英雄就回城补血。整体逻辑为，周围没有兵的情况下启动撤退逻辑，到达撤退地点之后启动回城。补满血之后再跟兵出来
         # 处在泉水之中的时候设置策略层为吃线
         if len(near_enemy_units_in_line) == 0 and len(near_enemy_heroes) == 0:
-            if hero.hp / float(hero.maxhp) < 0.7 and \
-                    ((hero_name == self.model1_hero and self.model2_just_dead == 1 and not StateUtil.if_hero_at_basement(
-                        hero)) \
-                    or (hero_name == self.model2_hero and self.model1_just_dead == 1 and not StateUtil.if_hero_at_basement(
-                        hero))):
-                print(self.battle_id, hero_name, '选择撤退')
-                self.hero_strategy[hero_name] = ActionEnum.retreat
-                retreat_pos = StateUtil.get_tower_behind(state_info, hero, line_index=1)
-                action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, -1, None)
-                action_str = StateUtil.build_command(action)
-                action_strs.append(action_str)
-                if hero_name == self.model1_hero:
-                    self.model2_just_dead = 0
+            if (hero_name == self.model1_hero and self.model2_just_dead == 1 and not StateUtil.if_hero_at_basement(hero)) \
+                    or (hero_name == self.model2_hero and self.model1_just_dead == 1 and not StateUtil.if_hero_at_basement(hero)):
+                if hero.hp / float(hero.maxhp) > 0.8:
+                    if hero_name == self.model1_hero:
+                        self.model2_just_dead = 0
+                    else:
+                        self.model1_just_dead = 0
                 else:
-                    self.model1_just_dead = 0
-                return action_strs, False
+                    print(self.battle_id, hero_name, '选择撤退')
+                    self.hero_strategy[hero_name] = ActionEnum.retreat
+                    retreat_pos = StateUtil.get_tower_behind(state_info, hero, line_index=1)
+                    action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, -1, None)
+                    action_str = StateUtil.build_command(action)
+                    action_strs.append(action_str)
+                    if hero_name == self.model1_hero:
+                        self.model2_just_dead = 0
+                    else:
+                        self.model1_just_dead = 0
+                    return action_strs, False
 
             if StateUtil.if_hero_at_basement(hero):
                 if hero_name == self.model1_hero:
