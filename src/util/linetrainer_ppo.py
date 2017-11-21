@@ -29,6 +29,7 @@ from datetime import datetime
 
 class LineTrainerPPO:
     TOWN_HP_THRESHOLD = 0.3
+    HP_RESTORE_GAP = 90
 
     def __init__(self, battle_id, save_dir, model_process, model1_hero, model1_cache,
                  model2_hero=None, model2_cache=None, real_hero=None,
@@ -43,6 +44,8 @@ class LineTrainerPPO:
         self.model2_just_dead = 0
         self.model1_total_death = 0
         self.model2_total_death = 0
+        self.model1_hp_restore = time.time()
+        self.model2_hp_restore = time.time()
         self.real_hero = real_hero
 
         # policy_ratio 表示使用策略的概率， policy_continue_acts表示连续多少个使用策略
@@ -292,6 +295,17 @@ class LineTrainerPPO:
                     self.hero_strategy[hero.hero_name] = None
                     return action_strs, False
 
+        # # 补血逻辑
+        # if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[
+        #     hero.hero_name] == ActionEnum.hp_restore:
+        #     if StateUtil.cal_distance2(prev_hero.pos, hero.pos) < 100:
+        #         print(self.battle_id, hero_name, '到达补血点', '血量增长', hero.hp - prev_hero.hp)
+        #         del self.hero_strategy[hero_name]
+        #         if hero == self.model1_hero:
+        #             self.model1_hp_restore = time.time()
+        #         else:
+        #             self.model2_hp_restore = time.time()
+
         # 撤退逻辑
         # TODO 甚至可以使用移动技能移动
         if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.retreat:
@@ -345,7 +359,7 @@ class LineTrainerPPO:
                     print(self.battle_id, hero_name, '选择撤退')
                     self.hero_strategy[hero_name] = ActionEnum.retreat
                     retreat_pos = StateUtil.get_tower_behind(state_info, hero, line_index=1)
-                    action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, -1, None)
+                    action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, retreat_pos, None, None, -1, None)
                     action_str = StateUtil.build_command(action)
                     action_strs.append(action_str)
                     if hero_name == self.model1_hero:
@@ -364,6 +378,23 @@ class LineTrainerPPO:
                         del self.hero_strategy[hero_name]
                     return action_strs, False
 
+            # # 残血并且周围没有敌人的情况下，可以去塔后吃加血
+            # if hero.hp / float(hero.maxhp) < 0.9 and hero not in self.hero_strategy:
+            #     print('补血条件', self.battle_id, hero_name, time.time(), self.model1_hp_restore, self.model2_hp_restore)
+            #     if hero == self.model1_hero and time.time() - self.model1_hp_restore > LineTrainerPPO.HP_RESTORE_GAP:
+            #         print(self.battle_id, hero_name, '选择加血')
+            #         self.hero_strategy[hero_name] = ActionEnum.hp_restore
+            #     elif hero == self.model2_hero and time.time() - self.model2_hp_restore > LineTrainerPPO.HP_RESTORE_GAP:
+            #         print(self.battle_id, hero_name, '选择加血')
+            #         self.hero_strategy[hero_name] = ActionEnum.hp_restore
+            #
+            #     if self.hero_strategy[hero_name] == ActionEnum.hp_restore:
+            #         restore_pos = StateUtil.get_hp_restore_place(state_info, hero)
+            #         action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, restore_pos, None, None, -1, None)
+            #         action_str = StateUtil.build_command(action)
+            #         action_strs.append(action_str)
+            #         return action_strs, False
+
         # 开始根据策略决定当前的行动
         # 对线情况下，首先拿到兵线，朝最前方的兵线移动
         # 如果周围有危险（敌方单位）则启动对线模型
@@ -375,13 +406,17 @@ class LineTrainerPPO:
             (len(nearest_friend_units) == 0 and len(near_enemy_units_in_line) == 0 and
             len(near_enemy_heroes) == 0 and len(nearest_enemy_tower_in_line) == 1):
 
-            # 以下才是跟兵线逻辑
+            # 跟兵线或者跟塔，优先跟塔
             self.hero_strategy[hero.hero_name] = ActionEnum.line_1
             # print("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
-            # 跟兵线
             front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
-            if front_soldier is None:
-                action_str = StateUtil.build_action_command(hero.hero_name, 'HOLD', {})
+            first_tower = StateUtil.get_first_tower(state_info, hero)
+
+            if front_soldier is None or (hero.team == 0 and first_tower.pos.x > front_soldier.pos.x) or (hero.team == 1 and first_tower.pos.x < front_soldier.pos.x):
+                # 跟塔，如果塔在前面的话
+                move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, first_tower.pos, None, None,
+                                        None, None)
+                action_str = StateUtil.build_command(move_action)
                 action_strs.append(action_str)
             else:
                 # 得到最前方的兵线位置

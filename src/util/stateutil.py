@@ -362,6 +362,23 @@ class StateUtil:
         return nearest_enemy_tower
 
     @staticmethod
+    def get_first_tower(state_info, hero):
+        for unit in state_info.units:
+            if unit.team == hero.team and (unit.pos.x == 17110 or unit.pos.x == -17110):
+                return unit
+        return None
+
+    @staticmethod
+    def get_hp_restore_place(state_info, hero):
+        for unit in state_info.units:
+            if unit.team == hero.team and (unit.pos.x == 17110 or unit.pos.x == -17110):
+                # 移动到塔后侧
+                near_tower_x = unit.pos.x - 3000 if hero.team == 0 else unit.pos.x + 3000
+                pos = PosStateInfo(near_tower_x, unit.pos.y, unit.pos.z)
+                return pos
+        return None
+
+    @staticmethod
     def get_tower_behind(state_info, hero, line_index):
         towers = []
         for unit in state_info.units:
@@ -377,7 +394,8 @@ class StateUtil:
             near_tower = towers[0]
             # 移动到塔后侧
             near_tower_x = near_tower.pos.x - 3000 if hero.team == 0 else near_tower.pos.x + 3000
-            pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower.pos.z)
+            near_tower_z = near_tower.pos.z - 2000 if hero.team == 0 else near_tower.pos.z + 2000
+            pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower_z)
             return pos
         else:
             basement_pos = StateUtil.BASEMENT_TEAM_1 if hero.team == 1 else StateUtil.BASEMENT_TEAM_0

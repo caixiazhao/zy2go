@@ -15,3 +15,4 @@ class ActionEnum:
     be_attacked = 13
     town_ing = 14
     line_model = 15
+    hp_restore = 16
