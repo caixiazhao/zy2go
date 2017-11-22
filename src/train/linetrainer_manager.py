@@ -9,6 +9,7 @@ import json as JSON
 import numpy as np
 from multiprocessing import Event
 import traceback
+import time
 
 from model.stateinfo import StateInfo
 from util.httputil import HttpUtil
@@ -31,22 +32,18 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
         real_hero=None, policy_ratio=-1, policy_continue_acts=3)
 
     while True:
-        p_request_signal.wait()
-
         json_str = None
-        with lock:
-            # print('trainer_process', p_battle_id, 'receive', 'request signal', ';'.join((str(k) for k in p_request_dict.keys())))
-            if p_battle_id in p_request_dict.keys():
-                # print('trainer_process', p_battle_id, 'get', 'a request')
-                p_request_signal.clear()
-                json_str = p_request_dict[p_battle_id]
-                del p_request_dict[p_battle_id]
+        # print('trainer_process', p_battle_id, 'receive', 'request signal', ';'.join((str(k) for k in p_request_dict.keys())))
+        if p_battle_id in p_request_dict.keys():
+            # print('trainer_process', p_battle_id, 'get', 'a request')
+            json_str = p_request_dict[p_battle_id]
+            del p_request_dict[p_battle_id]
 
         if json_str is not None:
             try:
                 response = line_trainer.train_line_model(json_str)
                 with lock:
-                    # print('trainer_process', p_battle_id, 'put', 'a result')
+                    print('trainer_process', p_battle_id, 'put a result', time.time())
                     p_result_dict[p_battle_id] = response
                     p_done_signal.set()
             except Exception as e:
@@ -87,6 +84,7 @@ class LineTrainerManager:
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
+        print('read_process', raw_state_info.battleid, raw_state_info.tick, time.time())
         # if raw_state_info.tick == -1:
         #     print('read_process: need to handle ', p_battle_id, raw_state_info.tick, 'raw log', json_str)
         # else:
@@ -95,7 +93,6 @@ class LineTrainerManager:
         with lock:
             # print('read_process', p_battle_id, 'send a request', raw_state_info.tick)
             p_request_dict[p_battle_id] = json_str
-            p_request_signal.set()
 
         try:
             while True:
@@ -107,13 +104,13 @@ class LineTrainerManager:
                         p_done_signal.clear()
                         result = p_result_dict[p_battle_id]
                         del p_result_dict[p_battle_id]
-                        print(p_battle_id, '取得结果', result)
+                        print('read_process', p_battle_id, raw_state_info.tick, time.time(), '取得结果', result)
                         return result
         except queue.Empty:
             print("LineTrainerManager Exception empty")
-            return ''
+            return '{}'
         except Exception:
             print("LineTrainerManager Exception")
             type, value, traceback = sys.exc_info()
             traceback.print_exc()
-            return ''
+            return '{}'

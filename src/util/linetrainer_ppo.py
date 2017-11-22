@@ -146,6 +146,7 @@ class LineTrainerPPO:
         # 如果上一个行为会触发游戏结束，那也会启动这里的训练
         if new == 1:
             if model_cache.isempty():
+                prev_new = model_cache.get_prev_new()
                 print(self.battle_id, '进入第二个训练条件，但是cache为空', prev_new)
                 return
 

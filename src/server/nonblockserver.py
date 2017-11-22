@@ -44,10 +44,11 @@ class MainHandler(tornado.web.RequestHandler):
             content = tornado.escape.to_basestring(self.request.body)
             response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict,
                                                    self.p_request_signal, self.p_done_signal, self.lock)
-            self.write(response)
+            self.finish(response)
         except Exception as e:
+            print('nonblock server catch exception')
             print('nonblock server catch exception', traceback.format_exc())
-            self.write('')
+            self.finish('{}')
 
     def post(self, *args, **kwargs):
         self.write("not implement yet")
@@ -69,7 +70,7 @@ def main():
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)
-        http_server.start(0)    # multi-process
+        http_server.start(1)    # multi-process
 
         hn = logging.NullHandler()
         hn.setLevel(logging.DEBUG)
