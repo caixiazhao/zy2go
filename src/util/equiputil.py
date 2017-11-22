@@ -128,6 +128,9 @@ class EquipUtil:
                         print(state_info.battleid, hero_name, '购买道具', equip_id, '当前拥有', ','.join(str(e) for e in owned_equips),
                               '金币', hero.gold, '价格', equip_info.buy_price, '名称', equip_info.name)
                         return CmdAction(hero_name, CmdActionEnum.BUY, None, None, None, None, equip_id, None, None)
+                    else:
+                        # 如果钱不够直接返回空，而不是购买下一件商品
+                        return None
         return None
 
     @staticmethod

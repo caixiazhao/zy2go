@@ -53,6 +53,8 @@ class HeroStateInfo:
         magpenrate = delta.magpenrate if delta.magpenrate is not None else self.magpenrate
         movelock = delta.movelock if delta.movelock is not None else self.movelock
 
+        #TODO 需要添加物理吸血等信息
+
         vis1 = delta.vis1 if delta.vis1 is not None else self.vis1
         vis2 = delta.vis2 if delta.vis2 is not None else self.vis2
         vis3 = delta.vis3 if delta.vis3 is not None else self.vis3
