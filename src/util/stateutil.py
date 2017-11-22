@@ -470,6 +470,8 @@ class StateUtil:
             return command
         if action.action == CmdActionEnum.UPDATE and action.skillid is not None:
             return {"hero_id": action.hero_name, "action": 'UPDATE', "skillid": str(action.skillid)}
+        if action.action == CmdActionEnum.BUY and action.itemid is not None:
+            return {"hero_id": action.hero_name, "action": 'BUY', "itemid": str(action.itemid)}
         if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:

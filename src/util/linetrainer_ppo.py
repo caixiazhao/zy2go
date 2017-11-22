@@ -20,6 +20,7 @@ from train.cmdactionenum import CmdActionEnum
 from train.line_input_lite import Line_Input_Lite
 from train.linemodel import LineModel
 from train.linemodel_ppo1 import LineModel_PPO1
+from util.equiputil import EquipUtil
 from util.linetrainer_policy import LineTrainerPolicy
 from util.modelthread import ModelThread
 from util.replayer import Replayer
@@ -266,6 +267,12 @@ class LineTrainerPPO:
             next3_state_info = state_cache[state_index]
         else:
             return action_strs, False
+
+        # 决定是否购买道具
+        buy_action = EquipUtil.buy_equip(state_info, hero_name)
+        if buy_action is not None:
+            buy_str = StateUtil.build_command(buy_action)
+            action_strs.append(buy_str)
 
         # 如果有可以升级的技能，优先升级技能3
         hero = state_info.get_hero(hero_name)
