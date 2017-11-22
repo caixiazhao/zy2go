@@ -28,7 +28,7 @@ import time
 class PPO_CACHE2:
     REWARD_RIVAL_DMG = 250
 
-    def __init__(self, ob, ac, horizon=100):
+    def __init__(self, horizon=100):
         self.horizon = horizon
 
         # Initialize history arrays

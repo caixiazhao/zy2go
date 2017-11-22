@@ -19,9 +19,8 @@ from util.ppocache2 import PPO_CACHE2
 
 
 def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_result_dict, p_request_signal, p_done_signal, lock):
-    ob = np.zeros(183, dtype=float).tolist()
-    model1_cache = PPO_CACHE2(ob, 1)
-    model2_cache = PPO_CACHE2(ob, 1)
+    model1_cache = PPO_CACHE2()
+    model2_cache = PPO_CACHE2()
     root_dir = p_model_process.save_dir
     save_dir = HttpUtil.get_linetrainer_save_path(root_dir, p_battle_id)
     model1_hero = '27'
