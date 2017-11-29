@@ -375,7 +375,7 @@ class LineModel:
             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 49, None)
             return action
         else:  # 撤退
-            retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
+            retreat_pos = StateUtil.get_retreat_pos(stateinformation, hero, line_index=1)
             action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
             return action
 

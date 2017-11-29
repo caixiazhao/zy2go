@@ -16,3 +16,4 @@ class ActionEnum:
     town_ing = 14
     line_model = 15
     hp_restore = 16
+    retreat_to_town = 17

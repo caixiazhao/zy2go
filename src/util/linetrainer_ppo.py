@@ -316,7 +316,7 @@ class LineTrainerPPO:
 
         # 撤退逻辑
         # TODO 甚至可以使用移动技能移动
-        if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.retreat:
+        if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.retreat_to_town:
             if StateUtil.cal_distance2(prev_hero.pos, hero.pos) < 100:
                 print(self.battle_id, hero_name, '开始回城')
                 self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
@@ -365,8 +365,8 @@ class LineTrainerPPO:
                         self.model1_just_dead = 0
                 else:
                     print(self.battle_id, hero_name, '选择撤退')
-                    self.hero_strategy[hero_name] = ActionEnum.retreat
-                    retreat_pos = StateUtil.get_tower_behind(state_info, hero, line_index=1)
+                    self.hero_strategy[hero_name] = ActionEnum.retreat_to_town
+                    retreat_pos = StateUtil.get_retreat_pos(state_info, hero, line_index=1)
                     action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, retreat_pos, None, None, -1, None)
                     action_str = StateUtil.build_command(action)
                     action_strs.append(action_str)
@@ -422,7 +422,8 @@ class LineTrainerPPO:
 
             if front_soldier is None or (hero.team == 0 and first_tower.pos.x > front_soldier.pos.x) or (hero.team == 1 and first_tower.pos.x < front_soldier.pos.x):
                 # 跟塔，如果塔在前面的话
-                move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, first_tower.pos, None, None,
+                follow_tower_pos = StateUtil.get_tower_behind(first_tower, hero, line_index=1)
+                move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, follow_tower_pos, None, None,
                                         None, None)
                 action_str = StateUtil.build_command(move_action)
                 action_strs.append(action_str)
@@ -535,15 +536,12 @@ class LineTrainerPPO:
                     # print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
                     return None
 
-                # 超时会有异常抛出
-                self.model_process.done_signal.wait(10)
                 # print('line_trainer ', self.battle_id, '等到一个信号')
                 # check package
                 actions = None
                 with self.model_process.lock:
                     if (self.battle_id, model_name) in self.model_process.results.keys():
                         actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
-                        self.model_process.done_signal.clear()
 
                 if actions is not None:
                     # 特殊情况为模型通知我们它已经训练完成

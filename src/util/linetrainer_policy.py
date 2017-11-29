@@ -8,6 +8,7 @@ import math
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from train.cmdactionenum import CmdActionEnum
+from train.linemodel import LineModel
 from util.replayer import Replayer
 from util.stateutil import StateUtil
 from random import randint
@@ -16,6 +17,7 @@ from random import randint
 class LineTrainerPolicy:
     # 如果这个范围内没有英雄则会启动各种攻击小兵攻击塔策略
     SAFE_RIVAL_HERO_DISTANCE = 11
+    SKILL_RANGE_CHAERSI_SKILL3 = 2
 
     @staticmethod
     def choose_action(state_info, action_ratios, hero_name, rival_hero, rival_near_units, rival_near_tower,
@@ -29,6 +31,14 @@ class LineTrainerPolicy:
                                                             rival_near_units, rival_near_tower, near_friend_units)
         if action is not None:
             return action
+
+        # 如果在塔附近，且周围没有友军，也没有敌方英雄，则直接撤退
+        # 如果友方只剩下一个小兵，有一点点血，也开始撤退
+        if rival_near_tower is not None:
+            if len(near_friend_units) == 0 or (len(near_friend_units) == 1 and near_friend_units[0].hp/float(near_friend_units[0].maxhp) <= 0.5):
+                if rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE:
+                    print("启动策略 有敌方塔且己方掩护不足时候撤退 " + hero_name)
+                    return LineTrainerPolicy.policy_move_retreat(hero_info)
 
         # 如果附近没有敌方英雄，在敌方塔下，且有小兵掩护
         if rival_near_tower is not None and len(near_friend_units) > 0:
@@ -59,7 +69,7 @@ class LineTrainerPolicy:
                     print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，不足的情况下后撤（如果在塔的攻击范围内） " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
-        #TODO 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高
+        # 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高
         if rival_hero_info.hp > 0 and rival_hero_info.hp/float(rival_hero_info.maxhp) <= 0.3 and \
            hero_info.hp/float(hero_info.maxhp) >= rival_hero_info.hp/float(rival_hero_info.maxhp) + 0.1 and \
            rival_near_tower is None:
@@ -74,8 +84,96 @@ class LineTrainerPolicy:
                 print("启动策略 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, 随机从技能中选择 " + hero_name)
                 return LineTrainerPolicy.get_attack_hero_action(state_info, hero_name, rival_hero, skill_id)
 
+        #TODO 如果对方英雄血量高，且差距明显，不要接近对方英雄
+
+
+        # 下面逻辑为屏蔽一些不应该使用的行为或者技能
+        changed = False
+
+        # 不应该贸然进入对方的塔下
+        print('策略选择', state_info.battleid, hero_name, '检测会不会贸然进入对方的塔下')
+        if rival_near_tower is not None:
+            units_in_tower_range = LineTrainerPolicy.units_in_tower_range(near_friend_units, rival_near_tower)
+            if units_in_tower_range <= 2:
+                while True:
+                    maxQ = max(action_ratios)
+                    selected = action_ratios.index(maxQ)
+                    if maxQ == -1:
+                        retreat_pos = StateUtil.get_retreat_pos(state_info, hero_info, line_index=1)
+                        action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None,
+                                           selected, None)
+                        return action
+                    if selected < 8:
+                        fwd = StateUtil.mov(selected)
+                        tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 0.5, hero_info.pos.y + fwd.y * 0.5, hero_info.pos.z + fwd.z * 0.5)
+                        print('策略选择', state_info.battleid, hero_name, '移动方向会进入塔下', hero_info.pos.to_string(),
+                              tgtpos.to_string())
+                        if StateUtil.cal_distance(tgtpos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
+                            print('策略选择', state_info.battleid, hero_name, '移动方向会进入塔下', hero_info.pos.to_string(), tgtpos.to_string())
+                            action_ratios[selected] = -1
+                            changed = True
+                            continue
+                    elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻， 针对近战英雄的检测
+                        if selected == 8:  # 敌方塔
+                            print('策略选择', state_info.battleid, hero_name, '不要去攻击塔')
+                            action_ratios[selected] = -1
+                            changed = True
+                            continue
+                        elif selected == 9:  # 敌方英雄
+                            if StateUtil.cal_distance(rival_hero_info.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
+                                print('策略选择', state_info.battleid, hero_name, '不要去近身攻击塔范围内的英雄')
+                                action_ratios[selected] = -1
+                                changed = True
+                                continue
+                        else:  # 小兵
+                            creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
+                            n = selected - 10
+                            tgt = creeps[n]
+                            if StateUtil.cal_distance(tgt.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
+                                print('策略选择', state_info.battleid, hero_name, '不要去近身攻击塔范围内的小兵')
+                                action_ratios[selected] = -1
+                                changed = True
+                                continue
+                    elif 28 <= selected < 38:  # 专门针对查尔斯的跳跃技能
+                        skillid = int((selected - 18) / 10 + 1)
+                        [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10,
+                                                                        state_info, skillid,
+                                                                        hero_name, hero_info.pos, rival_hero)
+                        if tgtpos is None:
+                            if StateUtil.cal_distance(tgtpos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
+                                print('策略选择', state_info.battleid, hero_name, '跳跃技能在朝着塔下的目标')
+                                action_ratios[selected] = -1
+                                changed = True
+                                continue
+                    break
+
+
         # 大招的使用
+        # 对于查尔斯，如果周围没有敌人则不应该使用大招
+        if hero_info.cfg_id == 101:
+            maxQ = max(action_ratios)
+            selected = action_ratios.index(maxQ)
+            if 38 <= selected < 48:
+                rival_hero_dis = StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos)
+                if rival_hero_dis > LineTrainerPolicy.SKILL_RANGE_CHAERSI_SKILL3:
+                    if LineTrainerPolicy.units_in_range(rival_near_units, hero_info.pos, LineTrainerPolicy.SKILL_RANGE_CHAERSI_SKILL3) == 0:
+                        print('策略选择', state_info.battleid, hero_name, '查尔斯大招不应该在没人的时候使用')
+                        for i in range(38, 48):
+                            action_ratios[selected] = -1
+                            changed = True
+
+        if changed:
+            action = LineModel.select_actions([action_ratios], state_info, hero_name, rival_hero)
+            return action
         return None
+
+    @staticmethod
+    def units_in_range(units, pos, distance):
+        num = 0
+        for unit in units:
+            if StateUtil.cal_distance(unit.pos, pos) <= distance:
+                num += 1
+        return num
 
     @staticmethod
     def units_in_tower_range(units, tower):

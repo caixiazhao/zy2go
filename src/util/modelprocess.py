@@ -17,18 +17,18 @@ def if_save_model(model, save_header, save_batch):
         model.save(save_header + str(replay_time) + '/model')
 
 
-def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, done_signal, save_batch, save_dir, lock):
+def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            model1_path=None, #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
-            model2_path=None, #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_2_v10/model',
+            model1_path='/Users/sky4star/Github/zy2go/data/all_trained/battle_logs/trained/171127/line_model_1_v380/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
+            model2_path='/Users/sky4star/Github/zy2go/data/all_trained/battle_logs/trained/171127/line_model_2_v380/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
             schedule_timesteps=1000000,
-            model1_initial_p=0.5,
-            model1_final_p=0.1,
+            model1_initial_p=0.05,
+            model1_final_p=0.05,
             model1_gamma=0.95,
-            model2_initial_p=0.5,
-            model2_final_p=0.1,
-            model2_gamma=0.95
+            model2_initial_p=0.05,
+            model2_final_p=0.05,
+            model2_gamma=0.93
         )
     init_signal.set()
     print('模型进程启动')
@@ -89,7 +89,6 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             with lock:
                 if (battle_id, act_model_name) not in results:
                     results[(battle_id, act_model_name)] = (actions, explor_value, vpred)
-                done_signal.set()
         except queue.Empty:
             continue
         except Exception as e:
@@ -106,7 +105,6 @@ class ModelProcess:
         self.action_queue = Queue()
         self.train_queue = Queue()
         self.results = manager.dict()
-        self.done_signal = Event()
         self.save_batch = 10
         self.init_signal = Event()
         self.lock = Lock()
@@ -116,7 +114,7 @@ class ModelProcess:
     def start(self):
         p = Process(target=start_model_process, args=(self.battle_id_num, self.init_signal, self.train_queue,
                                                       self.action_queue, self.results,
-                                                      self.done_signal, self.save_batch, self.save_dir, self.lock))
+                                                      self.save_batch, self.save_dir, self.lock))
         p.start()
 
 if __name__ == '__main__':

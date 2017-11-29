@@ -379,7 +379,15 @@ class StateUtil:
         return None
 
     @staticmethod
-    def get_tower_behind(state_info, hero, line_index):
+    # 和下面函数的区别是这里是到达补血点
+    def get_tower_behind(tower_info, hero, line_index):
+        near_tower_x = tower_info.pos.x - 4000 if hero.team == 0 else tower_info.pos.x + 4000
+        pos = PosStateInfo(near_tower_x, tower_info.pos.y, tower_info.pos.z)
+        return pos
+
+    @staticmethod
+    # 这里是到达一个撤退点，注意不要去吃加血符文
+    def get_retreat_pos(state_info, hero, line_index):
         towers = []
         for unit in state_info.units:
             if StateUtil.if_unit_tower(unit.unit_name) and unit.team == hero.team:

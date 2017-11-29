@@ -32,7 +32,9 @@ class HeroStateInfo:
         speed = delta.speed if delta.speed is not None else self.speed
 
         # 这里有个问题，如果英雄卖光了所有装备，在这里的合并逻辑就会出错
-        equips = delta.equips if delta.equips is not None and len(delta.equips) != 0 else self.equips
+        equips = self.equips
+        if delta.equips is not None and len(delta.equips) != 0:
+            equips.extend(delta.equips)
         buffs = delta.buffs if delta.buffs is not None else self.buffs
         state = delta.state if delta.state is not None else self.state
         cfg_id = delta.cfg_id if delta.cfg_id is not None else self.cfg_id

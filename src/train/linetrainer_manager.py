@@ -18,7 +18,7 @@ from util.modelprocess import ModelProcess
 from util.ppocache2 import PPO_CACHE2
 
 
-def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_result_dict, p_request_signal, p_done_signal, lock):
+def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_result_dict, lock):
     model1_cache = PPO_CACHE2()
     model2_cache = PPO_CACHE2()
     root_dir = p_model_process.save_dir
@@ -44,28 +44,23 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
                 with lock:
                     print('trainer_process', p_battle_id, 'put a result', time.time())
                     p_result_dict[p_battle_id] = response
-                    p_done_signal.set()
             except Exception as e:
                 print('linetrainer manager catch exception', traceback.format_exc())
                 with lock:
                     p_result_dict[p_battle_id] = '{}'
-                    p_done_signal.set()
 
 class LineTrainerManager:
     def __init__(self, battle_id_num):
         manager = Manager()
         self.request_dict = manager.dict()
         self.result_dict = manager.dict()
-        self.request_signal = Event()
-        self.done_signal = Event()
         self.lock = Lock()
         self.model_process = ModelProcess(battle_id_num)
         self.line_trainer_process_list = []
 
         for battle_id in range(1, battle_id_num+1):
             line_trainer_process = Process(target=start_line_trainer_process,
-                                           args=(battle_id, self.model_process, self.request_dict, self.result_dict,
-                                                 self.request_signal, self.done_signal, self.lock,))
+                                           args=(battle_id, self.model_process, self.request_dict, self.result_dict, self.lock,))
             self.line_trainer_process_list.append(line_trainer_process)
         print('训练器初始化完毕, 训练器数量', battle_id_num)
 
@@ -79,11 +74,10 @@ class LineTrainerManager:
         print('训练器启动完毕')
 
     @staticmethod
-    def read_process(json_str, p_request_dict, p_result_dict, p_request_signal, p_done_signal, lock):
+    def read_process(json_str, p_request_dict, p_result_dict, lock):
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
-        print('read_process', raw_state_info.battleid, raw_state_info.tick, time.time())
         # if raw_state_info.tick == -1:
         #     print('read_process: need to handle ', p_battle_id, raw_state_info.tick, 'raw log', json_str)
         # else:
@@ -95,12 +89,9 @@ class LineTrainerManager:
 
         try:
             while True:
-                p_done_signal.wait(10)
-                with lock:
-                    # print('read_process', p_battle_id, 'receive a signal', ';'.join((str(k) for k in p_result_dict.keys())))
-                    if p_battle_id in p_result_dict.keys():
+                if p_battle_id in p_result_dict.keys():
+                    with lock:
                         # print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
-                        p_done_signal.clear()
                         result = p_result_dict[p_battle_id]
                         del p_result_dict[p_battle_id]
                         print('read_process', p_battle_id, raw_state_info.tick, time.time(), '取得结果', result)
