@@ -146,7 +146,7 @@ class StateUtil:
 
     @staticmethod
     def get_units_in_team(state_info, team_id):
-        return [unit for unit in state_info.units if unit.team == team_id and unit.state == 'in']
+        return [unit for unit in state_info.units if unit.team == team_id and unit.state == 'in' and unit.hp > 0]
 
     @staticmethod
     def get_dead_units_in_line(state_info, team_id, line_index, hero_info=None, search_range=MAX_RADIUS):
