@@ -175,7 +175,7 @@ class LineTrainerPPO:
         if raw_state_info.tick == -1:
             return {"ID": raw_state_info.battleid, "tick": -1}
 
-        if raw_state_info.tick == 328548:
+        if raw_state_info.tick >= 193512:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
@@ -438,12 +438,6 @@ class LineTrainerPPO:
                 # 使用模型进行决策
                 # print("使用对线模型决定英雄%s的行动" % hero.hero_name)
                 self.hero_strategy[hero.hero_name] = ActionEnum.line_model
-                enemies = []
-                enemies.extend((hero.hero_name for hero in near_enemy_heroes))
-                enemies.extend((unit.unit_name for unit in near_enemy_units))
-                if nearest_enemy_tower is not None:
-                    enemies.append(nearest_enemy_tower.unit_name)
-                # print('对线模型决策，因为周围有敌人 ' + ' ,'.join(enemies))
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
@@ -464,7 +458,7 @@ class LineTrainerPPO:
                         or random.uniform(0, 1) <= self.policy_ratio
                 ):
                     policy_action = LineTrainerPolicy.choose_action(state_info, action_ratios, hero_name, rival_hero,
-                                            near_enemy_units, nearest_enemy_tower, nearest_friend_units)
+                                            near_enemy_units, nearest_friend_units)
                     if policy_action is not None:
                         policy_action.vpred = action.vpred
                         action = policy_action
