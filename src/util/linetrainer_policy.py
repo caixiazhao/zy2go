@@ -114,7 +114,7 @@ class LineTrainerPolicy:
                 if action_ratios[action_id] > skill_score:
                     skill_score = action_ratios[action_id]
                     selected_skill = i
-            if selected_skill > 0:
+            if selected_skill >= 0:
                 print("启动策略 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, 从技能中选择 ", hero_name, selected_skill, skill_score)
                 return LineTrainerPolicy.get_attack_hero_action(state_info, hero_name, rival_hero, selected_skill)
 
