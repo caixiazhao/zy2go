@@ -52,6 +52,11 @@ class StateInfo:
                 return dmg.tgt
         return None
 
+    def if_tower_attack_hero(self, hero_name):
+        for att in self.attack_infos:
+            if int(att.atker) < 26 and str(att.defer) == hero_name:
+                return att
+
     def if_unit_attack_hero(self, unit_name, hero_name):
         for att in self.attack_infos:
             if str(att.atker) == unit_name and str(att.defer) == hero_name:
@@ -163,8 +168,8 @@ class StateInfo:
         for action in self.actions:
             if action.hero_name == hero_name:
                 action.reward = reward
-                print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
-                     action.action, action.skillid, action.tgtid))
+                # print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
+                #      action.action, action.skillid, action.tgtid))
                 break
 
     def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):

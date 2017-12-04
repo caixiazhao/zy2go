@@ -146,7 +146,7 @@ class StateUtil:
 
     @staticmethod
     def get_units_in_team(state_info, team_id):
-        return [unit for unit in state_info.units if unit.team == team_id and unit.state == 'in']
+        return [unit for unit in state_info.units if unit.team == team_id and unit.state == 'in' and unit.hp > 0]
 
     @staticmethod
     def get_dead_units_in_line(state_info, team_id, line_index, hero_info=None, search_range=MAX_RADIUS):
@@ -362,7 +362,32 @@ class StateUtil:
         return nearest_enemy_tower
 
     @staticmethod
-    def get_tower_behind(state_info, hero, line_index):
+    def get_first_tower(state_info, hero):
+        for unit in state_info.units:
+            if unit.team == hero.team and (unit.pos.x == 17110 or unit.pos.x == -17110):
+                return unit
+        return None
+
+    @staticmethod
+    def get_hp_restore_place(state_info, hero):
+        for unit in state_info.units:
+            if unit.team == hero.team and (unit.pos.x == 17110 or unit.pos.x == -17110):
+                # 移动到塔后侧
+                near_tower_x = unit.pos.x - 3000 if hero.team == 0 else unit.pos.x + 3000
+                pos = PosStateInfo(near_tower_x, unit.pos.y, unit.pos.z)
+                return pos
+        return None
+
+    @staticmethod
+    # 和下面函数的区别是这里是到达补血点
+    def get_tower_behind(tower_info, hero, line_index):
+        near_tower_x = tower_info.pos.x - 4000 if hero.team == 0 else tower_info.pos.x + 4000
+        pos = PosStateInfo(near_tower_x, tower_info.pos.y, tower_info.pos.z)
+        return pos
+
+    @staticmethod
+    # 这里是到达一个撤退点，注意不要去吃加血符文
+    def get_retreat_pos(state_info, hero, line_index):
         towers = []
         for unit in state_info.units:
             if StateUtil.if_unit_tower(unit.unit_name) and unit.team == hero.team:
@@ -377,7 +402,8 @@ class StateUtil:
             near_tower = towers[0]
             # 移动到塔后侧
             near_tower_x = near_tower.pos.x - 3000 if hero.team == 0 else near_tower.pos.x + 3000
-            pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower.pos.z)
+            near_tower_z = near_tower.pos.z - 2000 if hero.team == 0 else near_tower.pos.z + 2000
+            pos = PosStateInfo(near_tower_x, near_tower.pos.y, near_tower_z)
             return pos
         else:
             basement_pos = StateUtil.BASEMENT_TEAM_1 if hero.team == 1 else StateUtil.BASEMENT_TEAM_0
@@ -452,6 +478,8 @@ class StateUtil:
             return command
         if action.action == CmdActionEnum.UPDATE and action.skillid is not None:
             return {"hero_id": action.hero_name, "action": 'UPDATE', "skillid": str(action.skillid)}
+        if action.action == CmdActionEnum.BUY and action.itemid is not None:
+            return {"hero_id": action.hero_name, "action": 'BUY', "itemid": str(action.itemid)}
         if action.action == CmdActionEnum.AUTO:
             return {"hero_id": action.hero_name, "action": 'AUTO'}
         if action.action == CmdActionEnum.HOLD:
@@ -459,6 +487,8 @@ class StateUtil:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
         if action.action == CmdActionEnum.RETREAT:
             return {"hero_id": action.hero_name, "action": 'MOVE', "pos": action.tgtpos.to_string()}
+        if action.action == CmdActionEnum.RESTART:
+            return {"hero_id": action.hero_name, "action": 'RESTART'}
         raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod

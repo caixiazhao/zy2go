@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #
 # Copyright 2009 Facebook
@@ -14,10 +15,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
+
+import os
+import sys
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
 import tornado.web
+import traceback
 
 from tornado.options import define, options
 
@@ -27,31 +32,48 @@ define("port", default=8780, help="run on the given port", type=int)
 
 # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
+    def initialize(self, p_request_dict, p_result_dict, lock):
+        self.p_request_dict = p_request_dict
+        self.p_result_dict = p_result_dict
+        self.lock = lock
+
     def get(self, *args, **kwargs):
-        content = tornado.escape.to_basestring(self.request.body)
-        manager = LineTrainerManager()
-        response = manager.response(content)
-        self.write(response)
+        try:
+            content = tornado.escape.to_basestring(self.request.body)
+            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
+            self.finish(response)
+        except Exception as e:
+            print('nonblock server catch exception')
+            print('nonblock server catch exception', traceback.format_exc())
+            self.finish('{}')
 
     def post(self, *args, **kwargs):
-        self.write("Hello, world")
+        self.write("not implement yet")
 
 
 def main():
+    trainer_num = int(sys.argv[1])
+    manager = LineTrainerManager(trainer_num)
+    manager.start()
+
     tornado.options.parse_command_line()
     application = tornado.web.Application([
-        (r"/", MainHandler),
+        (r"/", MainHandler,
+         dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict, lock=manager.lock)),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
-    # http_server.listen(options.port)
 
-    http_server.bind(options.port)
-    http_server.start(0)    # multi-process
+    # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
+    if hasattr(os, 'fork'):
+        http_server.bind(options.port)
+        http_server.start(1)    # multi-process
 
-    hn = logging.NullHandler()
-    hn.setLevel(logging.DEBUG)
-    logging.getLogger("tornado.access").addHandler(hn)
-    logging.getLogger("tornado.access").propagate = False
+        hn = logging.NullHandler()
+        hn.setLevel(logging.DEBUG)
+        logging.getLogger("tornado.access").addHandler(hn)
+        logging.getLogger("tornado.access").propagate = False
+    else:
+        http_server.listen(options.port)
 
     try:
         tornado.ioloop.IOLoop.current().start()
