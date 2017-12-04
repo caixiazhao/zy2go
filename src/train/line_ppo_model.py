@@ -23,6 +23,19 @@ class LinePPOModel(object):
             out = ob
             out = layers.fully_connected(out, num_outputs=256, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
             out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
+
+            self.batch_size = 1
+            self.time_steps = tf.shape(out)[0]
+            self.cell_size = 128
+            out = tf.reshape(out, [-1, self.time_steps, self.cell_size], name='2_3D')
+            lstm_cell = tf.contrib.rnn.BasicLSTMCell(self.cell_size, forget_bias=1.0, state_is_tuple=True)
+            state = lstm_cell.zero_state(self.batch_size, tf.float32)
+            # todo:batch normalize
+            out, state = tf.nn.dynamic_rnn(lstm_cell, out, initial_state=state, time_major=False)
+            out = tf.reshape(out, [-1, self.cell_size], name='2_2D')
+
+            out = tf.nn.dropout(out, keep_prob=0.6)
+
             out = layers.fully_connected(out, num_outputs=128, activation_fn=tf.nn.relu, weights_initializer=U.normc_initializer(1.0))
             pdparam = U.dense(out, pdtype.param_shape()[0], "polfinal")
             self.vpred = U.dense(out, 1, "value")[:, 0]
