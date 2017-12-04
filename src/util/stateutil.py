@@ -141,6 +141,12 @@ class StateUtil:
         return False
 
     @staticmethod
+    def if_unit_hero(unit_name):
+        if 27 <= int(unit_name) <= 28:
+            return True
+        return False
+
+    @staticmethod
     def get_heros_in_team(state_info, team_id):
         return [hero for hero in state_info.heros if hero.team == team_id]
 

@@ -116,11 +116,19 @@ class StateInfo:
                 return hero.pos
         return None
 
+    def update_hero(self, hero_info):
+        for i in range(len(self.heros)):
+            hero = self.heros[i]
+            if hero.hero_name == hero_info.hero_name:
+                self.heros[i] == hero
+
+    def update_unit(self, unit_info):
+        for i in range(len(self.units)):
+            unit = self.units(i)
+            if unit.unit_name == unit_info.unit_name:
+                self.units[i] == unit
+
     def merge(self, delta):
-
-        if int(delta.tick) >= 47520:
-            db = 1
-
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
@@ -155,7 +163,7 @@ class StateInfo:
                     merged_units.append(prev)
 
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units,
-                         delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions)
+                         delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions, delta.buff_infos)
 
     def add_action(self, action):
         for i, act in enumerate(self.actions):
@@ -172,7 +180,7 @@ class StateInfo:
                 #      action.action, action.skillid, action.tgtid))
                 break
 
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
@@ -181,6 +189,7 @@ class StateInfo:
         self.hit_infos = hit_infos
         self.dmg_infos = dmg_infos
         self.actions = actions
+        self.buff_infos = buff_infos
 
     @staticmethod
     def decode_hero(obj, hero_id):
@@ -253,4 +262,4 @@ class StateInfo:
             for ac in obj['actions']:
                 actions.append(CmdAction.decode(ac))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions)
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, None)
