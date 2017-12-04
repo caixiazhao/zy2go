@@ -197,10 +197,11 @@ class LineTrainerPPO:
 
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
-        if self.model1_hero is not None:
+        restart = False
+        if self.model1_hero is not None and self.real_hero != self.model1_hero:
             actions_model1, restart = self.build_response(self.state_cache, -1, self.model1_hero)
             action_strs.extend(actions_model1)
-        if self.model2_hero is not None and not restart:
+        if self.model2_hero is not None and not restart and self.real_hero != self.model2_hero:
             actions_model2, restart = self.build_response(self.state_cache, -1, self.model2_hero)
             action_strs.extend(actions_model2)
 
