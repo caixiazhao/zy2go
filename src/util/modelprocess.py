@@ -105,7 +105,7 @@ class ModelProcess:
         self.action_queue = Queue()
         self.train_queue = Queue()
         self.results = manager.dict()
-        self.save_batch = 10
+        self.save_batch = 3
         self.init_signal = Event()
         self.lock = Lock()
         self.battle_id_num = battle_id_num
