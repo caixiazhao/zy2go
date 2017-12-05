@@ -23,12 +23,12 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             model1_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_1_v180/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
             model2_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_2_v180/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
             schedule_timesteps=1000000,
-            model1_initial_p=0.05,
+            model1_initial_p=0.3,
             model1_final_p=0.05,
             model1_gamma=0.95,
-            model2_initial_p=0.05,
+            model2_initial_p=0.3,
             model2_final_p=0.05,
-            model2_gamma=0.93
+            model2_gamma=0.95
         )
     init_signal.set()
     print('模型进程启动')
@@ -105,7 +105,7 @@ class ModelProcess:
         self.action_queue = Queue()
         self.train_queue = Queue()
         self.results = manager.dict()
-        self.save_batch = 10
+        self.save_batch = 3
         self.init_signal = Event()
         self.lock = Lock()
         self.battle_id_num = battle_id_num

@@ -1,1 +1,1 @@
-for /l %%x in (1, 1, 3) do start "" game.exe battle %%x 101 101
+for /l %%x in (1, 1, 40) do start "" game.exe battle %%x 101 101
