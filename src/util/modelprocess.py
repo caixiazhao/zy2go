@@ -20,8 +20,8 @@ def if_save_model(model, save_header, save_batch):
 def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            model1_path='/Users/sky4star/Github/zy2go/data/all_trained/battle_logs/trained/171127/line_model_1_v380/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
-            model2_path='/Users/sky4star/Github/zy2go/data/all_trained/battle_logs/trained/171127/line_model_2_v380/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
+            model1_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_1_v180/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
+            model2_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_2_v180/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
             schedule_timesteps=1000000,
             model1_initial_p=0.05,
             model1_final_p=0.05,
