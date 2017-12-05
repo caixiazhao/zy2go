@@ -12,8 +12,3 @@ battle_logs
 
 docs
 data
-src/util/modelprocess.py
-src/util/modelprocess.py
-src/util/httputil.py
-src/train/line_input_lite.py
-scripts/batchrun.bat
