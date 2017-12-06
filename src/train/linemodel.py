@@ -312,7 +312,7 @@ class LineModel:
         return acts
 
     @staticmethod
-    def select_actions(acts, stateinformation, hero_name, rival_hero):
+    def select_actions(acts, stateinformation, hero_name, rival_hero, revert=False):
         #这样传stateinformation太拖慢运行速度了，后面要改
         #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
@@ -340,7 +340,7 @@ class LineModel:
             selected = acts.index(rdm_q)
             print("随机选择操作 " + str(selected))
         if selected < 8:  # move
-            fwd = StateUtil.mov(selected)
+            fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
             action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
             return action

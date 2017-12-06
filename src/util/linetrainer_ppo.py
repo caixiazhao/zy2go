@@ -34,7 +34,7 @@ class LineTrainerPPO:
 
     def __init__(self, battle_id, save_dir, model_process, model1_hero, model1_cache,
                  model2_hero=None, model2_cache=None, real_hero=None,
-                 policy_ratio=-1, policy_continue_acts=3):
+                 policy_ratio=-1, policy_continue_acts=3, revert_model1=False, revert_model2=False):
         self.battle_id = battle_id
         self.retreat_pos = None
         self.hero_strategy = {}
@@ -67,6 +67,10 @@ class LineTrainerPPO:
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
         self.model_process = model_process
+
+        # 如果需要的话，可以使用model1的模型来计算model2的英雄，或者反之
+        self.revert_model1 = revert_model1
+        self.revert_model2 = revert_model2
 
         self.model1_cache = model1_cache
         self.model2_cache = model2_cache
@@ -515,13 +519,19 @@ class LineTrainerPPO:
         # return rsp_str
 
     def get_action(self, state_info, hero_name, rival_hero):
-        model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+        # 选择使用哪个模型，如果是反转的话，使用对方的模型
+        model_name = ModelThread.NAME_MODEL_1 if (hero_name == self.model1_hero and not self.revert_model1) \
+                                                 or (hero_name == self.model2_hero and self.revert_model2) \
+                                              else ModelThread.NAME_MODEL_2
+        revert = self.revert_model1 if hero_name == self.model1_hero else self.revert_model2
 
         # 获得并传入输入信息
         line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
-        state_input = line_input.gen_line_input()
+        state_input = line_input.gen_line_input(revert)
         state_input = np.array(state_input)
         self.model_process.action_queue.put((self.battle_id, model_name, state_input))
+        input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
+        print(self.battle_id, hero_name, input_detail)
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         timeout = time.time() + 60
@@ -543,7 +553,7 @@ class LineTrainerPPO:
                     if isinstance(actions, CmdAction):
                         return actions, None, None
                     else:
-                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero)
+                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
                         action.vpred = vpred
 
                         # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）

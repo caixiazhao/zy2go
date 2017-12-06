@@ -458,24 +458,30 @@ class StateUtil:
         return False
 
     @staticmethod
-    def mov(direction):
+    def mov(direction, revert=False):
         # 根据输入0~7这8个整数，选择上下左右等八个方向返回
+        fwd = None
         if direction == 0:
-            return FwdStateInfo(1000, 0, 0)
+            fwd = FwdStateInfo(1000, 0, 0)
         elif direction == 1:
-            return FwdStateInfo(707, 0, 707)
+            fwd = FwdStateInfo(707, 0, 707)
         elif direction == 2:
-            return FwdStateInfo(0, 0, 1000)
+            fwd = FwdStateInfo(0, 0, 1000)
         elif direction == 3:
-            return FwdStateInfo(-707, 0, 707)
+            fwd = FwdStateInfo(-707, 0, 707)
         elif direction == 4:
-            return FwdStateInfo(0, 0, -1000)
+            fwd = FwdStateInfo(0, 0, -1000)
         elif direction == 5:
-            return FwdStateInfo(-707, 0, -707)
+            fwd = FwdStateInfo(-707, 0, -707)
         elif direction == 6:
-            return FwdStateInfo(-1000, 0, 0)
+            fwd = FwdStateInfo(-1000, 0, 0)
         else:
-            return FwdStateInfo(-707, 0, 707)
+            fwd = FwdStateInfo(-707, 0, 707)
+
+        if revert:
+            fwd.x *= -1
+            fwd.z *= -1
+        return fwd
 
     @staticmethod
     def build_command(action):
