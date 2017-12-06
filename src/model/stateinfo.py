@@ -128,6 +128,17 @@ class StateInfo:
             if unit.unit_name == unit_info.unit_name:
                 self.units[i] == unit
 
+    def update_attack_info(self, attack_info):
+        # 首先删除掉所有同样攻击发起人的（注意，偶尔会出现一个攻击发起人发起多次攻击到情况，这里忽略)
+        self.attack_infos = [att for att in self.attack_infos if att.atker != attack_info.atker]
+        self.attack_infos.append(attack_info)
+
+    def get_attack_info(self, attacker):
+        for att in self.attack_infos:
+            if att.atker == attacker:
+                return att
+        return None
+
     def merge(self, delta):
         # 合并英雄信息
         merged_heros = []

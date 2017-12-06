@@ -147,6 +147,12 @@ class StateUtil:
         return False
 
     @staticmethod
+    def if_unit_soldier(unit_cfgid):
+        if int(unit_cfgid) == 911 or int(unit_cfgid) == 912 or int(unit_cfgid) == 913 or int(unit_cfgid) == 914:
+            return True
+        return False
+
+    @staticmethod
     def get_heros_in_team(state_info, team_id):
         return [hero for hero in state_info.heros if hero.team == team_id]
 
@@ -168,6 +174,12 @@ class StateUtil:
                     else:
                         result.append(unit)
         return result
+
+    @staticmethod
+    def if_unit_long_range_attack(unit_cfgid):
+        if int(unit_cfgid) == 911:
+            return False
+        return True
 
     @staticmethod
     # TODO 核对信息
