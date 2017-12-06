@@ -140,6 +140,8 @@ def learn(env, policy_func, *,
     lenbuffer = deque(maxlen=100) # rolling buffer for episode lengths
     rewbuffer = deque(maxlen=100) # rolling buffer for episode rewards
 
+    g_cache = []
+
     assert sum([max_iters>0, max_timesteps>0, max_episodes>0, max_seconds>0])==1, "Only one time constraint permitted"
 
     while True:
@@ -164,7 +166,7 @@ def learn(env, policy_func, *,
 
         seg = seg_gen.__next__()
         add_vtarg_and_adv(seg, gamma, lam)
-        print(seg)
+        # print(seg)
 
         # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
         ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]
@@ -183,9 +185,16 @@ def learn(env, policy_func, *,
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
                 *newlosses, g = lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
-                adam.update(g, optim_stepsize * cur_lrmult) 
-                losses.append(newlosses)
-            logger.log(fmt_row(13, np.mean(losses, axis=0)))
+
+                # cache and optimize in batch
+                if len(g_cache) <= 3:
+                    g_cache.append(g)
+                else:
+                    avg_g = np.mean(g_cache, axis=0)
+                    g_cache.clear()
+                    adam.update(avg_g, optim_stepsize * cur_lrmult)
+                    losses.append(newlosses)
+                    logger.log(fmt_row(13, np.mean(losses, axis=0)))
 
         logger.log("Evaluating losses...")
         losses = []
