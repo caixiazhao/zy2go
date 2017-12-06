@@ -69,7 +69,7 @@ class LineTrainerPolicy:
                         return action
 
                 # 掩护充足的情况下攻击对方塔
-                if units_in_tower_range >= 3:
+                if units_in_tower_range >= 2:
                     print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，掩护充足的情况下攻击对方塔 " + hero_name)
                     return LineTrainerPolicy.get_attack_tower_action(hero_name, hero_info, rival_near_tower)
 
@@ -77,6 +77,8 @@ class LineTrainerPolicy:
                 if units_in_tower_range <= 2 and StateUtil.cal_distance(hero_info.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
                     print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，不足的情况下后撤（如果在塔的攻击范围内） " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
+
+        #TODO 超低血量下撤退
 
         # 如果对方英雄血量高，且差距明显，不要接近对方英雄
         if hero_info.hp/float(hero_info.maxhp) <= 0.3 and \
@@ -109,6 +111,7 @@ class LineTrainerPolicy:
             # 选择模型分数较高的行为
             selected_skill = -1
             skill_score = -1
+            print('启动策略, 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, ', state_info.battleid, hero_name, rival_tower_distance)
             for i in range(4):
                 action_id = 10 * i + 9
                 if action_ratios[action_id] > skill_score:
