@@ -1,8 +1,7 @@
 # -*- coding: utf8 -*-
 import sys
 import queue
-
-from datetime import datetime
+import time
 
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
@@ -63,7 +62,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             trained = False
             if len(o4r_list_model1) >= battle_id_num and len(o4r_list_model2) >= battle_id_num:
                 print('model_process1', train_model_name, 'begin to train')
-                begin_time = datetime.now()
+                begin_time = time.time()
                 model_1.replay(o4r_list_model1.values(), batch_size)
                 o4r_list_model1.clear()
 
@@ -73,10 +72,10 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                 print('model_process2', train_model_name, 'begin to train')
                 model_2.replay(o4r_list_model2.values(), batch_size)
                 o4r_list_model2.clear()
-                end_time = datetime.now()
-                delta = end_time - begin_time
+                end_time = time.time()
+                delta_millionseconds = (end_time - begin_time) * 1000
 
-                print('model train time', delta.microseconds)
+                print('model train time', delta_millionseconds)
 
                 # 由自己来决定什么时候缓存模型
                 if_save_model(model_2, model2_save_header, save_batch)
@@ -101,17 +100,17 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                 if (battle_id, act_model_name) in results:
                     continue
 
-            begin_time = datetime.now()
+            begin_time = time.time()
             # print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
             if act_model_name == ModelProcess.NAME_MODEL_1:
                 actions, explor_value, vpred = model_1.get_action(state_input)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
                 actions, explor_value, vpred = model_2.get_action(state_input)
-            end_time = datetime.now()
-            delta = end_time - begin_time
-            time_cache.append(delta.microseconds)
+            end_time = time.time()
+            delta_millionseconds = (end_time - begin_time) * 1000
+            time_cache.append(delta_millionseconds)
             if len(time_cache) >= 1000:
-                print("model get_action average calculate time", sum(time_cache) // len(time_cache))
+                print("model get_action average calculate time(ms)", sum(time_cache) // len(time_cache))
                 time_cache = []
             # print('model_process', battle_id, 'get_action done')
 

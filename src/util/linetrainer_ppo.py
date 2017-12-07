@@ -183,7 +183,8 @@ class LineTrainerPPO:
             debug_i = 1
 
         # 根据之前帧更新当前帧信息，变成完整的信息
-        if raw_state_info.tick <= StateUtil.TICK_PER_STATE:
+        # 发现偶然的情况下，其实的tick会是66，然后第二条tick是528
+        if raw_state_info.tick <= StateUtil.TICK_PER_STATE and (prev_state_info is None or prev_state_info.tick > raw_state_info.tick):
             print("clear")
             prev_state_info = None
             self.state_cache = []
@@ -193,7 +194,25 @@ class LineTrainerPPO:
         elif prev_state_info is not None and prev_state_info.tick >= raw_state_info.tick:
             print("clear %s %s" % (prev_state_info.tick, raw_state_info.tick))
             self.state_cache = []
+        elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE:
+            # 不是开始帧的话直接返回重启游戏
+            # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
+            print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
+            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
+            rsp_str = JSON.dumps(rsp_obj)
+            return rsp_str
         state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
+
+        # Test
+        hero = state_info.get_hero(self.model1_hero)
+        if hero is None or hero.hp is None:
+            print(self.battle_id, self.model1_hero, state_info.tick, '读取信息为空，异常')
+            print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
+            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
+            rsp_str = JSON.dumps(rsp_obj)
+            return rsp_str
 
         # 持久化
         self.state_cache.append(state_info)
@@ -446,14 +465,7 @@ class LineTrainerPPO:
 
                 # 目前对线只涉及到两名英雄
                 rival_hero = '28' if hero.hero_name == '27' else '27'
-                begin_time = datetime.now()
                 action, explorer_ratio, action_ratios = self.get_action(state_info, hero_name, rival_hero)
-                end_time = datetime.now()
-                delta = end_time - begin_time
-                self.time_cache.append(delta.microseconds)
-                if len(self.time_cache) >= 1000:
-                    print("average model time", sum(self.time_cache)//len(self.time_cache))
-                    self.time_cache = []
 
                 # 考虑使用固定策略
                 # 如果决定使用策略，会连续n条行为全都采用策略（比如确保对方残血时候连续攻击的情况）
@@ -530,25 +542,33 @@ class LineTrainerPPO:
         state_input = line_input.gen_line_input(revert)
         state_input = np.array(state_input)
         self.model_process.action_queue.put((self.battle_id, model_name, state_input))
-        input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
-        print(self.battle_id, hero_name, input_detail)
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
-        timeout = time.time() + 60
+        # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
+        # 注意，客户端可能等待5秒就会发送重试，这个影响还不确定
+        begin_seconds = time.time()
+        timeout = begin_seconds + 180
         try:
             while True:
-                if time.time() > timeout:
-                    # print('line_trainer', self.battle_id, '很久没有收到模型的计算结果')
-                    return None
+                cur_seconds = time.time()
+                if cur_seconds > timeout:
+                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
+                    print('line_trainer', self.battle_id, '很久没有收到模型的计算结果', delta_millionseconds)
+                    return None, None, None
 
                 # print('line_trainer ', self.battle_id, '等到一个信号')
                 # check package
                 actions = None
+                found = False
                 with self.model_process.lock:
                     if (self.battle_id, model_name) in self.model_process.results.keys():
+                        found = True
                         actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
 
-                if actions is not None:
+                if found:
+                    cur_seconds = time.time()
+                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
+                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
                     # 特殊情况为模型通知我们它已经训练完成
                     if isinstance(actions, CmdAction):
                         return actions, None, None
