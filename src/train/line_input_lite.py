@@ -30,7 +30,7 @@ class Line_Input_Lite:
             team_input.append(team)
         return team_input
 
-    # 返回总信息向量大小=2*67+9*3+16*7=273
+    # 返回总信息向量大小=2*67+8*3+16*7=270
     def gen_line_input(self, revert=False):
         state=[]
 
@@ -44,14 +44,14 @@ class Line_Input_Lite:
         # print("input debug", ":", "hero", self.hero_name, 'rival_tower', nearest_towers_rival, 'team_tower', nearest_towers_team)
 
         # 添加双方英雄信息，对线模型暂时只考虑1v1的情况
-        my_hero_input = self.gen_input_hero(my_hero_info, nearest_towers_rival, revert)
+        my_hero_input = self.gen_input_hero(my_hero_info, my_hero_info, nearest_towers_rival, revert)
 
         # 首先判断对手英雄的位置，如果距离过远则不加入队伍中
         if StateUtil.cal_distance(my_hero_info.pos, rival_hero_info.pos) > self.NEAR_TOWER_RADIUS:
             rival_hero_input = np.zeros(len(my_hero_input)).tolist()
             # print "对手距离过远，不作为输入信息"
         else:
-            rival_hero_input = self.gen_input_hero(rival_hero_info, nearest_towers_rival, revert)
+            rival_hero_input = self.gen_input_hero(rival_hero_info, my_hero_info, nearest_towers_rival, revert)
         state += my_hero_input
         state += rival_hero_input
 
@@ -61,20 +61,20 @@ class Line_Input_Lite:
             tower_input1 = self.gen_input_building(None)
             tower_input2 = self.gen_input_building(None)
         elif len(nearest_towers_rival) == 1:
-            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name, revert)
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], my_hero_info, self.stateInformation, self.hero_name, revert)
             tower_input2 = self.gen_input_building(None)
         # 当玩家处在高地时候会有超过2个塔
         elif len(nearest_towers_rival) >= 2:
-            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name, revert)
-            tower_input2 = self.gen_input_building(nearest_towers_rival[1], self.stateInformation, self.hero_name, revert)
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], my_hero_info, self.stateInformation, self.hero_name, revert)
+            tower_input2 = self.gen_input_building(nearest_towers_rival[1], my_hero_info, self.stateInformation, self.hero_name, revert)
         else:
-            tower_input1 = self.gen_input_building(nearest_towers_rival[0], self.stateInformation, self.hero_name, revert)
-            tower_input2 = self.gen_input_building(nearest_towers_rival[1], self.stateInformation, self.hero_name, revert)
+            tower_input1 = self.gen_input_building(nearest_towers_rival[0], my_hero_info, self.stateInformation, self.hero_name, revert)
+            tower_input2 = self.gen_input_building(nearest_towers_rival[1], my_hero_info, self.stateInformation, self.hero_name, revert)
         # 添加一个己方塔
         if len(nearest_towers_team) == 0:
             tower_input3 = self.gen_input_building(None)
         else:
-            tower_input3 = self.gen_input_building(nearest_towers_team[0], self.stateInformation, self.hero_name, revert)
+            tower_input3 = self.gen_input_building(nearest_towers_team[0], my_hero_info, self.stateInformation, self.hero_name, revert)
         state += tower_input1
         state += tower_input2
         state += tower_input3
@@ -85,7 +85,7 @@ class Line_Input_Lite:
         n=8
         for i in range(n):
             if i < m:
-                state=state+self.gen_input_creep(enermy_creeps[i], self.stateInformation, self.hero_name, nearest_towers_rival, revert)
+                state=state+self.gen_input_creep(enermy_creeps[i], my_hero_info, self.stateInformation, self.hero_name, nearest_towers_rival, revert)
             else:
                 temp=self.gen_input_creep(None)
                 state=state+list(temp)
@@ -93,7 +93,7 @@ class Line_Input_Lite:
         m=len(friend_creeps)
         for i in range(n):
             if i <m:
-                state=state+self.gen_input_creep(friend_creeps[i], self.stateInformation, self.hero_name, nearest_towers_rival)
+                state=state+self.gen_input_creep(friend_creeps[i], my_hero_info, self.stateInformation, self.hero_name, nearest_towers_rival)
             else:
                 temp = self.gen_input_creep(None)
                 state=state+list(temp)
@@ -112,7 +112,7 @@ class Line_Input_Lite:
 
     #TODO 需要更多注释
     # 英雄信息向量大小16+3*17
-    def gen_input_hero(self, hero, rival_towers, revert=False):
+    def gen_input_hero(self, hero, query_hero, rival_towers, revert=False):
         if hero.state == 'out' or hero.hp <= 0:
             return list(np.zeros(16+3*17))
 
@@ -121,8 +121,8 @@ class Line_Input_Lite:
             dis_list = [StateUtil.cal_distance2(hero.pos, t.pos) for t in rival_towers]
             dis_rival = min(dis_list)
 
-        hero_input = [self.normalize_value(hero.pos.x if not revert else -hero.pos.x),
-                  self.normalize_value(hero.pos.z if not revert else -hero.pos.z),
+        hero_input = [self.normalize_value(hero.pos.x-query_hero.pos.x if not revert else -(hero.pos.x-query_hero.pos.x)),
+                  self.normalize_value(hero.pos.z-query_hero.pos.z if not revert else -(hero.pos.z-query_hero.pos.z)),
                   self.normalize_value(hero.speed),
                   self.normalize_value(hero.att),
                   self.normalize_value(hero.attspeed),
@@ -182,16 +182,15 @@ class Line_Input_Lite:
         skill_input.append(skill_canuse)
         return skill_input
 
-    # 建筑信息向量大小9个字段
-    def gen_input_building(self,building, state_info=None, hero_name=None, revert=False):
+    # 建筑信息向量大小8个字段
+    def gen_input_building(self,building, query_hero=None, state_info=None, hero_name=None, revert=False):
         if building is None:
-            building_info=np.zeros(9)
+            building_info=np.zeros(8)
             building_info=list(building_info)
         else:
             hero_info = state_info.get_hero(hero_name)
-            building_info=[self.normalize_value(int(building.unit_name)),
-                           self.normalize_value(building.pos.x if not revert else -building.pos.x),
-                           self.normalize_value(building.pos.z if not revert else -building.pos.z),
+            building_info=[self.normalize_value(building.pos.x-query_hero.pos.x if not revert else -(building.pos.x-query_hero.pos.x)),
+                           self.normalize_value(building.pos.z-query_hero.pos.z if not revert else -(building.pos.z-query_hero.pos.z)),
                            self.normalize_value(building.att),
                            self.normalize_value(7000),
                            self.normalize_value(building.hp),
@@ -206,7 +205,7 @@ class Line_Input_Lite:
         return building_info
 
     # 单个小兵信息大小=7
-    def gen_input_creep(self, creep, state_info=None, hero_name=None, towers=None, revert=False):
+    def gen_input_creep(self, creep, query_hero=None, state_info=None, hero_name=None, towers=None, revert=False):
         if creep is None:
             return list(np.zeros(7))
 
@@ -215,8 +214,8 @@ class Line_Input_Lite:
             dis_list = [StateUtil.cal_distance2(creep.pos, t.pos) for t in towers]
             dis = min(dis_list)
 
-        creep_info=[self.normalize_value(creep.pos.x if not revert else -creep.pos.x),
-                    self.normalize_value(creep.pos.z if not revert else -creep.pos.z),
+        creep_info=[self.normalize_value(creep.pos.x-query_hero.pos.x if not revert else -(creep.pos.x-query_hero.pos.x)),
+                    self.normalize_value(creep.pos.z-query_hero.pos.z if not revert else -(creep.pos.z-query_hero.pos.z)),
                     self.normalize_value(creep.att),
                     self.normalize_value(creep.hp),
                     self.normalize_value(dis),

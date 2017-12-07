@@ -42,7 +42,7 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
             try:
                 response = line_trainer.train_line_model(json_str)
                 with lock:
-                    print('trainer_process', p_battle_id, 'put a result', time.time())
+                    # print('trainer_process', p_battle_id, 'put a result', time.time())
                     p_result_dict[p_battle_id] = response
             except Exception as e:
                 print('linetrainer manager catch exception', traceback.format_exc())

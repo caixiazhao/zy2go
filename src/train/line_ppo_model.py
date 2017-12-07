@@ -80,7 +80,6 @@ class LinePPOModel(object):
 
     def act(self, ob, stochastic, update_eps):
         ac1, vpred1, state = self._act(stochastic, update_eps, ob[None])
-        print('state', state)
         return ac1[0], vpred1[0]
 
     def get_variables(self):

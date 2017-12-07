@@ -12,7 +12,7 @@ class HttpUtil:
     @staticmethod
     def get_save_root_path():
         date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = 'C:/Users/Administrator/Documents/GitHub/zy2go/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
+        save_dir = '/data/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
         os.makedirs(save_dir)
         return save_dir
 
@@ -26,7 +26,7 @@ class HttpUtil:
     def build_models_ppo(save_dir, model1_path=None, model2_path=None, schedule_timesteps=10000,
                          model1_initial_p=1.0, model1_final_p=0.02, model1_gamma=0.99,
                          model2_initial_p=1.0, model2_final_p=0.02, model2_gamma=0.99):
-        ob_size = 273
+        ob_size = 270
         act_size = 49
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
