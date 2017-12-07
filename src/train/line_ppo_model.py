@@ -74,13 +74,12 @@ class LinePPOModel(object):
 
             ac = U.switch(stochastic, stochastic_actions, self.pd.flatparam())
             self._act = U.function(inputs=[stochastic, update_eps, ob],
-                                   outputs=[ac, self.vpred, state],
+                                   outputs=[ac, self.vpred],
                                    givens={update_eps: -1.0, stochastic: True}
             )
 
     def act(self, ob, stochastic, update_eps):
-        ac1, vpred1, state = self._act(stochastic, update_eps, ob[None])
-        print('state', state)
+        ac1, vpred1 = self._act(stochastic, update_eps, ob[None])
         return ac1[0], vpred1[0]
 
     def get_variables(self):
