@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 import sys
 import queue
+import time
 
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
@@ -20,8 +21,10 @@ def if_save_model(model, save_header, save_batch):
 def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            model1_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_1_v180/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
-            model2_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_2_v180/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
+            model1_path=None,
+            model2_path=None,
+            # model1_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_1_v180/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
+            # model2_path='C:/Users/Administrator/Documents/GitHub/zy2go/data/line_model_2_v180/model', #'/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
             schedule_timesteps=1000000,
             model1_initial_p=0.05,
             model1_final_p=0.05,
@@ -32,6 +35,8 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
         )
     init_signal.set()
     print('模型进程启动')
+
+    time_cache = []
 
     o4r_list_model1 = {}
     o4r_list_model2 = {}
@@ -45,14 +50,17 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                     print('model_process', battle_id, train_model_name, 'receive train signal, batch size', batch_size)
                     if train_model_name == ModelProcess.NAME_MODEL_1:
                         o4r_list_model1[battle_id] = o4r
-                        print('model_process model1 train collection', ';'.join((str(k) for k in o4r_list_model1.keys())))
+                        print('model_process model1 train collection',
+                              ';'.join((str(k) for k in o4r_list_model1.keys())))
                     elif train_model_name == ModelProcess.NAME_MODEL_2:
                         o4r_list_model2[battle_id] = o4r
-                        print('model_process model2 train collection', ';'.join((str(k) for k in o4r_list_model2.keys())))
+                        print('model_process model2 train collection',
+                              ';'.join((str(k) for k in o4r_list_model2.keys())))
 
             trained = False
             if len(o4r_list_model1) >= battle_id_num and len(o4r_list_model2) >= battle_id_num:
                 print('model_process1', train_model_name, 'begin to train')
+                begin_time = time.time()
                 model_1.replay(o4r_list_model1.values(), batch_size)
                 o4r_list_model1.clear()
 
@@ -62,6 +70,10 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                 print('model_process2', train_model_name, 'begin to train')
                 model_2.replay(o4r_list_model2.values(), batch_size)
                 o4r_list_model2.clear()
+                end_time = time.time()
+                delta_millionseconds = (end_time - begin_time) * 1000
+
+                print('model train time', delta_millionseconds)
 
                 # 由自己来决定什么时候缓存模型
                 if_save_model(model_2, model2_save_header, save_batch)
@@ -71,19 +83,34 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             if trained:
                 with lock:
                     print('model process, add trained events')
-                    restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None, None, None)
-                    for battle_id in range(1, battle_id_num+1):
+                    restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None,
+                                           None, None)
+                    for battle_id in range(1, battle_id_num + 1):
                         # 给每个客户端添加一个训练结束的通知
                         results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, None, None)
+                        continue
 
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
             (battle_id, act_model_name, state_input) = action_queue.get(timeout=1)
+
+            with lock:
+                # 如果上一条还没有消耗掉，则忽略本条请求，这种情况应该只会出现在训练后
+                if (battle_id, act_model_name) in results:
+                    continue
+
+            begin_time = time.time()
             # print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
             if act_model_name == ModelProcess.NAME_MODEL_1:
                 actions, explor_value, vpred = model_1.get_action(state_input)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
                 actions, explor_value, vpred = model_2.get_action(state_input)
+            end_time = time.time()
+            delta_millionseconds = (end_time - begin_time) * 1000
+            time_cache.append(delta_millionseconds)
+            if len(time_cache) >= 1000:
+                print("model get_action average calculate time(ms)", sum(time_cache) // len(time_cache))
+                time_cache = []
             # print('model_process', battle_id, 'get_action done')
 
             with lock:
@@ -105,7 +132,7 @@ class ModelProcess:
         self.action_queue = Queue()
         self.train_queue = Queue()
         self.results = manager.dict()
-        self.save_batch = 3
+        self.save_batch = 10
         self.init_signal = Event()
         self.lock = Lock()
         self.battle_id_num = battle_id_num
@@ -116,6 +143,7 @@ class ModelProcess:
                                                       self.action_queue, self.results,
                                                       self.save_batch, self.save_dir, self.lock))
         p.start()
+
 
 if __name__ == '__main__':
     model_process = ModelProcess()
