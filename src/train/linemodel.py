@@ -316,7 +316,7 @@ class LineModel:
         #这样传stateinformation太拖慢运行速度了，后面要改
         #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
-        acts = list(acts[0])
+        acts = list(acts)
 
         # 得到屏蔽不可用之前模型的选择
         maxQ_orig = max(acts)

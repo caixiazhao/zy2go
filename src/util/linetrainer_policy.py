@@ -128,7 +128,7 @@ class LineTrainerPolicy:
             if current_max_q == -1:
                 return LineTrainerPolicy.policy_move_retreat(hero_info)
             else:
-                return LineModel.select_actions([action_ratios], state_info, hero_name, rival_hero)
+                return LineModel.select_actions(action_ratios, state_info, hero_name, rival_hero)
         return None
 
     @staticmethod

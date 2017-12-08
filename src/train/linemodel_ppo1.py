@@ -328,6 +328,13 @@ class LineModel_PPO1:
     def flatten_lists(self, listoflists):
         return [el for list_ in listoflists for el in list_]
 
+    def get_actions(self, state_inputs):
+        self.act_times += len(state_inputs)
+        stochastic = True
+        explor_value = self.exploration.value(self.act_times)
+        actions, vpreds = self.pi.acts(stochastic=stochastic, update_eps=explor_value, ob=state_inputs)
+        return actions, explor_value, vpreds
+
     def get_action(self, state_input):
         self.act_times += 1
         stochastic = True

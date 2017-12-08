@@ -41,6 +41,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
     print('模型进程启动')
 
     time_cache = []
+    num_cache = []
 
     o4r_list_model1 = {}
     o4r_list_model2 = {}
@@ -93,30 +94,42 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
 
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
-            (battle_id, act_model_name, state_input) = action_queue.get(timeout=1)
+            battle_ids = []
+            act_model_names = []
+            state_inputs = []
+            while not action_queue.empty():
+                (battle_id, act_model_name, state_input) = action_queue.get(timeout=1)
 
-            with lock:
-                # 如果上一条还没有消耗掉，则忽略本条请求，这种情况应该只会出现在训练后
-                if (battle_id, act_model_name) in results:
-                    continue
+                with lock:
+                    # 如果上一条还没有消耗掉，则忽略本条请求，这种情况应该只会出现在训练后
+                    if (battle_id, act_model_name) in results:
+                        continue
+
+                battle_ids.append(battle_id)
+                act_model_names.append(act_model_name)
+                state_inputs.append(state_input)
+
+            if len(state_inputs) == 0:
+                continue
 
             begin_time = time.time()
-            # print('model_process', battle_id, 'receive act signal', act_model_name, hero_name)
             if act_model_name == ModelProcess.NAME_MODEL_1:
-                actions, explor_value, vpred = model_1.get_action(state_input)
+                actions_list, explor_value, vpreds = model_1.get_actions(state_inputs)
             elif act_model_name == ModelProcess.NAME_MODEL_2:
-                actions, explor_value, vpred = model_2.get_action(state_input)
+                actions_list, explor_value, vpreds = model_2.get_actions(state_inputs)
             end_time = time.time()
             delta_millionseconds = (end_time - begin_time) * 1000
             time_cache.append(delta_millionseconds)
+            num_cache.append(len(battle_ids))
             if len(time_cache) >= 1000:
-                print("model get_action average calculate time(ms)", sum(time_cache) // len(time_cache))
+                print("model get_action average calculate time(ms)", sum(time_cache) // float(len(time_cache)), sum(num_cache) / float(len(num_cache)))
                 time_cache = []
-            # print('model_process', battle_id, 'get_action done')
+                num_cache = []
 
             with lock:
-                if (battle_id, act_model_name) not in results:
-                    results[(battle_id, act_model_name)] = (actions, explor_value, vpred)
+                for battle_id, act_model_name, actions, vpred in zip(battle_ids, act_model_names, actions_list, vpreds):
+                    if (battle_id, act_model_name) not in results:
+                        results[(battle_id, act_model_name)] = (actions, explor_value, vpred)
         except queue.Empty:
             continue
         except Exception as e:

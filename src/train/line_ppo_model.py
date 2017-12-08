@@ -78,6 +78,10 @@ class LinePPOModel(object):
                                    givens={update_eps: -1.0, stochastic: True}
             )
 
+    def acts(self, ob, stochastic, update_eps):
+        ac1, vpred1, state = self._act(stochastic, update_eps, ob)
+        return ac1, vpred1
+
     def act(self, ob, stochastic, update_eps):
         ac1, vpred1, state = self._act(stochastic, update_eps, ob[None])
         return ac1[0], vpred1[0]

@@ -577,7 +577,7 @@ class LineTrainerPPO:
                         action.vpred = vpred
 
                         # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
-                        action_ratios = list(actions[0])
+                        action_ratios = list(actions)
                         action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name,
                                                                                rival_hero)
                         return action, explorer_ratio, action_ratios_masked
