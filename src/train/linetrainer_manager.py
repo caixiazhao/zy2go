@@ -75,6 +75,7 @@ class LineTrainerManager:
 
     @staticmethod
     def read_process(json_str, p_request_dict, p_result_dict, lock):
+        begin_time = time.time()
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
@@ -94,7 +95,8 @@ class LineTrainerManager:
                         # print('read_process', p_battle_id, 'get a result', raw_state_info.tick)
                         result = p_result_dict[p_battle_id]
                         del p_result_dict[p_battle_id]
-                        print('read_process', p_battle_id, raw_state_info.tick, time.time(), '取得结果', result)
+                        end_time = time.time()
+                        print('read_process', p_battle_id, raw_state_info.tick, (end_time - begin_time) * 1000, '取得结果', result)
                         return result
         except queue.Empty:
             print("LineTrainerManager Exception empty")
