@@ -339,6 +339,10 @@ class LineModel:
             rdm_q = aval_actions[rdm]
             selected = acts.index(rdm_q)
             print("随机选择操作 " + str(selected))
+        return LineModel.get_action(selected, stateinformation, hero, hero_name, rival_hero, revert)
+
+    @staticmethod
+    def get_action(selected, state_info, hero, hero_name, rival_hero, revert=False):
         if selected < 8:  # move
             fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
@@ -346,7 +350,7 @@ class LineModel:
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔
-                tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
+                tower = StateUtil.get_nearest_enemy_tower(state_info, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
                 tgtid = tower.unit_name
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
@@ -355,14 +359,14 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
             else:  # 小兵
-                creeps = StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
+                creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
                 n = selected - 10
                 tgtid = creeps[n].unit_name
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
         elif selected < 48:  # skill
             skillid = int((selected - 18) / 10 + 1)
-            [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10, stateinformation, skillid,
+            [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10, state_info, skillid,
                                                        hero_name, hero.pos, rival_hero)
             if tgtpos is None:
                 fwd = None
@@ -375,10 +379,9 @@ class LineModel:
             action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 49, None)
             return action
         else:  # 撤退
-            retreat_pos = StateUtil.get_retreat_pos(stateinformation, hero, line_index=1)
+            retreat_pos = StateUtil.get_retreat_pos(state_info, hero, line_index=1)
             action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
             return action
-
 
     @staticmethod
     def choose_skill_target(selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):
