@@ -31,6 +31,7 @@ class LineTrainerPolicy:
         original_selected = action_ratios.index(original_max_q)
 
         #TODO 注意这里的逻辑是只限于第一个塔的
+
         rival_near_tower = StateUtil.get_first_tower(state_info, rival_hero_info)
         rival_tower_distance = StateUtil.cal_distance(hero_info.pos, rival_near_tower.pos)
 
@@ -152,8 +153,8 @@ class LineTrainerPolicy:
                 continue
             if selected < 8:
                 fwd = StateUtil.mov(selected)
-                tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * hero_info.speed * 0.5, hero_info.pos.y + fwd.y * hero_info.speed * 0.5,
-                                      hero_info.pos.z + fwd.z * hero_info.speed * 0.5)
+                tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * hero_info.speed / 1000 * 0.5, hero_info.pos.y + fwd.y * hero_info.speed / 1000 * 0.5,
+                                      hero_info.pos.z + fwd.z * hero_info.speed / 1000 * 0.5)
                 if StateUtil.cal_distance(tgtpos, danger_pos) <= danger_radius:
                     print('策略选择', state_info.battleid, hero_info.hero_name, '移动方向会进入危险区域', hero_info.pos.to_string(),
                           tgtpos.to_string())

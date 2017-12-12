@@ -451,11 +451,11 @@ class StateUtil:
         elif direction == 3:
             return FwdStateInfo(-707, 0, 707)
         elif direction == 4:
-            return FwdStateInfo(-1000, 0, 0)
+            return FwdStateInfo(0, 0, -1000)
         elif direction == 5:
             return FwdStateInfo(-707, 0, -707)
         elif direction == 6:
-            return FwdStateInfo(0, 0, -1000)
+            return FwdStateInfo(-1000, 0, 0)
         else:
             return FwdStateInfo(707, 0, -707)
 
