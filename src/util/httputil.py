@@ -10,10 +10,23 @@ import numpy as np
 
 class HttpUtil:
     @staticmethod
-    def build_models_ppo(model1_path=None, model2_path=None, schedule_timesteps=10000,
+    def get_save_root_path():
+        date_str = str(datetime.now()).replace(' ', '').replace(':', '')
+        save_dir = '/data/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
+        os.makedirs(save_dir)
+        return save_dir
+
+    @staticmethod
+    def get_linetrainer_save_path(root_save_path, trainer_name):
+        save_dir = root_save_path + '/' + str(trainer_name)
+        os.mkdir(save_dir)
+        return save_dir
+
+    @staticmethod
+    def build_models_ppo(save_dir, model1_path=None, model2_path=None, schedule_timesteps=10000,
                          model1_initial_p=1.0, model1_final_p=0.02, model1_gamma=0.99,
                          model2_initial_p=1.0, model2_final_p=0.02, model2_gamma=0.99):
-        ob_size = 183
+        ob_size = 270
         act_size = 49
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
@@ -23,10 +36,6 @@ class HttpUtil:
                             scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model1_initial_p, final_p=model1_final_p)
         model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel,  gamma=model2_gamma,
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
-
-        date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/Users/sky4star/Github/zy2go/battle_logs/model_' + date_str  #/data/battle_logs/model_ for server
-        os.makedirs(save_dir)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
@@ -38,7 +47,7 @@ class HttpUtil:
             model_2.load(model2_path)
         model2_save_header = save_dir + '/line_model_2_v'
 
-        return save_dir, model_1, model1_save_header, model_2, model2_save_header
+        return model_1, model1_save_header, model_2, model2_save_header
 
     # 两个模型用来相互对战，分别训练
     @staticmethod

@@ -28,7 +28,7 @@ import time
 class PPO_CACHE2:
     REWARD_RIVAL_DMG = 250
 
-    def __init__(self, ob, ac, horizon=100):
+    def __init__(self, horizon=100):
         self.horizon = horizon
 
         # Initialize history arrays
@@ -60,6 +60,9 @@ class PPO_CACHE2:
     def change_last(self, new, rew):
         self.rews[-1] = rew
         self.nextnew = new
+
+    def isempty(self):
+        return len(self.obs) == 0
 
     def clear_cache(self):
         self.ep_rets = []
@@ -95,11 +98,14 @@ class PPO_CACHE2:
 
     def output4replay(self, cur_new, next_vpred):
         batch_size = len(self.rews)
-        if self.t > 0 and cur_new == 1:
+        if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
             print("训练数据长度 " + str(len(self.obs)))
             return {"ob": np.array(self.obs), "rew": np.array(self.rews), "vpred": np.array(self.vpreds),
                     "new": np.array(self.news),
              "ac": np.array(self.acs), "prevac": np.array(self.prevacs), "nextvpred": next_vpred * (1 - cur_new),
              "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}, batch_size
+        elif self.t > 0 and cur_new == 1 and len(self.obs) == 0:
+            # TODO 是不是有更优雅的方式
+            print('真的出现了new但是训练数据为空的情况')
         else:
             return None, batch_size
