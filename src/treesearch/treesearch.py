@@ -12,22 +12,26 @@ class TreeSearch:
 
     # 根据状态信息，根据英雄行为选择，得到下一刻的状态，和当期每个行为的得分
     @staticmethod
-    def choose_action(state_info, hero_name, rival_hero_name, line_trainer):
+    def choose_action(parent_tree_node, hero_name, rival_hero_name, line_trainer):
+        state_info = parent_tree_node.next_state_info
+
         # 对方行为的预测方式为，使用自己的模型，预测对方的行为（需要翻转输入）。这里有个限制条件就是双方的阵容（不管1v1还是5v5），都必须是一样的
         _, explorer_ratio, action_ratios_masked = line_trainer.get_action(state_info, hero_name, rival_hero_name)
         _, rival_explorer_ratio, rival_action_ratios_masked = line_trainer.get_action(state_info, rival_hero_name, hero_name)
 
         # 选择n个最高优先级的行为
-        tree_nodes = TreeSearch.select_top_n_actions(state_info, action_ratios_masked, hero_name, rival_hero_name, False, 3)
-        rival_tree_nodes = TreeSearch.select_top_n_actions(state_info, rival_action_ratios_masked, rival_hero_name, hero_name, True, 3)
+        tree_nodes = TreeSearch.select_top_n_actions(parent_tree_node, action_ratios_masked, hero_name, rival_hero_name, False, 3)
+        rival_tree_nodes = TreeSearch.select_top_n_actions(parent_tree_node, rival_action_ratios_masked, rival_hero_name, hero_name, True, 3)
 
         # 选择下一层的分支
-        # 这里首先实现一个最简单的方案，一一合并，还是创建n个分支，如果有个n不足，则使用优先级最高的替换
+        # 这里首先实现一个最简单的方案，一一合并
+        leaves
 
 
     @staticmethod
-    def select_top_n_actions(state_info, acts, hero_name, rival_hero_name, revert, n):
+    def select_top_n_actions(parent_tree_node, acts, hero_name, rival_hero_name, revert, n):
         tree_nodes = []
+        state_info = parent_tree_node.next_state_info
         hero_info = state_info.get_hero(hero_name)
         for i in range(n):
             maxQ = max(acts)
@@ -36,7 +40,21 @@ class TreeSearch:
             if ratio < len(acts):
                 ratio = acts[selected]
                 action = LineModel.get_action(selected, state_info, hero_info, hero_name, rival_hero_name, revert)
-                tree_node = TreeNode(state_info, action, ratio)
+                tree_node = TreeNode(parent_tree_node)
+                tree_node.set_hero_action(action, ratio)
                 tree_nodes.append(tree_node)
         return tree_nodes
 
+    @staticmethod
+    def gen_leaves(state_info, tree_nodes, rival_tree_nodes):
+        # 最简单的方式，一一合并
+        leaf_nodes = []
+        for i in range(len(tree_nodes)):
+            node_i = tree_nodes[i]
+            for j in range(len(rival_tree_nodes)):
+                node_j = rival_tree_nodes[j]
+                leaf_node = TreeNode(state_info, node_i.hero_action, node_i.weight)
+                leaf_node.rival_hero_action = node_j.hero_action
+                leaf_node.rival_weight = node_j.weight
+                leaf_nodes.append(leaf_node)
+        return leaf_nodes
