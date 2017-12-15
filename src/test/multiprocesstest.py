@@ -18,55 +18,41 @@ from util.ppocache2 import PPO_CACHE2
 def read_process(name, raw_log_path, p_request_dict, p_result_dict, lock):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
+    producer_times = []
     for line in lines:
-        time.sleep(0.05)
+        time.sleep(random.randint(1,5)/float(1000))
         json_str = line[23:]
+        begin_time = time.time()
         response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict, lock)
+        end_time = time.time()
+        delta_millionseconds = (end_time - begin_time) * 1000
+        producer_times.append(delta_millionseconds)
+        if len(producer_times) >= 100:
+            print("model producer_process average calculate time(ms)",
+                  sum(producer_times) // float(len(producer_times)))
+            producer_times = []
+
     print(name, 'done')
 
 if __name__ == "__main__":
     try:
-        manager = LineTrainerManager(2)
+        num = 20
+        manager = LineTrainerManager(20)
         manager.start()
         print('训练器准备完毕')
 
-        p1 = Process(target=read_process, args=('process_1',
-                    '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-27180755.723878/1/raw_1.log',
-                                           manager.request_dict, manager.result_dict, manager.lock))
-        # p2 = Process(target=read_process, args=('process_2',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/test/raw_2.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        # p3 = Process(target=read_process, args=('process_3',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-07110642.104735/3/raw_3.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        # p4 = Process(target=read_process, args=('process_4',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-03184456.110081/4/raw_4.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        # p5 = Process(target=read_process, args=('process_5',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-03184456.110081/5/raw_5.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        # p6 = Process(target=read_process, args=('process_6',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-03184456.110081/6/raw_6.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        # p7 = Process(target=read_process, args=('process_7',
-        #             '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-03184456.110081/7/raw_7.log',
-        #                                         manager.request_dict, manager.result_dict, manager.request_signal,
-        #                                         manager.done_signal, manager.lock))
-        p1.start()
-        # p2.start()
-        # p3.start()
-        # p4.start()
-        # p5.start()
-        # p6.start()
-        # p7.start()
+        for i in range(num):
+            p1 = Process(target=read_process, args=('process_1',
+                                                    '/Users/sky4star/Github/zy2go/battle_logs/test/raw_1.log',
+                                                    manager.request_dict, manager.result_dict, manager.lock))
+            p2 = Process(target=read_process, args=('process_2',
+                                                    '/Users/sky4star/Github/zy2go/battle_logs/test/raw_2.log',
+                                                    manager.request_dict, manager.result_dict, manager.lock))
+            p1.start()
+            p2.start()
+            p1.join()
+            p2.join()
         print('测试进程启动')
-        p1.join()
-        # p2.join()
         while 1:
             pass
     except Exception as e:
