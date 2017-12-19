@@ -9,21 +9,18 @@ from multiprocessing import Event
 
 from model.stateinfo import StateInfo
 from train.linetrainer_manager import LineTrainerManager
-from util.httputil import HttpUtil
-from util.linetrainer_ppo import LineTrainerPPO
-from util.modelprocess import ModelProcess
-from util.ppocache2 import PPO_CACHE2
 
 
-def read_process(name, raw_log_path, p_request_dict, p_result_dict, lock):
+def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
     producer_times = []
     for line in lines:
         time.sleep(random.randint(1,5)/float(1000))
         json_str = line[23:]
+        json_str = json_str.replace('"ID":1', '"ID":'+str(battle_id), 1)
         begin_time = time.time()
-        response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict, lock)
+        response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
         producer_times.append(delta_millionseconds)
@@ -32,27 +29,21 @@ def read_process(name, raw_log_path, p_request_dict, p_result_dict, lock):
                   sum(producer_times) // float(len(producer_times)))
             producer_times = []
 
-    print(name, 'done')
+    print(battle_id, 'done')
 
 if __name__ == "__main__":
     try:
-        num = 20
-        manager = LineTrainerManager(20)
+        num = 2
+        manager = LineTrainerManager(num)
         manager.start()
         print('训练器准备完毕')
 
         for i in range(num):
-            p1 = Process(target=read_process, args=('process_1',
-                                                    '/Users/sky4star/Github/zy2go/battle_logs/test/raw_1.log',
-                                                    manager.request_dict, manager.result_dict, manager.lock))
-            p2 = Process(target=read_process, args=('process_2',
-                                                    '/Users/sky4star/Github/zy2go/battle_logs/test/raw_2.log',
-                                                    manager.request_dict, manager.result_dict, manager.lock))
+            p1 = Process(target=read_process, args=(i, '/Users/sky4star/Github/zy2go/battle_logs/test/raw_1.log',
+                                                    manager.request_queues, manager.result_queues))
+
             p1.start()
-            p2.start()
-            p1.join()
-            p2.join()
-        print('测试进程启动')
+            print('测试进程启动', i)
         while 1:
             pass
     except Exception as e:
