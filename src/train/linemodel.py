@@ -339,10 +339,10 @@ class LineModel:
             rdm_q = aval_actions[rdm]
             selected = acts.index(rdm_q)
             print("随机选择操作 " + str(selected))
-        return LineModel.get_action(selected, stateinformation, hero, hero_name, rival_hero, revert)
+        return LineModel.get_actions(selected, stateinformation, hero, hero_name, rival_hero, revert)
 
     @staticmethod
-    def get_action(selected, state_info, hero, hero_name, rival_hero, revert=False):
+    def get_actions(selected, state_info, hero, hero_name, rival_hero, revert=False):
         if selected < 8:  # move
             fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)

@@ -39,7 +39,7 @@ class TreeSearch:
 
             if ratio < len(acts):
                 ratio = acts[selected]
-                action = LineModel.get_action(selected, state_info, hero_info, hero_name, rival_hero_name, revert)
+                action = LineModel.get_actions(selected, state_info, hero_info, hero_name, rival_hero_name, revert)
                 tree_node = TreeNode(parent_tree_node)
                 tree_node.set_hero_action(action, ratio)
                 tree_nodes.append(tree_node)
