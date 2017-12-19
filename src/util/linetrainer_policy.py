@@ -145,6 +145,7 @@ class LineTrainerPolicy:
 
     @staticmethod
     def keep_away_from(state_info, hero_info, rival_hero_info, action_ratios, danger_pos, danger_radius):
+        print('action_ratios_pre', action_ratios)
         changed = False
         maxQ = max(action_ratios)
         selected = action_ratios.index(maxQ)
@@ -155,8 +156,8 @@ class LineTrainerPolicy:
                 continue
             if selected < 8:
                 fwd = StateUtil.mov(selected)
-                tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 0.5, hero_info.pos.y + fwd.y * 0.5,
-                                      hero_info.pos.z + fwd.z * 0.5)
+                tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 0.5 * hero_info.speed / 1000, hero_info.pos.y + fwd.y * 0.5 * hero_info.speed / 1000,
+                                      hero_info.pos.z + fwd.z * 0.5 * hero_info.speed / 1000)
                 if StateUtil.cal_distance(tgtpos, danger_pos) <= danger_radius:
                     print('策略选择', state_info.battleid, hero_info.hero_name, '移动方向会进入危险区域', hero_info.pos.to_string(),
                           tgtpos.to_string())

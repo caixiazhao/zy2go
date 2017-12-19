@@ -17,7 +17,7 @@ class StateUtil:
     NEARBY_BASEMENT_RADIUS = 7
     ATTACK_HERO_RADIUS = 7  # 13.5
     ATTACK_UNIT_RADIUS = 7  # 10
-    TOWER_ATTACK_RADIUS = 8
+    TOWER_ATTACK_RADIUS = 9
 
     # 需要和ATTACK_HERO_RADIUS一致才行
     LINE_MODEL_RADIUS = 7
@@ -476,7 +476,7 @@ class StateUtil:
         elif direction == 6:
             fwd = FwdStateInfo(-1000, 0, 0)
         else:
-            fwd = FwdStateInfo(-707, 0, 707)
+            fwd = FwdStateInfo(707, 0, -707)
 
         if revert:
             fwd.x *= -1
