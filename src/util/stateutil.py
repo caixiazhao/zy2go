@@ -457,7 +457,7 @@ class StateUtil:
         elif direction == 6:
             return FwdStateInfo(-1000, 0, 0)
         else:
-            return FwdStateInfo(-707, 0, 707)
+            return FwdStateInfo(707, 0, -707)
 
     @staticmethod
     def build_command(action):
