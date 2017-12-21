@@ -311,6 +311,7 @@ class StateUtil:
         # 合并塔信息
         # 合并英雄信息
         new_state = prev_state.merge(cur_state)
+        new_state = prev_state.merge(cur_state)
         return new_state
 
     @staticmethod

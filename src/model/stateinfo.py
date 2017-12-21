@@ -191,7 +191,7 @@ class StateInfo:
                 #      action.action, action.skillid, action.tgtid))
                 break
 
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos=[]):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
@@ -273,4 +273,4 @@ class StateInfo:
             for ac in obj['actions']:
                 actions.append(CmdAction.decode(ac))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, None)
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, [])

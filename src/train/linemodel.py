@@ -346,7 +346,7 @@ class LineModel:
         if selected < 8:  # move
             fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
-            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, fwd, None, selected, None)
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔

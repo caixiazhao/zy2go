@@ -50,7 +50,7 @@ class PlayEngine:
 
             # 执行塔的行为
             # 扩大塔的搜索范围
-            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, action.hero_name, StateUtil.LINE_MODEL_RADIUS + 5)
+            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero_name, StateUtil.LINE_MODEL_RADIUS + 5)
             if nearest_enemy_tower is not None and nearest_enemy_tower.unit_name not in played_units:
                 played_units.append(nearest_enemy_tower.unit_name)
                 state_info = PlayEngine.play_unit_action(state_info, nearest_enemy_tower, hero_info, hero_action, near_friend_units)
@@ -236,11 +236,11 @@ class PlayEngine:
             if dis > move_dis:
                 # 只移动，不攻击
                 attacker_info.pos = PlayEngine.move_towards(attacker_info.pos, defender_info.pos, move_dis, dis)
-                StateUtil.update_hero(attacker_info)
+                state_info.update_hero(attacker_info)
                 return state_info
             else:
                 attacker_info.pos = defender_info.pos
-                StateUtil.update_hero(attacker_info)
+                state_info.update_hero(attacker_info)
 
         #TODO 计算最终伤害的公式很不清楚，需要后续核实。减伤比例为 防御/（防御+100）＝防御减伤，但是防御值怎么计算得来
         if StateUtil.if_unit_hero(defender):
