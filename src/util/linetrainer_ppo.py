@@ -141,6 +141,9 @@ class LineTrainerPPO:
             if new == 1:
                 # TODO 这个值应该设置成多少
                 rew = 10 if loss_team != hero_info.team else -10
+            elif not hero_act.avail_action:
+                rew = -1
+                print(self.battle_id, hero_name, state_info.tick, '选择了无效的行为，给予惩罚')
             else:
                 rew = LineModel_PPO1.cal_target_ppo_2(prev_state, state_info, next_state, hero_name, rival_hero, line_idx)
 
@@ -168,6 +171,7 @@ class LineTrainerPPO:
                 print('line_trainer', self.battle_id, '添加训练集')
 
     def train_line_model(self, raw_state_str):
+        self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
 
         # 解析客户端发送的请求
@@ -540,7 +544,7 @@ class LineTrainerPPO:
         line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input(revert)
         state_input = np.array(state_input)
-        self.model_process.action_queues[self.battle_id].put((self.battle_id, model_name, state_input))
+        self.model_process.action_queue.put((self.battle_id, model_name, state_input))
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
@@ -557,11 +561,14 @@ class LineTrainerPPO:
 
                 # print('line_trainer ', self.battle_id, '等到一个信号')
                 # check package
-                if not self.model_process.result_queues[self.battle_id].empty():
-                    battle_id, act_model_name, actions, explorer_ratio, vpred = self.model_process.result_queues[self.battle_id].get()
-                    if battle_id != self.battle_id or act_model_name != model_name:
-                        raise Exception("get action output not match input expect: {}, {}, actual: {}, {}".format(
-                            str(self.battle_id), model_name, str(battle_id), act_model_name))
+                actions = None
+                found = False
+                with self.model_process.lock:
+                    if (self.battle_id, model_name) in self.model_process.results.keys():
+                        found = True
+                        actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
+
+                if found:
                     cur_seconds = time.time()
                     delta_millionseconds = (cur_seconds - begin_seconds) * 1000
                     print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
@@ -569,7 +576,7 @@ class LineTrainerPPO:
                     if isinstance(actions, CmdAction):
                         return actions, None, None
                     else:
-                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
+                        action = LineModel.select_action_with_hold(actions, state_info, hero_name, rival_hero, revert)
                         action.vpred = vpred
 
                         # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
