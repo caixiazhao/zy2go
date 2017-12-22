@@ -45,6 +45,7 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
 
     o4r_list_model1 = {}
     o4r_list_model2 = {}
+    done_signals = {}
     while True:
         try:
             # 从训练队列中提取请求
@@ -89,25 +90,22 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
                     restartCmd = CmdAction(ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0, None, None, None, None, None, None)
                     for battle_id in range(1, battle_id_num+1):
                         # 给每个客户端添加一个训练结束的通知
-                        results[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, None, None)
-                        continue
+                        done_signals[(battle_id, ModelProcess.NAME_MODEL_1)] = (restartCmd, None, None)
 
             # 从行为队列中拿请求
             # 等待在这里（阻塞），加上等待超时确保不会出现只有个train信号进来导致死锁的情况
-            battle_ids = []
-            act_model_names = []
             state_inputs = []
-            while not action_queue.empty():
-                (battle_id, act_model_name, state_input) = action_queue.get(timeout=1)
+            if not action_queue.empty():
+                # 考虑到目前的并发情况，没有必要批量读取所有等待中的请求，因为基本只有一个等待的请求
+                # state_inputs是个数组，可能含有多个请求（MCTS下）
+                (battle_id, act_model_name, state_inputs) = action_queue.get(timeout=1)
 
                 with lock:
                     # 如果上一条还没有消耗掉，则忽略本条请求，这种情况应该只会出现在训练后
-                    if (battle_id, act_model_name) in results:
+                    if (battle_id, act_model_name) in done_signals:
+                        results[(battle_id, act_model_name)] = done_signals[(battle_id, act_model_name)]
+                        del done_signals[(battle_id, act_model_name)]
                         continue
-
-                battle_ids.append(battle_id)
-                act_model_names.append(act_model_name)
-                state_inputs.append(state_input)
 
             if len(state_inputs) == 0:
                 continue
@@ -120,16 +118,14 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
             end_time = time.time()
             delta_millionseconds = (end_time - begin_time) * 1000
             time_cache.append(delta_millionseconds)
-            num_cache.append(len(battle_ids))
+            num_cache.append(len(state_inputs))
             if len(time_cache) >= 1000:
                 print("model get_action average calculate time(ms)", sum(time_cache) // float(len(time_cache)), sum(num_cache) / float(len(num_cache)))
                 time_cache = []
                 num_cache = []
 
             with lock:
-                for battle_id, act_model_name, actions, vpred in zip(battle_ids, act_model_names, actions_list, vpreds):
-                    if (battle_id, act_model_name) not in results:
-                        results[(battle_id, act_model_name)] = (actions, explor_value, vpred)
+                results[(battle_id, act_model_name)] = (actions_list, explor_value, vpreds)
         except queue.Empty:
             continue
         except Exception as e:

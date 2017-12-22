@@ -22,6 +22,7 @@ from train.linemodel import LineModel
 from train.linemodel_ppo1 import LineModel_PPO1
 from util.equiputil import EquipUtil
 from util.linetrainer_policy import LineTrainerPolicy
+from util.modelprocess import ModelProcess
 from util.modelthread import ModelThread
 from util.replayer import Replayer
 from util.stateutil import StateUtil
@@ -533,6 +534,80 @@ class LineTrainerPPO:
         # rsp_str = JSON.dumps(rsp_obj)
         # return rsp_str
 
+    # 为批量计算准备的，同时计算一批状态的英雄行为
+    # 注意，对方的行为使用自己的模型翻转计算。所以需要对线的英雄完全相同。后续我们有足够多英雄的模型之后可以使用对应模型猜测英雄行为
+    # 这里同样需要注意的是，需要使用一个新的queue，和单个英雄的queue区分开
+    def get_actions(self, state_infos, hero_name, rival_hero):
+        model_name = ModelProcess.NAME_MODEL_1 if hero_name == self.model1_hero else ModelProcess.NAME_MODEL_2
+
+        # 对每个状态，都分别计算英雄和反转后的结果，第二个用来预测对方英雄的行动
+        line_inputs = []
+        for state_info in state_infos:
+            # 为己方英雄进行计算
+            line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
+            state_input = line_input.gen_line_input(revert=False)
+            state_input = np.array(state_input)
+            line_inputs.append(state_input)
+
+            # 使用自己的模型预测敌方英雄行为
+            line_input = Line_Input_Lite(state_info, rival_hero, hero_name)
+            state_input = line_input.gen_line_input(revert=True)
+            state_input = np.array(state_input)
+            line_inputs.append(state_input)
+
+        self.model_process.action_queue.put((self.battle_id, model_name, line_inputs))
+
+        # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
+        # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
+        # 注意，客户端可能等待5秒就会发送重试，这个影响还不确定
+        begin_seconds = time.time()
+        timeout = begin_seconds + 180
+        try:
+            while True:
+                cur_seconds = time.time()
+                if cur_seconds > timeout:
+                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
+                    print('line_trainer', self.battle_id, '很久没有收到模型的计算结果', delta_millionseconds)
+                    return None, None, None
+
+                # print('line_trainer ', self.battle_id, '等到一个信号')
+                # check package
+                found = False
+                with self.model_process.lock:
+                    if (self.battle_id, model_name) in self.model_process.results.keys():
+                        found = True
+                        actions_list, explorer_ratio, vpreds = self.model_process.results.pop((self.battle_id, model_name))
+
+                if found:
+                    return actions_list, vpreds
+                    cur_seconds = time.time()
+                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
+                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
+                    # 特殊情况为模型通知我们它已经训练完成
+                    if isinstance(actions_list, CmdAction):
+                        return actions_list, vpreds
+                    else:
+                        # 返回标注过不可用的
+                        masked_actions_list = []
+                        for i in range(len(actions_list)/2):
+                            actions = actions_list[i*2]
+                            action_ratios = list(actions)
+                            masked_actions = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
+                            masked_actions_list.append(masked_actions)
+
+                            actions = actions_list[i*2+1]
+                            action_ratios = list(actions)
+                            masked_rival_actions = LineModel.remove_unaval_actions(action_ratios, state_info, rival_hero, hero_name)
+                            masked_actions_list.append(masked_rival_actions)
+
+                        return masked_actions_list, vpreds
+        except queue.Empty:
+            print("LineTrainer Exception empty")
+        except Exception:
+            print("LineTrainer Exception")
+            type, value, traceback = sys.exc_info()
+            traceback.print_exc()
+
     def get_action(self, state_info, hero_name, rival_hero):
         # 选择使用哪个模型，如果是反转的话，使用对方的模型
         model_name = ModelThread.NAME_MODEL_1 if (hero_name == self.model1_hero and not self.revert_model1) \
@@ -544,7 +619,7 @@ class LineTrainerPPO:
         line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input(revert)
         state_input = np.array(state_input)
-        self.model_process.action_queue.put((self.battle_id, model_name, state_input))
+        self.model_process.action_queue.put((self.battle_id, model_name, [state_input]))
 
         # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
         # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
@@ -567,6 +642,8 @@ class LineTrainerPPO:
                     if (self.battle_id, model_name) in self.model_process.results.keys():
                         found = True
                         actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
+                        actions = actions[0]
+                        vpred = vpred[0]
 
                 if found:
                     cur_seconds = time.time()

@@ -11,7 +11,7 @@ from model.stateinfo import StateInfo
 from train.linetrainer_manager import LineTrainerManager
 
 
-def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict):
+def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict, lock):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
     producer_times = []
@@ -20,7 +20,7 @@ def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict):
         json_str = line[23:]
         json_str = json_str.replace('"ID":1', '"ID":'+str(battle_id), 1)
         begin_time = time.time()
-        response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict)
+        response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict, lock)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
         producer_times.append(delta_millionseconds)
@@ -33,14 +33,14 @@ def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict):
 
 if __name__ == "__main__":
     try:
-        num = 2
+        num = 1
         manager = LineTrainerManager(num)
         manager.start()
         print('训练器准备完毕')
 
-        for i in range(num):
+        for i in range(1, num+1):
             p1 = Process(target=read_process, args=(i, '/Users/sky4star/Github/zy2go/battle_logs/test/raw_1.log',
-                                                    manager.request_queues, manager.result_queues))
+                                                    manager.request_dict, manager.result_dict, manager.lock))
 
             p1.start()
             print('测试进程启动', i)
