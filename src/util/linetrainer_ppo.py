@@ -142,9 +142,6 @@ class LineTrainerPPO:
             if new == 1:
                 # TODO 这个值应该设置成多少
                 rew = 10 if loss_team != hero_info.team else -10
-            elif not hero_act.avail_action:
-                rew = -1
-                print(self.battle_id, hero_name, state_info.tick, '选择了无效的行为，给予惩罚')
             else:
                 rew = LineModel_PPO1.cal_target_ppo_2(prev_state, state_info, next_state, hero_name, rival_hero, line_idx)
 
@@ -653,7 +650,7 @@ class LineTrainerPPO:
                     if isinstance(actions, CmdAction):
                         return actions, None, None
                     else:
-                        action = LineModel.select_action_with_hold(actions, state_info, hero_name, rival_hero, revert)
+                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
                         action.vpred = vpred
 
                         # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
