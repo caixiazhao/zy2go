@@ -10,7 +10,7 @@ import time
 
 from model.stateinfo import StateInfo
 from util.httputil import HttpUtil
-from util.linetrainer_ppo import LineTrainerPPO
+from util.linetrainer_ppo_2 import LineTrainerPPO
 from util.modelprocess_2 import ModelProcess
 from util.ppocache2 import PPO_CACHE2
 
