@@ -8,6 +8,7 @@ import random
 import queue
 import sys
 import numpy as np
+import traceback
 
 import tensorflow as tf
 import time
@@ -602,7 +603,6 @@ class LineTrainerPPO:
             print("LineTrainer Exception empty")
         except Exception:
             print("LineTrainer Exception")
-            type, value, traceback = sys.exc_info()
             traceback.print_exc()
 
     def get_action(self, state_info, hero_name, rival_hero):
@@ -662,7 +662,6 @@ class LineTrainerPPO:
             print("LineTrainer Exception empty")
         except Exception:
             print("LineTrainer Exception")
-            type, value, traceback = sys.exc_info()
             traceback.print_exc()
 
 
