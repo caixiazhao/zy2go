@@ -24,7 +24,7 @@ class ModelProcess:
         self.action_queue = None
         self.train_queue = None
         self.results = None
-        self.save_batch = 10
+        self.save_batch = 1 
         self.init_signal = None
         self.lock = None
         self.battle_id_num = battle_id_num
@@ -99,7 +99,7 @@ class ModelProcess:
         self.num_cache.append(len(state_inputs))
         if len(self.time_cache) >= 1000:
             print("model get_action average calculate time(ms)",
-                sum(self.time_cache) // float(len(self.self.time_cache)),
+                sum(self.time_cache) // float(len(self.time_cache)),
                 sum(self.num_cache) / float(len(self.num_cache)))
 
             self.time_cache.clear()
