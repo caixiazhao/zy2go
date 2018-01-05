@@ -11,8 +11,13 @@ import numpy as np
 class HttpUtil:
     @staticmethod
     def get_save_root_path():
-        date_str = str(datetime.now()).replace(' ', '').replace(':', '')
-        save_dir = '/data/battle_logs/model_' + date_str  # /data/battle_logs/model_ for server
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+        save_dir = os.path.join(
+            os.environ['HOME'],
+            'data/battle_logs',
+            'model_' + date_str)
+
+        print(save_dir)
         os.makedirs(save_dir)
         return save_dir
 
@@ -49,6 +54,7 @@ class HttpUtil:
 
         return model_1, model1_save_header, model_2, model2_save_header
 
+    """
     # 两个模型用来相互对战，分别训练
     @staticmethod
     def build_models(model1_path=None, model2_path=None, initial_p=1.0, final_p=0.02):
@@ -70,3 +76,4 @@ class HttpUtil:
         model2_save_header = save_dir + '/line_model_2_v'
 
         return save_dir, model_1, model1_save_header, model_2, model2_save_header
+    """
