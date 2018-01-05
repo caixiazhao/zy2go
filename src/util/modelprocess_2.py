@@ -56,24 +56,27 @@ class ModelProcess:
             print('model_process model2 train collection',
                 ';'.join((str(k) for k in o4r_list_model2.keys())))
 
-        print('model_process1', train_model_name, 'begin to train')
         begin_time = time.time()
-        self.model_1.replay(o4r_list_model1.values(), batch_size)
-        o4r_list_model1.clear()
 
-        # 由自己来决定什么时候缓存模型
-        if_save_model(
-            self.model_1, self.model1_save_header, self.save_batch)
-        print('model_process2', train_model_name, 'begin to train')
-        self.model_2.replay(o4r_list_model2.values(), batch_size)
-        o4r_list_model2.clear()
+        if train_model_name == ModelProcess.NAME_MODEL_1:
+            print('model_process1', train_model_name, 'begin to train')
+            self.model_1.replay(o4r_list_model1.values(), batch_size)
+            o4r_list_model1.clear()
+            if_save_model(
+                self.model_1, self.model1_save_header, self.save_batch)
+
+        if train_model_name == ModelProcess.NAME_MODEL_2:
+            print('model_process2', train_model_name, 'begin to train')
+            self.model_2.replay(o4r_list_model2.values(), batch_size)
+            o4r_list_model2.clear()
+            if_save_model(
+                self.model_2, self.model2_save_header, self.save_batch)
+ 
         end_time = time.time()
 
         delta_millionseconds = (end_time - begin_time) * 1000
         print('model train time', delta_millionseconds)
         # 由自己来决定什么时候缓存模型
-        if_save_model(
-            self.model_2, self.model2_save_header, self.save_batch)
         trained = True
 
         restartCmd = CmdAction(
