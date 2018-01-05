@@ -501,13 +501,13 @@ class LineTrainerPPO:
                         policy_action.vpred = action.vpred
                         action = policy_action
                         self.cur_policy_act_idx_map[hero_name] += 1
-                        # print("英雄 " + hero_name + " 使用策略，策略行为计数 idx " + str(self.cur_policy_act_idx_map[hero_name]))
+                        print("英雄 " + hero_name + " 使用策略，策略行为计数 idx " + str(self.cur_policy_act_idx_map[hero_name]))
                         if self.cur_policy_act_idx_map[hero_name] >= self.policy_continue_acts:
                             self.cur_policy_act_idx_map[hero_name] = 0
                     else:
                         # 策略中断，清零
                         if self.cur_policy_act_idx_map[hero_name] > 0:
-                            # print("英雄 " + hero_name + " 策略中断，清零")
+                            print("英雄 " + hero_name + " 策略中断，清零")
                             self.cur_policy_act_idx_map[hero_name] = 0
 
                 action_str = StateUtil.build_command(action)
@@ -515,12 +515,12 @@ class LineTrainerPPO:
 
                 # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
                 if action.action == CmdActionEnum.CAST and int(action.skillid) == 6:
-                    # print("英雄%s释放了回城" % hero_name)
+                    print("英雄%s释放了回城" % hero_name)
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 
                 # 如果是选择了撤退，进行特殊标记，会影响到后续的行为
                 if action.action == CmdActionEnum.RETREAT:
-                    # print("英雄%s释放了撤退，撤退点为%s" % (hero_name, action.tgtpos.to_string()))
+                    print("英雄%s释放了撤退，撤退点为%s" % (hero_name, action.tgtpos.to_string()))
                     self.hero_strategy[hero.hero_name] = ActionEnum.retreat
                     self.retreat_pos = action.tgtpos
 
@@ -541,7 +541,7 @@ class LineTrainerPPO:
                 guess_action.vpred = action.vpred
                 action_str = StateUtil.build_command(guess_action)
                 action_str['tick'] = state_info.tick
-                # print('猜测玩家行为为：' + JSON.dumps(action_str))
+                print('猜测玩家行为为：' + JSON.dumps(action_str))
 
                 # 保存action信息到状态帧中
                 state_info.add_action(guess_action)
@@ -589,7 +589,7 @@ class LineTrainerPPO:
                 if found:
                     cur_seconds = time.time()
                     delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    # print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
+                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
                     # 特殊情况为模型通知我们它已经训练完成
                     if isinstance(actions, CmdAction):
                         return actions, None, None
