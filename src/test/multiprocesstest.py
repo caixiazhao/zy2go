@@ -31,7 +31,7 @@ if __name__ == "__main__":
         print('训练器准备完毕')
 
         p1 = Process(target=read_process, args=('process_1',
-                    'C:/Users/Administrator/Documents/GitHub/zy2go/battle_logs/model_2017-12-19143358.532959/1/raw_1.log',
+                    '/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-27180755.723878/1/raw_1.log',
                                            manager.request_dict, manager.result_dict, manager.lock))
         # p2 = Process(target=read_process, args=('process_2',
         #             '/Users/sky4star/Github/zy2go/battle_logs/test/raw_2.log',
