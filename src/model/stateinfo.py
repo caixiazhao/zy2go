@@ -124,7 +124,7 @@ class StateInfo:
 
     def update_unit(self, unit_info):
         for i in range(len(self.units)):
-            unit = self.units(i)
+            unit = self.units[i]
             if unit.unit_name == unit_info.unit_name:
                 self.units[i] == unit
 

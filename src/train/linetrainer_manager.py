@@ -40,11 +40,11 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
 
         if json_str is not None:
             try:
-                response, playerinfo = line_trainer.train_line_model(json_str)
+                response = line_trainer.train_line_model(json_str)
                 with lock:
                     # print('trainer_process', p_battle_id, 'put a result', time.time())
                     p_result_dict[p_battle_id] = response
-                    print('playengine', playerinfo)
+
             except Exception as e:
                 print('linetrainer manager catch exception', traceback.format_exc())
                 with lock:
@@ -80,7 +80,6 @@ class LineTrainerManager:
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
-        print('raw_state_info', raw_state_info.battleid, raw_state_info.tick, json_str)
 
         # if raw_state_info.tick == -1:
         #     print('read_process: need to handle ', p_battle_id, raw_state_info.tick, 'raw log', json_str)
@@ -100,9 +99,6 @@ class LineTrainerManager:
                         del p_result_dict[p_battle_id]
                         end_time = time.time()
                         print('read_process', p_battle_id, raw_state_info.tick, (end_time - begin_time) * 1000, '取得结果', result)
-                        # heros = raw_state_info.heros
-                        # playinfo = PlayEngine.play_step(raw_state_info, heros, result)
-                        # print('playengine', StateInfo.decode(playinfo))
                         return result
         except queue.Empty:
             print("LineTrainerManager Exception empty")

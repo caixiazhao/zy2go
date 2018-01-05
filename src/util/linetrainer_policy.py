@@ -145,7 +145,6 @@ class LineTrainerPolicy:
 
     @staticmethod
     def keep_away_from(state_info, hero_info, rival_hero_info, action_ratios, danger_pos, danger_radius):
-        print('action_ratios_pre', action_ratios)
         changed = False
         maxQ = max(action_ratios)
         selected = action_ratios.index(maxQ)

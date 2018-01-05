@@ -8,8 +8,8 @@ class CmdAction(object):
     def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward, vpred=0):
         self.hero_name = hero_name
         self.action = action
-        self.skillid = str(skillid)
-        self.tgtid = str(tgtid)
+        self.skillid = str(skillid) if skillid is not None else None
+        self.tgtid = str(tgtid) if tgtid is not None else None
         self.tgtpos = tgtpos
         self.fwd = fwd
         self.itemid = itemid

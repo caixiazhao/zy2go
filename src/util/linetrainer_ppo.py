@@ -221,13 +221,12 @@ class LineTrainerPPO:
 
         # 首先得到模型的选择，同时会将选择action记录到当前帧中
         action_strs = []
-        play_actions = []
         restart = False
         if self.model1_hero is not None and self.real_hero != self.model1_hero:
-            actions_model1, actions1, restart = self.build_response(self.state_cache, -1, self.model1_hero)
+            actions_model1, restart = self.build_response(self.state_cache, -1, self.model1_hero)
             action_strs.extend(actions_model1)
         if self.model2_hero is not None and not restart and self.real_hero != self.model2_hero:
-            actions_model2, actions2, restart = self.build_response(self.state_cache, -1, self.model2_hero)
+            actions_model2, restart = self.build_response(self.state_cache, -1, self.model2_hero)
             action_strs.extend(actions_model2)
 
         # 计算奖励值，如果有真实玩家，因为需要推测行为的原因，则多往前回朔几帧
@@ -256,26 +255,21 @@ class LineTrainerPPO:
 
         # playengine
         play_heros = []
-        # if actions1 is not None:
-        #     play_actions.update(actions1)
-        #     play_heros.append(self.model1_hero)
-        # if actions2 is not None:
-        #     play_actions.update(actions2)
-        #     play_heros.append(self.model2_hero)
-        playinfo = None
-
+        playinfo1 = None
+        playinfo2 = None
+        play_actions = []
         for hero_name in [self.model1_hero, self.model2_hero]:
             action_hero = state_info.get_hero_action(hero_name)
             if action_hero is not None:
                 play_heros.append(hero_name)
                 play_actions.append(action_hero)
         if len(play_actions) > 0:
-            playinfo = PlayEngine.play_step(state_info, play_heros, play_actions)
+            playinfo1, playinfo2 = PlayEngine.play_step(state_info, play_heros, play_actions)
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
-        return rsp_str, playinfo
+        return rsp_str, playinfo1, playinfo2
 
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
@@ -297,7 +291,6 @@ class LineTrainerPPO:
     # 一方英雄回城之后，负责等他满血后回到对战区
     def build_response(self, state_cache, state_index, hero_name):
         action_strs=[]
-        actions={}
         restart = False
 
         # 对于模型，分析当前帧的行为
@@ -311,7 +304,7 @@ class LineTrainerPPO:
             next2_state_info = state_cache[state_index-1]
             next3_state_info = state_cache[state_index]
         else:
-            return action_strs, actions, False
+            return action_strs, False
 
         # 决定是否购买道具
         buy_action = EquipUtil.buy_equip(state_info, hero_name)
@@ -325,6 +318,13 @@ class LineTrainerPPO:
         if len(skills) > 0:
             skillid = 3 if 3 in skills else skills[0]
             update_cmd = CmdAction(hero.hero_name, CmdActionEnum.UPDATE, skillid, None, None, None, None, None, None)
+            if skillid == 1:
+                hero.skill1_level += 1
+            elif skillid == 2:
+                hero.skill2_level += 1
+            else:
+                hero.skill3_level += 1
+            hero.level += 1
             update_str = StateUtil.build_command(update_cmd)
             action_strs.append(update_str)
 
@@ -336,17 +336,17 @@ class LineTrainerPPO:
                     and not StateUtil.if_hero_at_basement(hero):
                 if not hero.skills[6].canuse:
                     print(self.battle_id, hero.hero_name, '回城中，继续回城')
-                    return action_strs, actions, False
+                    return action_strs, False
                 else:
                     print(self.battle_id, hero.hero_name, '回城失败')
                     town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None,
                                             None, None)
                     action_str = StateUtil.build_command(town_action)
                     action_strs.append(action_str)
-                    return action_strs, actions, False
+                    return action_strs, False
                 if hero.hp <= 0:
                     self.hero_strategy[hero.hero_name] = None
-                    return action_strs, actions, False
+                    return action_strs, False
 
         # # 补血逻辑
         # if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[
@@ -371,14 +371,14 @@ class LineTrainerPPO:
                 action_strs.append(action_str)
             else:
                 print(self.battle_id, hero_name, '还在撤退中', StateUtil.cal_distance2(prev_hero.pos, hero.pos))
-            return action_strs, actions, False
+            return action_strs, False
 
         # 如果击杀了对方英雄，扫清附近小兵之后则启动撤退回城逻辑
         if prev_hero is not None:
             if hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.town_ing and prev_hero.hp <= hero.hp \
                     and not StateUtil.if_hero_at_basement(hero):
                 if not hero.skills[6].canuse:
-                    return action_strs, actions, False
+                    return action_strs, False
                 else:
                     town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None,
                                             None, None)
@@ -386,7 +386,7 @@ class LineTrainerPPO:
                     action_strs.append(action_str)
         if hero.hp <= 0:
             self.hero_strategy[hero.hero_name] = None
-            return action_strs, actions, False
+            return action_strs, False
 
         # 检查周围状况
         near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero.hero_name, StateUtil.LINE_MODEL_RADIUS)
@@ -419,7 +419,7 @@ class LineTrainerPPO:
                         self.model2_just_dead = 0
                     else:
                         self.model1_just_dead = 0
-                    return action_strs, actions, False
+                    return action_strs, False
 
             if StateUtil.if_hero_at_basement(hero):
                 if hero_name == self.model1_hero:
@@ -429,7 +429,7 @@ class LineTrainerPPO:
                 if hero.hp < hero.maxhp:
                     if hero_name in self.hero_strategy:
                         del self.hero_strategy[hero_name]
-                    return action_strs, actions, False
+                    return action_strs, False
 
             # # 残血并且周围没有敌人的情况下，可以去塔后吃加血
             # if hero.hp / float(hero.maxhp) < 0.9 and hero not in self.hero_strategy:
@@ -491,7 +491,7 @@ class LineTrainerPPO:
                 # 考虑使用固定策略
                 # 如果决定使用策略，会连续n条行为全都采用策略（比如确保对方残血时候连续攻击的情况）
                 # 如果策略返回为空则表示策略中断
-                if self.policy_ratio > 0 and (
+                if action_ratios is not None and self.policy_ratio > 0 and (
                         0 < self.cur_policy_act_idx_map[hero_name] < self.policy_continue_acts
                         or random.uniform(0, 1) <= self.policy_ratio
                 ):
@@ -501,27 +501,26 @@ class LineTrainerPPO:
                         policy_action.vpred = action.vpred
                         action = policy_action
                         self.cur_policy_act_idx_map[hero_name] += 1
-                        print("英雄 " + hero_name + " 使用策略，策略行为计数 idx " + str(self.cur_policy_act_idx_map[hero_name]))
+                        # print("英雄 " + hero_name + " 使用策略，策略行为计数 idx " + str(self.cur_policy_act_idx_map[hero_name]))
                         if self.cur_policy_act_idx_map[hero_name] >= self.policy_continue_acts:
                             self.cur_policy_act_idx_map[hero_name] = 0
                     else:
                         # 策略中断，清零
                         if self.cur_policy_act_idx_map[hero_name] > 0:
-                            print("英雄 " + hero_name + " 策略中断，清零")
+                            # print("英雄 " + hero_name + " 策略中断，清零")
                             self.cur_policy_act_idx_map[hero_name] = 0
 
                 action_str = StateUtil.build_command(action)
                 action_strs.append(action_str)
-                actions = action
 
                 # 如果是要求英雄施法回城，更新英雄状态，这里涉及到后续多帧是否等待回城结束
                 if action.action == CmdActionEnum.CAST and int(action.skillid) == 6:
-                    print("英雄%s释放了回城" % hero_name)
+                    # print("英雄%s释放了回城" % hero_name)
                     self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
 
                 # 如果是选择了撤退，进行特殊标记，会影响到后续的行为
                 if action.action == CmdActionEnum.RETREAT:
-                    print("英雄%s释放了撤退，撤退点为%s" % (hero_name, action.tgtpos.to_string()))
+                    # print("英雄%s释放了撤退，撤退点为%s" % (hero_name, action.tgtpos.to_string()))
                     self.hero_strategy[hero.hero_name] = ActionEnum.retreat
                     self.retreat_pos = action.tgtpos
 
@@ -542,12 +541,12 @@ class LineTrainerPPO:
                 guess_action.vpred = action.vpred
                 action_str = StateUtil.build_command(guess_action)
                 action_str['tick'] = state_info.tick
-                print('猜测玩家行为为：' + JSON.dumps(action_str))
+                # print('猜测玩家行为为：' + JSON.dumps(action_str))
 
                 # 保存action信息到状态帧中
                 state_info.add_action(guess_action)
 
-        return action_strs, actions, restart
+        return action_strs, restart
         # rsp_obj = {"ID": battle_id, "tick": tick, "cmd": action_strs}
         # rsp_str = JSON.dumps(rsp_obj)
         # return rsp_str
@@ -590,7 +589,7 @@ class LineTrainerPPO:
                 if found:
                     cur_seconds = time.time()
                     delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
+                    # print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
                     # 特殊情况为模型通知我们它已经训练完成
                     if isinstance(actions, CmdAction):
                         return actions, None, None
