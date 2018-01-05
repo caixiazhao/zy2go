@@ -637,27 +637,27 @@ class LineTrainerPPO:
                 found = False
                 with self.model_process.lock:
                     if (self.battle_id, model_name) in self.model_process.results.keys():
-                        found = True
                         actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
-                        actions = actions[0]
-                        vpred = vpred[0]
+                        if isinstance(actions, CmdAction):
+                            return actions, None, None
+                        else :
+                            found = True
+                            actions = actions[0]
+                            vpred = vpred[0]
 
                 if found:
                     cur_seconds = time.time()
                     delta_millionseconds = (cur_seconds - begin_seconds) * 1000
                     print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
                     # 特殊情况为模型通知我们它已经训练完成
-                    if isinstance(actions, CmdAction):
-                        return actions, None, None
-                    else:
-                        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
-                        action.vpred = vpred
+                    action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
+                    action.vpred = vpred
 
-                        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
-                        action_ratios = list(actions)
-                        action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name,
-                                                                               rival_hero)
-                        return action, explorer_ratio, action_ratios_masked
+                    # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
+                    action_ratios = list(actions)
+                    action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name,
+                                                                           rival_hero)
+                    return action, explorer_ratio, action_ratios_masked
         except queue.Empty:
             print("LineTrainer Exception empty")
         except Exception:
