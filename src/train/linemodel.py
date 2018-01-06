@@ -4,11 +4,13 @@ import random
 from operator import concat
 
 import numpy as np
+"""
 from keras.engine import Input, Model
 from keras.layers import Dense, LSTM, Reshape, concatenate
 from keras.layers import Dropout
 from keras.optimizers import Nadam, Adam
 from keras.callbacks import TensorBoard
+"""
 import math
 import random
 
@@ -30,6 +32,7 @@ class LineModel:
     REWARD_DELAY_STATE_NUM = 11
     REWARD_RIVAL_DMG = 300
 
+    """
     def __init__(self, statesize, actionsize, heros):
         self.state_size = statesize
         self.action_size = actionsize #50=8*mov+10*attack+10*skill1+10*skill2+10*skill3+回城+hold
@@ -210,6 +213,7 @@ class LineModel:
 
             if self.epsilon > self.e_min:
                 self.epsilon *= self.e_decay
+    """
 
     @staticmethod
     def remove_unaval_actions(acts, stateinformation, hero_name, rival_hero, debug=False):
