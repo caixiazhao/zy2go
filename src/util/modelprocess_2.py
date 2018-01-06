@@ -35,7 +35,8 @@ class ModelProcess:
         self.model_1, self.model1_save_header, \
         self.model_2, self.model2_save_header = HttpUtil.build_models_ppo(
             self.save_dir,
-            model1_path=None, model2_path=None, schedule_timesteps=200000,
+            model1_path=C.PRELOAD_MODEL1_PATH, model2_path=C.PRELOAD_MODEL2_PATH,
+            schedule_timesteps=200000,
             model1_initial_p=0.05, model1_final_p=0.05, model1_gamma=0.95,
             model2_initial_p=0.05, model2_final_p=0.05, model2_gamma=0.95)
 
@@ -70,7 +71,7 @@ class ModelProcess:
             o4r_list_model2.clear()
             if_save_model(
                 self.model_2, self.model2_save_header, self.save_batch)
- 
+
         end_time = time.time()
 
         delta_millionseconds = (end_time - begin_time) * 1000

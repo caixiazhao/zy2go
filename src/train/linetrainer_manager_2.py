@@ -8,6 +8,7 @@ import json as JSON
 import traceback
 import time
 
+from common import cf as C
 from model.stateinfo import StateInfo
 from util.httputil import HttpUtil
 from util.linetrainer_ppo_2 import LineTrainerPPO
