@@ -11,6 +11,7 @@ from common.cf_default import *
 #             '/Users/sky4star/Github/zy2go/data/20171121/model_2017-11-20150651.200368/line_model_2_v120/model',
 
 
+
 PRELOAD_MODEL_DATA = False
 #PRELOAD_MODEL_DATA = True
 PRELOAD_MODEL_DATA_PATH = 'battle_logs/model_20180106_024249273551'
@@ -22,3 +23,5 @@ if PRELOAD_MODEL_DATA:
 	PRELOAD_MODEL2_PATH = os.path.join(DATA_ROOT_PATH,
 		PRELOAD_MODEL_DATA_PATH, 'line_model_2_v' + PRELOAD_MODEL_VERSION, 'model'),
 
+# ------
+SAVE_BATCH = 2

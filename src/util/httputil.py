@@ -18,7 +18,6 @@ class HttpUtil:
             'battle_logs',
             'model_' + date_str)
 
-        print(save_dir)
         os.makedirs(save_dir)
         return save_dir
 
