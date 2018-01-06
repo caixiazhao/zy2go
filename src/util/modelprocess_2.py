@@ -3,6 +3,8 @@ import sys
 # import queue
 import time
 
+
+from common import cf as C
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
 from util.httputil import HttpUtil
@@ -17,14 +19,14 @@ def if_save_model(model, save_header, save_batch):
 
 
 class ModelProcess:
-    NAME_MODEL_1 = 'model_1'
-    NAME_MODEL_2 = 'model_2'
+    NAME_MODEL_1 = C.NAME_MODEL_1
+    NAME_MODEL_2 = C.NAME_MODEL_2
 
     def __init__(self, battle_id_num):
         self.action_queue = None
         self.train_queue = None
         self.results = None
-        self.save_batch = 1 
+        self.save_batch = C.SAVE_BATCH
         self.init_signal = None
         self.lock = None
         self.battle_id_num = battle_id_num
