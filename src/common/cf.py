@@ -24,10 +24,10 @@ if PRELOAD_MODEL_DATA:
 		PRELOAD_MODEL_DATA_PATH, 'line_model_2_v' + PRELOAD_MODEL_VERSION, 'model'),
 
 # ------
-SAVE_BATCH = 2
-LOG.update({
-    'MANAGER__READ_PROCESS': False,
+SAVE_BATCH = 5
 
-    'LINEMODEL__ACT_0': False,
-    'LINEMODEL__ACT_1': False,
+LOG.update({
+#    'MANAGER__READ_PROCESS': False,
+#    'LINEMODEL__ACT_0': False,
+#    'LINEMODEL__ACT_1': False,
 })
