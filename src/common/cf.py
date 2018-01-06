@@ -25,3 +25,9 @@ if PRELOAD_MODEL_DATA:
 
 # ------
 SAVE_BATCH = 2
+LOG.update({
+    'MANAGER__READ_PROCESS': False,
+
+    'LINEMODEL__ACT_0': False,
+    'LINEMODEL__ACT_1': False,
+})

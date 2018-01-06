@@ -4,18 +4,11 @@ import random
 from operator import concat
 
 import numpy as np
-"""
-from keras.engine import Input, Model
-from keras.layers import Dense, LSTM, Reshape, concatenate
-from keras.layers import Dropout
-from keras.optimizers import Nadam, Adam
-from keras.callbacks import TensorBoard
-"""
 import math
 import random
 
-#from model.action import Action
-#from train.actioncommandenum import ActionCommandEnum
+from common import cf as C
+
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from model.skillcfginfo import SkillTargetEnum
@@ -332,9 +325,15 @@ class LineModel:
         if maxQ <= -1 or selected_orig != selected:
             final_selected = 48
             avail_action = False
-        print ("battle %s hero %s line model selected action, final: %s, selected: %s，ratio:%s, original selected:%s, ratio:%s, action array:%s"
-               % (stateinformation.battleid, hero_name,
-        str(final_selected), str(selected), str(acts[selected]), str(selected_orig), str(maxQ_orig), ' '.join(str(round(float(act), 4)) for act in acts)))
+        if C.LOG['LINEMODEL__ACT_1']:
+            print ("battle %s hero %s line model selected action, "
+                "final: %s, selected: %s，ratio:%s, "
+                "original selected:%s, ratio:%s, action array:%s" % (
+                    stateinformation.battleid, hero_name,
+                    str(final_selected), str(selected), str(acts[selected]),
+                str(selected_orig), str(maxQ_orig),
+                ' '.join(str(round(float(act), 4)) for act in acts)))
+
         action = LineModel.get_action(final_selected, stateinformation, hero, hero_name, rival_hero, revert)
         action.output_index = selected_orig
         action.avail_action = avail_action
@@ -356,9 +355,15 @@ class LineModel:
         selected = acts.index(maxQ)
         if maxQ <= -1:
             selected = 48
-        print ("battle %s hero %s line model selected action:%s，ratio:%s, original selected:%s, ratio:%s, action array:%s"
-               % (stateinformation.battleid, hero_name,
-        str(selected), str(acts[selected]), str(selected_orig), str(maxQ_orig), ' '.join(str(round(float(act), 4)) for act in acts)))
+        if C.LOG['LINEMODEL__ACT_1']:
+            print (
+                "battle %s hero %s line model selected action:%s，"
+                "ratio:%s, original selected:%s, ratio:%s, "
+                "action array:%s" % (
+                    stateinformation.battleid, hero_name, str(selected),
+                str(acts[selected]), str(selected_orig), str(maxQ_orig),
+                ' '.join(str(round(float(act), 4)) for act in acts)))
+
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题
         if random.random() < 0.0:

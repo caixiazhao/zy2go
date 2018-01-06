@@ -9,6 +9,13 @@ NAME_MODEL_2 = 'model_2'
 
 PARAMS = {}
 
+LOG = {
+    'LINEMODEL__ACT_0': True,
+    'LINEMODEL__ACT_1': True,
+    'MANAGER__READ_PROCESS': True,
+}
+LOG__MANAGER_READ_PROCESSOR = True
+
 PRELOAD_MODEL1_PATH = None
 PRELOAD_MODEL2_PATH = None
 

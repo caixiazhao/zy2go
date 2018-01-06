@@ -60,10 +60,11 @@ class LineTrainerManager:
         response = self.line_trainers[p_battle_id].train_line_model(json_str)
         end_time = time.time()
 
-        print('read_process',
-            p_battle_id, raw_state_info.tick,
-            '%.2f' % ((end_time - begin_time) * 1000),
-            'RESPONSE:%s' % response)
+        if C.LOG['MANAGER__READ_PROCESS']:
+            print('read_process',
+                p_battle_id, raw_state_info.tick,
+                '%.2f' % ((end_time - begin_time) * 1000),
+                'RESPONSE:%s' % response)
 
         return response
 
