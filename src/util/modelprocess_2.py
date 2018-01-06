@@ -19,9 +19,6 @@ def if_save_model(model, save_header, save_batch):
 
 
 class ModelProcess:
-    NAME_MODEL_1 = C.NAME_MODEL_1
-    NAME_MODEL_2 = C.NAME_MODEL_2
-
     def __init__(self, battle_id_num):
         self.action_queue = None
         self.train_queue = None
@@ -49,25 +46,25 @@ class ModelProcess:
 
         print('model_process', battle_id, train_model_name,
             'receive train signal, batch size', batch_size)
-        if train_model_name == ModelProcess.NAME_MODEL_1:
+        if train_model_name == C.NAME_MODEL_1:
             o4r_list_model1[battle_id] = o4r
             print('model_process model1 train collection',
                 ';'.join((str(k) for k in o4r_list_model1.keys())))
-        elif train_model_name == ModelProcess.NAME_MODEL_2:
+        elif train_model_name == C.NAME_MODEL_2:
             o4r_list_model2[battle_id] = o4r
             print('model_process model2 train collection',
                 ';'.join((str(k) for k in o4r_list_model2.keys())))
 
         begin_time = time.time()
 
-        if train_model_name == ModelProcess.NAME_MODEL_1:
+        if train_model_name == C.NAME_MODEL_1:
             print('model_process1', train_model_name, 'begin to train')
             self.model_1.replay(o4r_list_model1.values(), batch_size)
             o4r_list_model1.clear()
             if_save_model(
                 self.model_1, self.model1_save_header, self.save_batch)
 
-        if train_model_name == ModelProcess.NAME_MODEL_2:
+        if train_model_name == C.NAME_MODEL_2:
             print('model_process2', train_model_name, 'begin to train')
             self.model_2.replay(o4r_list_model2.values(), batch_size)
             o4r_list_model2.clear()
@@ -82,16 +79,16 @@ class ModelProcess:
         trained = True
 
         restartCmd = CmdAction(
-            ModelProcess.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
+            C.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
             None, None, None, None, None, None)
         return (restartCmd, None, None)
 
     def act(self, battle_id, act_model_name, state_inputs):
         begin_time = time.time()
-        if act_model_name == ModelProcess.NAME_MODEL_1:
+        if act_model_name == C.NAME_MODEL_1:
             actions_list, explor_value, vpreds = \
                 self.model_1.get_actions(state_inputs)
-        elif act_model_name == ModelProcess.NAME_MODEL_2:
+        elif act_model_name == C.NAME_MODEL_2:
             actions_list, explor_value, vpreds = \
                 self.model_2.get_actions(state_inputs)
 

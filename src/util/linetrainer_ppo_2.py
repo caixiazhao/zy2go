@@ -5,7 +5,7 @@
 
 import json as JSON
 import random
-import queue
+#import queue
 import sys
 import numpy as np
 import traceback
@@ -13,6 +13,8 @@ import traceback
 import tensorflow as tf
 import time
 from time import gmtime, strftime
+
+from common import cf as C
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
@@ -127,7 +129,7 @@ class LineTrainerPPO:
             # prev_new 简单计算，可能会有问题
             prev_new = model_cache.get_prev_new()
             o4r, batchsize = model_cache.output4replay(prev_new, hero_act.vpred)
-            model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+            model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
             if o4r is not None:
                 # 批量计算的情况下等待结果。但是不清空训练完成信号，防止还有训练器没有收到这个信号。
                 # 等到下次训练开始再清空
@@ -166,7 +168,7 @@ class LineTrainerPPO:
             model_cache.change_last(new, rew)
             prev_new = model_cache.get_prev_new()
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
-            model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+            model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
             if o4r is not None:
                 model_process.train(self.battle_id, model_name, o4r, batch_size)
                 model_cache.clear_cache()
@@ -588,9 +590,9 @@ class LineTrainerPPO:
         # 选择使用哪个模型，如果是反转的话，使用对方的模型
         if (hero_name == self.model1_hero and not self.revert_model1) or \
             (hero_name == self.model2_hero and self.revert_model2):
-            model_name = ModelThread.NAME_MODEL_1
+            model_name = C.NAME_MODEL_1
         else:
-            model_name = ModelThread.NAME_MODEL_2
+            model_name = C.NAME_MODEL_2
 
         if hero_name == self.model1_hero:
             revert = self.revert_model1
