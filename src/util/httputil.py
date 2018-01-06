@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 
 from baselines.common import set_global_seeds
+from common import cf as C
 from train.line_ppo_model import LinePPOModel
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
@@ -13,8 +14,8 @@ class HttpUtil:
     def get_save_root_path():
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S%f")
         save_dir = os.path.join(
-            os.environ['HOME'],
-            'data/battle_logs',
+            C.DATA_ROOT_PATH,
+            'battle_logs',
             'model_' + date_str)
 
         print(save_dir)

@@ -1,4 +1,7 @@
+import os
 
+
+DATA_ROOT_PATH = os.path.join(os.envrion['HOME'], 'data')
 
 SAVE_BATCH = 10
 
