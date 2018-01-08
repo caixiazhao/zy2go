@@ -66,7 +66,7 @@ def main():
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)
-        http_server.start(1)    # multi-process
+        http_server.start(0)    # multi-process
 
         hn = logging.NullHandler()
         hn.setLevel(logging.DEBUG)
