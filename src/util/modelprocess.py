@@ -2,9 +2,17 @@
 import sys
 import queue
 import time
+import http.client
+import pickle
+import numpy as np
 
+
+
+import tensorflow as tf
 from model.cmdaction import CmdAction
+import baselines.common.tf_util as U
 from train.cmdactionenum import CmdActionEnum
+from train.gl import GL
 from util.httputil import HttpUtil
 from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
 
@@ -21,10 +29,10 @@ def if_save_model(model, save_header, save_batch):
 def start_model_process(battle_id_num, init_signal, train_queue, action_queue, results, save_batch, save_dir, lock):
     model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
             save_dir,
-            # model1_path=None,
-            # model2_path=None,
-            model1_path='/Users/sky4star/Github/zy2go/data/20171218/model_2017-12-14192241.120603/line_model_1_v460/model',
-            model2_path='/Users/sky4star/Github/zy2go/data/20171218/model_2017-12-14192241.120603/line_model_2_v460/model',
+            model1_path=None,
+            model2_path=None,
+            # model1_path='/Users/sky4star/Github/zy2go/data/20171218/model_2017-12-14192241.120603/line_model_1_v460/model',
+            # model2_path='/Users/sky4star/Github/zy2go/data/20171218/model_2017-12-14192241.120603/line_model_2_v460/model',
             # model1_path='/Users/sky4star/Github/zy2go/data/20171204/model_2017-12-01163333.956214/line_model_1_v430/model',
             # model2_path='/Users/sky4star/Github/zy2go/data/20171204/model_2017-12-01163333.956214/line_model_2_v430/model',
             # model1_path='/Users/sky4star/Github/zy2go/data/all_trained/battle_logs/trained/171127/line_model_1_v380/model', #'/Users/sky4star/Github/zy2go/data/20171115/model_2017-11-14183346.557007/line_model_1_v730/model', #'/Users/sky4star/Github/zy2go/battle_logs/model_2017-11-17123006.954281/line_model_1_v10/model',
@@ -48,41 +56,105 @@ def start_model_process(battle_id_num, init_signal, train_queue, action_queue, r
     done_signals = {}
     while True:
         try:
+            trained = False
             # 从训练队列中提取请求
             # 只有当训练集中有所有的战斗的数据时候才会开始训练
             with lock:
+
+                GL.modelend = time.time()
+                if GL.modelend - GL.modelstart > 20:
+                    begin = time.time()
+                    GL.modelstart = time.time() + 16
+                    conn = http.client.HTTPConnection("localhost", 8889)
+                    list = []
+                    list.append(3)
+                    # for i in model_2.pi.get_variables():
+                    #     print(U.get_session().run(tf.reduce_sum(i)))
+                    # 把数据集序列化，发送给服务器
+                    conn.request("GET", "/", pickle.dumps(list))
+                    r1 = conn.getresponse()
+                    print(r1.status, r1.reason)
+                    # begin1 = time.time()
+                    a = r1.read()
+                    data = pickle.loads(a)
+
+
+
+                    list=data[0]
+                    list1=data[1]
+                    # print(len(model_1.pi.get_variables()))
+                    hh = 0
+                    for i in range(len(list)):
+                        if np.sum(GL.data[i]) != np.sum(list[i]):
+                            GL.data[i] = list[i]
+                            hh += 1
+
+                    if hh > 0:
+                        print("开始", hh)
+                        #检验变量是否完成覆盖
+                        for i in model_1.pi.get_variables():
+                            print(U.get_session().run(tf.reduce_sum(i)))
+                        for i in range(len(list)):
+                            oldv1 = model_1.pi.get_variables()[i]
+                            newv1 = tf.placeholder(dtype=tf.float32)
+                            assign_old_eq_new = U.function([newv1], [], updates=[tf.assign(oldv1, newv1)])
+                            assign_old_eq_new(list[i])
+                        for i in range(len(list1)):
+                            oldv1 = model_2.pi.get_variables()[i]
+                            newv1 = tf.placeholder(dtype=tf.float32)
+                            assign_old_eq_new = U.function([newv1], [], updates=[tf.assign(oldv1, newv1)])
+                            assign_old_eq_new(list1[i])
+                        trained = True
+                    else:
+                        print("countine")
+
+                    # end = time.time()
+                    # delta = end - begin
+                    # file_object = open('/Users/Administrator/Desktop/if.txt', 'a')
+                    # file_object.write(str(delta * 1000) + '\n')
+                    # file_object.close()
+
                 if not train_queue.empty():
+                    begin1 = time.time()
                     (battle_id, train_model_name, o4r, batch_size) = train_queue.get()
-                    print('model_process', battle_id, train_model_name, 'receive train signal, batch size', batch_size)
+                    # print('model_process', battle_id, train_model_name, 'receive train signal, batch size', batch_size)
                     if train_model_name == ModelProcess.NAME_MODEL_1:
-                        o4r_list_model1[battle_id] = o4r
-                        print('model_process model1 train collection', ';'.join((str(k) for k in o4r_list_model1.keys())))
+                        begin=time.time()
+                        conn = http.client.HTTPConnection("localhost", 8889)
+                        list = []
+                        list.append(1)
+                        list.append(o4r)
+                        # 把数据集序列化，发送给服务器
+                        conn.request("GET", "/", pickle.dumps(list))
+
+                        r1 = conn.getresponse()
+                        print(r1.status, r1.reason)
+                        print("------------OK---------")
+                        end = time.time()
+                        # delta = end - begin
+                        # file_object = open('/Users/Administrator/Desktop/for.txt', 'a')
+                        # file_object.write(str(delta * 1000) + '\n')
+                        # file_object.close()
+
+
+                        # trained = True
+
+
+
                     elif train_model_name == ModelProcess.NAME_MODEL_2:
-                        o4r_list_model2[battle_id] = o4r
-                        print('model_process model2 train collection', ';'.join((str(k) for k in o4r_list_model2.keys())))
+                        conn = http.client.HTTPConnection("localhost", 8889)
+                        list = []
+                        list.append(2)
+                        list.append(o4r)
+                        # 把数据集序列化，发送给服务器
+                        conn.request("GET", "/", pickle.dumps(list))
 
-            trained = False
-            if len(o4r_list_model1) >= battle_id_num and len(o4r_list_model2) >= battle_id_num:
-                print('model_process1', train_model_name, 'begin to train')
-                begin_time = time.time()
-                model_1.replay(o4r_list_model1.values(), batch_size)
-                o4r_list_model1.clear()
+                        r1 = conn.getresponse()
+                        print(r1.status, r1.reason)
+                        print("------------OK---------")
 
-                # 由自己来决定什么时候缓存模型
-                if_save_model(model_1, model1_save_header, save_batch)
 
-                print('model_process2', train_model_name, 'begin to train')
-                model_2.replay(o4r_list_model2.values(), batch_size)
-                o4r_list_model2.clear()
-                end_time = time.time()
-                delta_millionseconds = (end_time - begin_time) * 1000
 
-                print('model train time', delta_millionseconds)
-
-                # 由自己来决定什么时候缓存模型
-                if_save_model(model_2, model2_save_header, save_batch)
-
-                trained = True
 
             if trained:
                 with lock:
