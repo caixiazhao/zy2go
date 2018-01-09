@@ -264,7 +264,7 @@ class LineTrainerPPO:
                 play_heros.append(hero_name)
                 play_actions.append(action_hero)
         if len(play_actions) > 0:
-            playinfo1, playinfo2 = PlayEngine.play_step(state_info, play_heros, play_actions)
+            playinfo1, playinfo2 = PlayEngine.play_step(self.state_cache, state_info, play_heros, play_actions)
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}

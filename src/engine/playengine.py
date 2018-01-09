@@ -21,7 +21,7 @@ from util.stateutil import StateUtil
 
 class PlayEngine:
     @staticmethod
-    def play_step(state_info, heros, hero_actions):
+    def play_step(cache, state_info, heros, hero_actions):
         # 基本逻辑，如果英雄攻击了对方英雄，周围小兵会优先攻击英雄
 
         # 执行英雄行为
@@ -59,7 +59,7 @@ class PlayEngine:
             state_info = BuffInfo.update_unit_buffs(state_info, hero_name)
 
             # 更新血量每秒回血hprec
-            if str(state_info.tick)[-3] == 0:
+            if len(cache) % 2 == 0:
                 for hero_name in heros:
                     hero_info = state_info.get_hero(hero_name)
                     hero_info.hp += hero_info.hprec
@@ -162,7 +162,7 @@ class PlayEngine:
             elif hero_action.skillid == '2':
                 # 突袭，跳跃范围伤害, 137 + 9*level + 50 * (skilllevel - 1)
                 dmg = 137 + 9 * hero_info.level
-                tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 6000, -1, True)
+                tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 2500, -1, True)
                 PlayEngine.update_tgt_hp(state_info, tgt_units, tgt_heros, dmg)
             elif hero_action.skillid == '3':
                 # 大招，对周围所有敌人造成伤害，231 + 10*level 范围3.5
@@ -259,7 +259,6 @@ class PlayEngine:
         #TODO 计算最终伤害的公式很不清楚，需要后续核实。减伤比例为 防御/（防御+100）＝防御减伤，但是防御值怎么计算得来
         if StateUtil.if_unit_hero(defender):
             hero_cfg_id = defender_info.cfg_id
-            # print('skill_level', defender_info.skill1_level, defender_info.skill2_level, defender_info.skill3_level)
             defend_value, mag_defend_value = PlayEngine.get_defend_value(hero_cfg_id, defender_info.level)
             dmg = attacker_info.att * defend_value / (defend_value + 100)
             defender_info.hp = max(defender_info.hp - dmg, 0)
