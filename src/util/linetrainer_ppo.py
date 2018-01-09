@@ -5,7 +5,7 @@
 
 import json as JSON
 import random
-import queue
+#import queue
 import sys
 import numpy as np
 import traceback
@@ -13,6 +13,8 @@ import traceback
 import tensorflow as tf
 import time
 from time import gmtime, strftime
+
+from common import cf as C
 
 from hero_strategy.actionenum import ActionEnum
 from model.cmdaction import CmdAction
@@ -110,8 +112,10 @@ class LineTrainerPPO:
                 return new, loss_team
         return new, loss_team
 
-    def remember_replay(self, state_infos, state_index, model_cache, model_process, hero_name, rival_hero,
-                        new, loss_team, line_idx=1):
+    def remember_replay(self, state_infos, state_index, 
+        model_cache, model_process, hero_name, rival_hero,
+        new, loss_team, line_idx=1):
+
         #TODO 这里有个问题，如果prev不是模型选择的，那实际上这时候不是模型的问题
         # 比如英雄在塔边缘被塔打死了，这时候在执行撤退，其实应该算是模型最后一个动作的锅。
         # 或者需要考虑在复活时候清空
@@ -125,13 +129,14 @@ class LineTrainerPPO:
             # prev_new 简单计算，可能会有问题
             prev_new = model_cache.get_prev_new()
             o4r, batchsize = model_cache.output4replay(prev_new, hero_act.vpred)
-            model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+            model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
             if o4r is not None:
                 # 批量计算的情况下等待结果。但是不清空训练完成信号，防止还有训练器没有收到这个信号。
                 # 等到下次训练开始再清空
                 # 一直等待，这里需要观察客户端连接超时开始重试后的情况
                 # TODO 这里清空缓存是不是不太好
-                model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
+                #model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
+                model_process.train(self.battle_id, model_name, o4r, batchsize)
                 model_cache.clear_cache()
                 print('line_trainer', self.battle_id, '添加训练集')
 
@@ -163,9 +168,9 @@ class LineTrainerPPO:
             model_cache.change_last(new, rew)
             prev_new = model_cache.get_prev_new()
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
-            model_name = ModelThread.NAME_MODEL_1 if hero_name == self.model1_hero else ModelThread.NAME_MODEL_2
+            model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
             if o4r is not None:
-                model_process.train_queue.put((self.battle_id, model_name, o4r, batch_size))
+                model_process.train(self.battle_id, model_name, o4r, batch_size)
                 model_cache.clear_cache()
                 print('line_trainer', self.battle_id, '添加训练集')
 
@@ -236,11 +241,17 @@ class LineTrainerPPO:
         if len(self.state_cache) + reward_state_idx > 0:
             new, loss_team = self.if_restart(self.state_cache, reward_state_idx)
             if self.model1_hero is not None:
-                self.remember_replay(self.state_cache, reward_state_idx, self.model1_cache, self.model_process,
-                                         self.model1_hero, self.model2_hero, new, loss_team)
+                self.remember_replay(
+                    self.state_cache, reward_state_idx,
+                    self.model1_cache, self.model_process,
+                    self.model1_hero, self.model2_hero,
+                    new, loss_team)
             if self.model2_hero is not None:
-                self.remember_replay(self.state_cache, reward_state_idx, self.model2_cache, self.model_process,
-                                         self.model2_hero, self.model1_hero, new, loss_team)
+                self.remember_replay(
+                    self.state_cache, reward_state_idx,
+                    self.model2_cache, self.model_process,
+                    self.model2_hero, self.model1_hero,
+                    new, loss_team)
 
         # 这里为了尽量减少重启次数，在训练结束之后，我们只是清空上个模型的行为串
         if restart:
@@ -553,122 +564,54 @@ class LineTrainerPPO:
             state_input = np.array(state_input)
             line_inputs.append(state_input)
 
-        self.model_process.action_queue.put((self.battle_id, model_name, line_inputs))
+        actions_list, explorer_ratio, vpreds = self.model_process.act(
+                self.battle_id, model_name, line_inputs)
+        print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
 
-        # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
-        # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
-        # 注意，客户端可能等待5秒就会发送重试，这个影响还不确定
-        begin_seconds = time.time()
-        timeout = begin_seconds + 180
-        try:
-            while True:
-                cur_seconds = time.time()
-                if cur_seconds > timeout:
-                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    print('line_trainer', self.battle_id, '很久没有收到模型的计算结果', delta_millionseconds)
-                    return None, None, None
+        # 特殊情况为模型通知我们它已经训练完成
+        if isinstance(actions_list, CmdAction):
+            return actions_list, vpreds
+        else:
+            # 返回标注过不可用的
+            masked_actions_list = []
+            for i in range(len(actions_list)/2):
+                actions = actions_list[i*2]
+                action_ratios = list(actions)
+                masked_actions = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
+                masked_actions_list.append(masked_actions)
 
-                # print('line_trainer ', self.battle_id, '等到一个信号')
-                # check package
-                found = False
-                with self.model_process.lock:
-                    if (self.battle_id, model_name) in self.model_process.results.keys():
-                        found = True
-                        actions_list, explorer_ratio, vpreds = self.model_process.results.pop((self.battle_id, model_name))
-
-                if found:
-                    return actions_list, vpreds
-                    cur_seconds = time.time()
-                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
-                    # 特殊情况为模型通知我们它已经训练完成
-                    if isinstance(actions_list, CmdAction):
-                        return actions_list, vpreds
-                    else:
-                        # 返回标注过不可用的
-                        masked_actions_list = []
-                        for i in range(len(actions_list)/2):
-                            actions = actions_list[i*2]
-                            action_ratios = list(actions)
-                            masked_actions = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
-                            masked_actions_list.append(masked_actions)
-
-                            actions = actions_list[i*2+1]
-                            action_ratios = list(actions)
-                            masked_rival_actions = LineModel.remove_unaval_actions(action_ratios, state_info, rival_hero, hero_name)
-                            masked_actions_list.append(masked_rival_actions)
-
-                        return masked_actions_list, vpreds
-        except queue.Empty:
-            print("LineTrainer Exception empty")
-        except Exception:
-            print("LineTrainer Exception")
-            traceback.print_exc()
+                actions = actions_list[i*2+1]
+                action_ratios = list(actions)
+                masked_rival_actions = LineModel.remove_unaval_actions(action_ratios, state_info, rival_hero, hero_name)
+                masked_actions_list.append(masked_rival_actions)
+            return masked_actions_list, vpreds
 
     def get_action(self, state_info, hero_name, rival_hero):
         # 选择使用哪个模型，如果是反转的话，使用对方的模型
-        model_name = ModelThread.NAME_MODEL_1 if (hero_name == self.model1_hero and not self.revert_model1) \
-                                                 or (hero_name == self.model2_hero and self.revert_model2) \
-                                              else ModelThread.NAME_MODEL_2
-        revert = self.revert_model1 if hero_name == self.model1_hero else self.revert_model2
+        if (hero_name == self.model1_hero and not self.revert_model1) or \
+            (hero_name == self.model2_hero and self.revert_model2):
+            model_name = C.NAME_MODEL_1
+        else:
+            model_name = C.NAME_MODEL_2
+
+        if hero_name == self.model1_hero:
+            revert = self.revert_model1
+        else:
+            revert = self.revert_model2
 
         # 获得并传入输入信息
         line_input = Line_Input_Lite(state_info, hero_name, rival_hero)
         state_input = line_input.gen_line_input(revert)
         state_input = np.array(state_input)
-        self.model_process.action_queue.put((self.battle_id, model_name, [state_input]))
 
-        # 有一个总的等待时长，如果超时则表示后台模型线程在处理这场战斗的请求时候出现了什么问题
-        # 调整过模型之后需要更长的时间来完成训练，所以这里我们先加长等待时间，后续等架构调整后再考虑这块的逻辑
-        # 注意，客户端可能等待5秒就会发送重试，这个影响还不确定
-        begin_seconds = time.time()
-        timeout = begin_seconds + 180
-        try:
-            while True:
-                cur_seconds = time.time()
-                if cur_seconds > timeout:
-                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    print('line_trainer', self.battle_id, '很久没有收到模型的计算结果', delta_millionseconds)
-                    return None, None, None
+        actions, explorer_ratio, vpred = self.model_process.act(self.battle_id, model_name, [state_input])
+        actions = actions[0]
+        vpred = vpred[0]
+        action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
+        action.vpred = vpred
 
-                # print('line_trainer ', self.battle_id, '等到一个信号')
-                # check package
-                actions = None
-                found = False
-                with self.model_process.lock:
-                    if (self.battle_id, model_name) in self.model_process.results.keys():
-                        actions, explorer_ratio, vpred = self.model_process.results.pop((self.battle_id, model_name))
-                        if isinstance(actions, CmdAction):
-                            return actions, None, None
-                        else :
-                            found = True
-                            actions = actions[0]
-                            vpred = vpred[0]
-
-                if found:
-                    cur_seconds = time.time()
-                    delta_millionseconds = (cur_seconds - begin_seconds) * 1000
-                    print('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
-                    # 特殊情况为模型通知我们它已经训练完成
-                    action = LineModel.select_actions(actions, state_info, hero_name, rival_hero, revert)
-                    action.vpred = vpred
-
-                    # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
-                    action_ratios = list(actions)
-                    action_ratios_masked = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name,
-                                                                           rival_hero)
-                    return action, explorer_ratio, action_ratios_masked
-        except queue.Empty:
-            print("LineTrainer Exception empty")
-        except Exception:
-            print("LineTrainer Exception")
-            traceback.print_exc()
-
-
-    def wait_train(self, battle_id, model_name, o4r, batchsize, model_cache, model_process):
-        if model_process.train_done_signal.is_set():
-            model_process.train_done_signal.clear()
-        model_process.train_queue.put((battle_id, model_name, o4r, batchsize))
-        # print('line_trainer', battle_id, '开始等待训练结果')
-        model_process.train_done_signal.wait()
-        model_cache.clear_cache()
+        # 需要返回一个已经标注了不可用行为的（逻辑有点冗余）
+        action_ratios = list(actions)
+        action_ratios_masked = LineModel.remove_unaval_actions(
+            action_ratios, state_info, hero_name, rival_hero)
+        return action, explorer_ratio, action_ratios_masked
