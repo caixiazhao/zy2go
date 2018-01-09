@@ -75,9 +75,11 @@ class TreeSearch:
 
             if maxQ > -1:
                 ratio = acts[selected]
-                action = LineModel.get_action(selected, state_info, hero_info, hero_name, rival_hero_name)
-                results.append(action)
-        return results
+                action = LineModel.get_actions(selected, state_info, hero_info, hero_name, rival_hero_name, revert)
+                tree_node = TreeNode(parent_tree_node)
+                tree_node.set_hero_action(action, ratio)
+                tree_nodes.append(tree_node)
+        return tree_nodes
 
     @staticmethod
     def gen_leaves(parent_tree_node, state_info, actions, rival_actions):

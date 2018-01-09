@@ -28,6 +28,7 @@ from util.replayer import Replayer
 from util.stateutil import StateUtil
 import baselines.common.tf_util as U
 from datetime import datetime
+from engine.playengine import PlayEngine
 
 class LineTrainerPPO:
     TOWN_HP_THRESHOLD = 0.3
@@ -253,10 +254,23 @@ class LineTrainerPPO:
         if new == 1:
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
+        # playengine
+        play_heros = []
+        playinfo1 = None
+        playinfo2 = None
+        play_actions = []
+        for hero_name in [self.model1_hero, self.model2_hero]:
+            action_hero = state_info.get_hero_action(hero_name)
+            if action_hero is not None:
+                play_heros.append(hero_name)
+                play_actions.append(action_hero)
+        if len(play_actions) > 0:
+            playinfo1, playinfo2 = PlayEngine.play_step(self.state_cache, state_info, play_heros, play_actions)
+
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
-        return rsp_str
+        return rsp_str, playinfo1, playinfo2
 
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
@@ -305,6 +319,13 @@ class LineTrainerPPO:
         if len(skills) > 0:
             skillid = 3 if 3 in skills else skills[0]
             update_cmd = CmdAction(hero.hero_name, CmdActionEnum.UPDATE, skillid, None, None, None, None, None, None)
+            if skillid == 1:
+                hero.skill1_level += 1
+            elif skillid == 2:
+                hero.skill2_level += 1
+            else:
+                hero.skill3_level += 1
+            hero.level += 1
             update_str = StateUtil.build_command(update_cmd)
             action_strs.append(update_str)
 
@@ -471,7 +492,7 @@ class LineTrainerPPO:
                 # 考虑使用固定策略
                 # 如果决定使用策略，会连续n条行为全都采用策略（比如确保对方残血时候连续攻击的情况）
                 # 如果策略返回为空则表示策略中断
-                if self.policy_ratio > 0 and (
+                if action_ratios is not None and self.policy_ratio > 0 and (
                         0 < self.cur_policy_act_idx_map[hero_name] < self.policy_continue_acts
                         or random.uniform(0, 1) <= self.policy_ratio
                 ):

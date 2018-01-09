@@ -28,7 +28,7 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
     line_trainer = LineTrainerPPO(
         p_battle_id, save_dir, p_model_process, model1_hero,
         model1_cache, model2_hero, model2_cache,
-        real_hero=None, policy_ratio=-1, policy_continue_acts=3)
+        real_hero=None, policy_ratio=1, policy_continue_acts=3)
 
     while True:
         json_str = None
@@ -44,6 +44,7 @@ def start_line_trainer_process(p_battle_id, p_model_process, p_request_dict, p_r
                 with lock:
                     # print('trainer_process', p_battle_id, 'put a result', time.time())
                     p_result_dict[p_battle_id] = response
+
             except Exception as e:
                 print('linetrainer manager catch exception', traceback.format_exc())
                 with lock:
@@ -79,6 +80,7 @@ class LineTrainerManager:
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
+
         # if raw_state_info.tick == -1:
         #     print('read_process: need to handle ', p_battle_id, raw_state_info.tick, 'raw log', json_str)
         # else:
