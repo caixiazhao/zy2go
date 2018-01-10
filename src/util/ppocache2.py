@@ -13,7 +13,7 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
 from train.line_input import Line_input
-from train.line_ppo_model import LinePPOModel
+from train.ppo_nn import PPONet
 from train.linemodel import LineModel
 from baselines.common.mpi_moments import mpi_moments
 from train.linemodel_dpn import LineModel_DQN

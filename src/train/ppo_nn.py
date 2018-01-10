@@ -7,7 +7,7 @@ import tensorflow.contrib.layers as layers
 
 
 
-class LinePPOModel(object):
+class PPONet(object):
     recurrent = False
     def __init__(self, name, ob_space, ac_space):
         self.scope = name

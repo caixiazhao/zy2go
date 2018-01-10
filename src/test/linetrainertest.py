@@ -5,7 +5,7 @@ import json as JSON
 from time import gmtime, strftime
 from datetime import datetime
 
-from train.line_ppo_model import LinePPOModel
+from train.ppo_nn import PPONet
 from train.linemodel import LineModel
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
@@ -31,12 +31,12 @@ def test_line_trainer_ppo(raw_log_path, model1_path, model2_path, real_hero=None
     model2_hero = '28'
     # model_1 = None
     # model1_cache = None
-    model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, scope="model1",
+    model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, PPONet, scope="model1",
                              schedule_timesteps=2, initial_p=1, final_p=0)
     model1_cache = PPO_CACHE2(ob, 1, horizon=64)
     # model_2 = None
     # model2_cache = None
-    model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel, scope="model2",
+    model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, PPONet, scope="model2",
                              schedule_timesteps=2, initial_p=1, final_p=0)
     model2_cache = PPO_CACHE2(ob, 1, horizon=64)
 
