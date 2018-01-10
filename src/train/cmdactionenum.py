@@ -11,4 +11,6 @@ class CmdActionEnum:
     SELL = 6
     AUTO = 7
     RETREAT = 8
+    ADDGOLD = 9
+    ADDLV = 10
     RESTART = 100

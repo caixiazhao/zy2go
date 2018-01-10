@@ -26,6 +26,7 @@ import traceback
 
 from tornado.options import define, options
 
+from teambattle.teambattletrainer_manager import TeamBattleTrainerManager
 from train.linetrainer_manager import LineTrainerManager
 
 define("port", default=8780, help="run on the given port", type=int)
@@ -40,7 +41,7 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
             content = tornado.escape.to_basestring(self.request.body)
-            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
+            response = TeamBattleTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
             self.finish(response)
         except Exception as e:
             print('nonblock server catch exception')
@@ -53,7 +54,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     trainer_num = int(sys.argv[1])
-    manager = LineTrainerManager(trainer_num)
+    manager = TeamBattleTrainerManager(trainer_num)
     manager.start()
 
     tornado.options.parse_command_line()
@@ -66,7 +67,7 @@ def main():
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)
-        http_server.start(0)    # multi-process
+        http_server.start(1)    # multi-process
 
         hn = logging.NullHandler()
         hn.setLevel(logging.DEBUG)

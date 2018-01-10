@@ -17,6 +17,8 @@ class CmdAction(object):
         self.reward = reward
         self.vpred = vpred  # for ppo
         self.avail_action = avail_action
+        self.gold = 0
+        self.lv = 0
 
     @staticmethod
     def decode(obj):
