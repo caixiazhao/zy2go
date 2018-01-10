@@ -124,7 +124,7 @@ class StateInfo:
 
     def update_unit(self, unit_info):
         for i in range(len(self.units)):
-            unit = self.units(i)
+            unit = self.units[i]
             if unit.unit_name == unit_info.unit_name:
                 self.units[i] == unit
 
@@ -191,7 +191,7 @@ class StateInfo:
                 #      action.action, action.skillid, action.tgtid))
                 break
 
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos=[]):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
@@ -273,4 +273,4 @@ class StateInfo:
             for ac in obj['actions']:
                 actions.append(CmdAction.decode(ac))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, None)
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, [])

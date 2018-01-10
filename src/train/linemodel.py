@@ -373,14 +373,14 @@ class LineModel:
             rdm_q = aval_actions[rdm]
             selected = acts.index(rdm_q)
             print("随机选择操作 " + str(selected))
-        return LineModel.get_action(selected, stateinformation, hero, hero_name, rival_hero, revert)
+        return LineModel.get_actions(selected, stateinformation, hero, hero_name, rival_hero, revert)
 
     @staticmethod
-    def get_action(selected, state_info, hero, hero_name, rival_hero, revert=False):
+    def get_actions(selected, state_info, hero, hero_name, rival_hero, revert=False):
         if selected < 8:  # move
             fwd = StateUtil.mov(selected, revert)
-            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
-            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
+            tgtpos = PosStateInfo(hero.pos.x + 7 * fwd.x, hero.pos.y + 7 * fwd.y, hero.pos.z + 7 * fwd.z)
+            action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, fwd, None, selected, None)
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔

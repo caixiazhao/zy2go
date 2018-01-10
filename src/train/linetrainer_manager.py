@@ -48,7 +48,7 @@ class LineTrainerManager:
             save_dir, self.model_process,
             model1_hero, model1_cache,
             model2_hero, model2_cache,
-            real_hero=None, policy_ratio=-1, policy_continue_acts=3)
+            real_hero=None, policy_ratio=1, policy_continue_acts=3)
 
 
     def read_process_(self, json_str):

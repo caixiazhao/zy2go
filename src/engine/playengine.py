@@ -21,7 +21,7 @@ from util.stateutil import StateUtil
 
 class PlayEngine:
     @staticmethod
-    def play_step(state_info, heros, hero_actions):
+    def play_step(cache, state_info, heros, hero_actions):
         # 基本逻辑，如果英雄攻击了对方英雄，周围小兵会优先攻击英雄
 
         # 执行英雄行为
@@ -50,13 +50,23 @@ class PlayEngine:
 
             # 执行塔的行为
             # 扩大塔的搜索范围
-            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, action.hero_name, StateUtil.LINE_MODEL_RADIUS + 5)
+            nearest_enemy_tower = StateUtil.get_nearest_enemy_tower(state_info, hero_name, StateUtil.LINE_MODEL_RADIUS + 5)
             if nearest_enemy_tower is not None and nearest_enemy_tower.unit_name not in played_units:
                 played_units.append(nearest_enemy_tower.unit_name)
                 state_info = PlayEngine.play_unit_action(state_info, nearest_enemy_tower, hero_info, hero_action, near_friend_units)
 
             # 更新Buff信息
             state_info = BuffInfo.update_unit_buffs(state_info, hero_name)
+
+            # 更新血量每秒回血hprec
+            if len(cache) % 2 == 0:
+                for hero_name in heros:
+                    hero_info = state_info.get_hero(hero_name)
+                    hero_info.hp += hero_info.hprec
+
+        hero_info1 = state_info.get_hero('27')
+        hero_info2 = state_info.get_hero('28')
+        return [state_info.tick, hero_info1.pos.to_string(), hero_info1.fwd.to_string(), hero_info1.hp], [hero_info2.pos.to_string(), hero_info2.fwd.to_string(), hero_info2.hp]
 
     @staticmethod
     def find_hero_action(hero_actions, hero_name):
@@ -97,7 +107,7 @@ class PlayEngine:
     @staticmethod
     def find_next_tgt(state_info, unit, soldier_list):
         # 为了节省计算量，我们只从英雄附近的小兵中寻找被攻击者, 或者是英雄
-        heros = StateUtil.get_heros_in_team(state_info, 1 - unit.team_id)
+        heros = StateUtil.get_heros_in_team(state_info, 1 - unit.team)
         hero = heros[0]
         min_dis = StateUtil.cal_distance2(hero.pos, unit.pos)
 
@@ -120,8 +130,9 @@ class PlayEngine:
             return state_info
 
         # 检查英雄是否是移动
+        # print('action', state_info.tick, hero_info.hero_name, hero_action.action, hero_action.skillid, hero_action.tgtid, hero_info.speed)
         if hero_action.action == CmdActionEnum.MOVE:
-            hero_info.pos = PlayEngine.play_move(hero_info.pos, hero_action.fwd)
+            hero_info.pos = PlayEngine.play_move(hero_info.pos, hero_action.fwd, hero_info)
             state_info.update_hero(hero_info)
         # 物理攻击的话，暂时只执行一次
         # 这里不考虑是否可以攻击到，默认都可以
@@ -141,22 +152,24 @@ class PlayEngine:
         #TODO 考虑技能等级，也会对伤害有影响
         hero_info = state_info.get_hero(hero_action.hero_name)
         if hero_info.cfg_id == '101':
-            if hero_action.skillid == 1:
+            if hero_action.skillid == '1':
                 # 飞镖技能伤害96 + 8*level + ?，范围8000， 宽度500
+                # level用技能的等级代替
                 #TODO 添加减速debuff
                 dmg = 96 + 8 * hero_info.level
                 tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 8000, 500, False)
                 PlayEngine.update_tgt_hp(state_info, tgt_units, tgt_heros, dmg)
-            elif hero_action.skillid == 2:
+            elif hero_action.skillid == '2':
                 # 突袭，跳跃范围伤害, 137 + 9*level + 50 * (skilllevel - 1)
                 dmg = 137 + 9 * hero_info.level
-                tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 6000, -1, True)
+                tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 2500, -1, True)
                 PlayEngine.update_tgt_hp(state_info, tgt_units, tgt_heros, dmg)
-            elif hero_action.skillid == 3:
+            elif hero_action.skillid == '3':
                 # 大招，对周围所有敌人造成伤害，231 + 10*level 范围3.5
                 dmg = 240 + 10 * hero_info.level
                 tgt_units, tgt_heros = PlayEngine.find_skill_targets(state_info, hero_info, hero_action.tgtpos, 3500, -1, True)
                 PlayEngine.update_tgt_hp(state_info, tgt_units, tgt_heros, dmg)
+
         return state_info
 
     @staticmethod
@@ -176,6 +189,7 @@ class PlayEngine:
     @staticmethod
     def cal_hero_dmg(hero_info, dmg):
         defend_value = PlayEngine.get_defend_value(hero_info.cfg_id, hero_info.level)
+        defend_value = defend_value[0]
         dmg *= 1 - float(defend_value) / (defend_value + 100)
         return dmg
 
@@ -190,14 +204,14 @@ class PlayEngine:
             # 或者按比例计算最大最下z值（相当于坐标系上的x）
             tgt_units = []
             for unit in tgt_unit_list:
-                mid_x = attacker_info.pos.z + StateUtil.cal_distance2(attacker_info.pos, unit.pos) / StateUtil.cal_distance2(attacker_info.pos, tgt_pos) * (tgt_pos-attacker_info)
-                if mid_x - skill_width/2 <= unit.x <= mid_x + skill_width/2:
+                mid_x = attacker_info.pos.z + StateUtil.cal_distance2(attacker_info.pos, unit.pos) / StateUtil.cal_distance2(attacker_info.pos, tgt_pos) * (tgt_pos.x-attacker_info.pos.x)
+                if mid_x - skill_width/2 <= unit.pos.x <= mid_x + skill_width/2:
                     tgt_units.append(unit)
 
             tgt_heros = []
             for hero in tgt_hero_list:
-                mid_x = attacker_info.pos.z + StateUtil.cal_distance2(attacker_info.pos, hero.pos) / StateUtil.cal_distance2(attacker_info.pos, tgt_pos) * (tgt_pos-attacker_info)
-                if mid_x - skill_width/2 <= hero.x <= mid_x + skill_width/2:
+                mid_x = attacker_info.pos.z + StateUtil.cal_distance2(attacker_info.pos, hero.pos) / StateUtil.cal_distance2(attacker_info.pos, tgt_pos) * (tgt_pos.x-attacker_info.pos.x)
+                if mid_x - skill_width/2 <= hero.pos.x <= mid_x + skill_width/2:
                     tgt_heros.append(hero)
             return tgt_units, tgt_heros
 
@@ -225,7 +239,7 @@ class PlayEngine:
         # 如果攻击者是小兵，为了简化，默认都可以攻击到英雄
         if StateUtil.if_unit_soldier(attacker_info.cfg_id) and StateUtil.if_unit_long_range_attack(attacker_info.cfg_id):
             # 更新位置信息
-            attacker_info.pos = defender.pos
+            attacker_info.pos = defender_info.pos
             state_info.update_unit(attacker_info)
 
         # 英雄攻击，需要考虑距离问题，还有追击的位移情况
@@ -236,29 +250,29 @@ class PlayEngine:
             if dis > move_dis:
                 # 只移动，不攻击
                 attacker_info.pos = PlayEngine.move_towards(attacker_info.pos, defender_info.pos, move_dis, dis)
-                StateUtil.update_hero(attacker_info)
+                state_info.update_hero(attacker_info)
                 return state_info
             else:
                 attacker_info.pos = defender_info.pos
-                StateUtil.update_hero(attacker_info)
+                state_info.update_hero(attacker_info)
 
         #TODO 计算最终伤害的公式很不清楚，需要后续核实。减伤比例为 防御/（防御+100）＝防御减伤，但是防御值怎么计算得来
         if StateUtil.if_unit_hero(defender):
             hero_cfg_id = defender_info.cfg_id
             defend_value, mag_defend_value = PlayEngine.get_defend_value(hero_cfg_id, defender_info.level)
-            dmg = attacker_info.attack * defend_value / (defend_value + 100)
+            dmg = attacker_info.att * defend_value / (defend_value + 100)
             defender_info.hp = max(defender_info.hp - dmg, 0)
             state_info.update_hero(defender_info)
         else:
-            dmg = attacker_info.attack
+            dmg = attacker_info.att
             defender_info.hp = max(defender_info.hp - dmg, 0)
             state_info.update_unit(defender_info)
         return state_info
 
     @staticmethod
-    def play_move(pos, fwd, time_second=0.5):
+    def play_move(pos, fwd, hero_info, time_second=0.5):
         # 不考虑不可到达等问题
-        return PosStateInfo(pos.x + time_second*fwd.x, pos.y + time_second*fwd.y, pos.z + time_second*fwd.z)
+        return PosStateInfo(pos.x + time_second * fwd.x * hero_info.speed / 1000, pos.y + time_second * fwd.y * hero_info.speed / 1000, pos.z + time_second * fwd.z * hero_info.speed / 1000)
 
 
     @staticmethod
@@ -270,7 +284,7 @@ class PlayEngine:
     def get_defend_value(hero_cfg_id, level):
         # 对于查尔斯
         if hero_cfg_id == '101':
-            return 34 + (level-1) * 2, 34 + (level - 1)
+            return 34 + (level-1) * 2, 34 + (level-1)
         return 0
 
     @staticmethod
