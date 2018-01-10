@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 
 from baselines.common import set_global_seeds
-from train.line_ppo_model import LinePPOModel
+from train.ppo_nn import PPONet
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
 import numpy as np
@@ -32,9 +32,9 @@ class HttpUtil:
         ac = np.zeros(act_size, dtype=float).tolist()
         model1_hero = '27'
         model2_hero = '28'
-        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, LinePPOModel, gamma=model1_gamma,
+        model_1 = LineModel_PPO1(ob_size, act_size, model1_hero, ob, ac, PPONet, gamma=model1_gamma,
                             scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model1_initial_p, final_p=model1_final_p)
-        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, LinePPOModel,  gamma=model2_gamma,
+        model_2 = LineModel_PPO1(ob_size, act_size, model2_hero, ob, ac, PPONet,  gamma=model2_gamma,
                             scope="model2", schedule_timesteps=schedule_timesteps, initial_p=model2_initial_p, final_p=model2_final_p)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家

@@ -14,7 +14,7 @@ from baselines.common.mpi_adam import MpiAdam
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
 from train.line_input_lite import Line_Input_Lite
-from train.line_ppo_model import LinePPOModel
+from train.ppo_nn import PPONet
 from train.linemodel import LineModel
 from baselines.common.mpi_moments import mpi_moments
 from train.linemodel_dpn import LineModel_DQN
@@ -85,7 +85,7 @@ class LineModel_PPO1:
         self.iters_so_far = 0
 
         self.exploration = LinearSchedule(schedule_timesteps=schedule_timesteps, initial_p=initial_p, final_p=final_p)
-        policy_func = LinePPOModel if LinePPOModel is None else policy_func
+        policy_func = PPONet if PPONet is None else policy_func
         self._build_model(input_space=statesize, action_size=actionsize, policy_func=policy_func)
 
         self.tstart = time.time()
