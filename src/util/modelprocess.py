@@ -40,13 +40,51 @@ class ModelProcess:
             model1_initial_p=0.05, model1_final_p=0.05, model1_gamma=0.95,
             model2_initial_p=0.05, model2_final_p=0.05, model2_gamma=0.95)
 
+        self.train_datas = []
 
+
+    # 只是将训练数据放入队列, 等长度足够之后，调用_train进行
+    # 触发完整训练
     def train(self, battle_id, train_model_name, o4r, batch_size):
+        self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
+        print('model_process train-queue: %s/%s batchsize:%d' %(battle_id, train_model_name, batch_size))
+        if len(self.train_datas) >= C.TRAIN_GAME_BATCH:
+            self._train()
+
+        #restartCmd = CmdAction(
+        #    C.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
+        #    None, None, None, None, None, None)
+        #return (restartCmd, None, None)
+
+
+    def _train(self):
+        begin_time = time.time()
+        while len(self.train_datas) > 0:
+            (battle_id, train_model_name, o4r, batch_size) = self.train_datas.pop(0)
+            print('model_process train-queue: %s/%s batchsize:%d' %(battle_id, train_model_name, batch_size))
+
+            if train_model_name == C.NAME_MODEL_1:
+                model = self.model_1
+                save_header = self.mode1_save_header
+            else:
+                model = self.model_2
+                save_header = self.model2_save_header
+            model.replay(o4r.values(), batch_size)
+            if_save_model(model, save_header, self.save_batch)
+            
+        end_time = time.time()
+        delta_millionseconds = (end_time - begin_time) * 1000
+        print('model train time', delta_millionseconds)
+ 
+
+    """
+    def train__OLD(self, battle_id, train_model_name, o4r, batch_size):
         o4r_list_model1 = {}
         o4r_list_model2 = {}
-
+        
         print('model_process', battle_id, train_model_name,
             'receive train signal, batch size', batch_size)
+
         if train_model_name == C.NAME_MODEL_1:
             o4r_list_model1[battle_id] = o4r
             print('model_process model1 train collection',
@@ -83,6 +121,7 @@ class ModelProcess:
             C.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
             None, None, None, None, None, None)
         return (restartCmd, None, None)
+    """
 
     def act(self, battle_id, act_model_name, state_inputs):
         begin_time = time.time()

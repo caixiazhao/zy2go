@@ -175,6 +175,7 @@ class LineTrainerPPO:
                 model_cache.clear_cache()
                 print('line_trainer', self.battle_id, '添加训练集')
 
+
     def train_line_model(self, raw_state_str):
         self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
@@ -271,6 +272,7 @@ class LineTrainerPPO:
         playinfo1 = None
         playinfo2 = None
         play_actions = []
+
         for hero_name in [self.model1_hero, self.model2_hero]:
             action_hero = state_info.get_hero_action(hero_name)
             if action_hero is not None:
@@ -282,7 +284,7 @@ class LineTrainerPPO:
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
-        return rsp_str, playinfo1, playinfo2
+        return rsp_str
 
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
