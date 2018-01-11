@@ -267,6 +267,7 @@ class LineTrainerPPO:
         if new == 1:
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
 
+        """
         # playengine
         play_heros = []
         playinfo1 = None
@@ -280,6 +281,7 @@ class LineTrainerPPO:
                 play_actions.append(action_hero)
         if len(play_actions) > 0:
             playinfo1, playinfo2 = PlayEngine.play_step(self.state_cache, state_info, play_heros, play_actions)
+        """
 
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
