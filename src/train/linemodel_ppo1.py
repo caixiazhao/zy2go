@@ -27,6 +27,7 @@ from collections import deque
 import time
 import random
 
+from common import cf as C
 
 class LineModel_PPO1:
     REWARD_RIVAL_DMG = 250
@@ -368,7 +369,8 @@ class LineModel_PPO1:
         # 很难判断英雄的最后一击，所以我们计算金币变化，超过死亡单位一半的金币作为英雄获得金币
         gold_delta = gold_delta * 2 - dead_golds
         if gold_delta < 0:
-            print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain', (next_hero.gold - cur_hero.gold))
+            if C.LOG['LINEMODEL_PPO1__0']:
+                print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain', (next_hero.gold - cur_hero.gold))
             gold_delta = 0
 
         # if dead_golds > 0:
@@ -475,8 +477,10 @@ class LineModel_PPO1:
         if gold_delta > 0:
             gold_delta = gold_delta * 2 - dead_golds
             if gold_delta < 0:
-                print('获得击杀金币不应该小于零', cur_state.tick, 'dead_golds', dead_golds, 'gold_delta',
-                      (next_hero.gold - cur_hero.gold))
+                if C.LOG['LINEMODEL_PPO1__0']:
+                    print('获得击杀金币不应该小于零',
+                        cur_state.tick, 'dead_golds', dead_golds, 'gold_delta',
+                        (next_hero.gold - cur_hero.gold))
                 gold_delta = 0
 
         # if dead_golds > 0:

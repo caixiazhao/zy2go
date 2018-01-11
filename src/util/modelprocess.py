@@ -47,7 +47,10 @@ class ModelProcess:
     # 触发完整训练
     def train(self, battle_id, train_model_name, o4r, batch_size):
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
-        print('model_process train-queue: %s/%s batchsize:%d' %(battle_id, train_model_name, batch_size))
+        print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
+            battle_id, train_model_name, batch_size, 
+            len(self.train_datas), C.TRAIN_GAME_BATCH))
+
         if len(self.train_datas) >= C.TRAIN_GAME_BATCH:
             self._train()
 
@@ -58,20 +61,19 @@ class ModelProcess:
 
 
     def _train(self):
-        begin_time = time.time()
-        while len(self.train_datas) > 0:
-            (battle_id, train_model_name, o4r, batch_size) = self.train_datas.pop(0)
-            print('model_process train-queue: %s/%s batchsize:%d' %(battle_id, train_model_name, batch_size))
+        o4rs_1 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_1]
+        o4rs_2 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_2]
+        self.train_datas.clear()
 
-            if train_model_name == C.NAME_MODEL_1:
-                model = self.model_1
-                save_header = self.mode1_save_header
-            else:
-                model = self.model_2
-                save_header = self.model2_save_header
-            model.replay(o4r.values(), batch_size)
-            if_save_model(model, save_header, self.save_batch)
-            
+        begin_time = time.time()
+        print ('REAL_TRAIN - model1:%s, model2:%s' % 
+            (len(o4rs_1), len(o4rs_2)))
+        if len(o4rs_1) > 0:
+            self.model_1.replay(o4rs_1, 0)
+            if_save_model(self.model_1, self.model1_save_header, self.save_batch)
+        if len(o4rs_2) > 0:
+            self.model_2.replay(o4rs_2, 0)
+            if_save_model(self.model_2, self.model2_save_header, self.save_batch)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
         print('model train time', delta_millionseconds)

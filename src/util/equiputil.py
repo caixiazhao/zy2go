@@ -4,6 +4,11 @@ from model.cmdaction import CmdAction
 from model.equipcfginfo import EquipCfgInfo
 from train.cmdactionenum import CmdActionEnum
 
+from common import cf as C
+
+def LOG__(*l):
+    if C.LOG['UTIL__EQUIPUTIL']:
+        print(*l)
 
 class EquipUtil:
 
@@ -125,7 +130,7 @@ class EquipUtil:
                 if equip_id not in owned_equips:
                     equip_info = EquipUtil.get_equip_info(equip_id)
                     if equip_info.buy_price <= hero.gold:
-                        print(state_info.battleid, hero_name, '购买道具', equip_id, '当前拥有', ','.join(str(e) for e in owned_equips),
+                        LOG__(state_info.battleid, hero_name, '购买道具', equip_id, '当前拥有', ','.join(str(e) for e in owned_equips),
                               '金币', hero.gold, '价格', equip_info.buy_price, '名称', equip_info.name)
                         return CmdAction(hero_name, CmdActionEnum.BUY, None, None, None, None, equip_id, None, None)
                     else:

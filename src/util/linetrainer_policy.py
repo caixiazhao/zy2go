@@ -13,6 +13,11 @@ from util.replayer import Replayer
 from util.stateutil import StateUtil
 from random import randint
 
+from common import cf as C
+
+def LOG__(*l):
+    if C.LOG['LINEMODEL_POLICY_ALL']:
+        print(*l)
 
 class LineTrainerPolicy:
     # 如果这个范围内没有英雄则会启动各种攻击小兵攻击塔策略
@@ -46,7 +51,7 @@ class LineTrainerPolicy:
         if rival_tower_distance <= LineTrainerPolicy.RIVAL_TOWER_NEARBY_RADIUS:
             if len(near_friend_units) == 0 or (len(near_friend_units) == 1 and near_friend_units[0].hp/float(near_friend_units[0].maxhp) <= 0.5):
                 if rival_hero_info.hp <= 0 or StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos) >= LineTrainerPolicy.SAFE_RIVAL_HERO_DISTANCE:
-                    print("启动策略 有敌方塔且己方掩护不足时候撤退 " + hero_name)
+                    LOG__("启动策略 有敌方塔且己方掩护不足时候撤退 " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
         # 如果附近没有敌方英雄，在敌方塔下，且有小兵掩护
@@ -57,7 +62,7 @@ class LineTrainerPolicy:
                     units_in_tower_range > 0:
                 # 被塔攻击的情况下后撤
                 if state_info.if_unit_attack_hero(rival_near_tower.unit_name, hero_name):
-                    print("启动策略 被塔攻击的情况下后撤 " + hero_name)
+                    LOG__("启动策略 被塔攻击的情况下后撤 " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
                 # 有敌方小兵先打小兵
@@ -65,17 +70,17 @@ class LineTrainerPolicy:
                     action = LineTrainerPolicy.policy_attack_rival_unit(hero_info, rival_hero_info, state_info,
                                                     hero_name, rival_near_units, rival_near_tower, near_friend_units)
                     if action is not None:
-                        print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，有敌方小兵先打小兵 " + hero_name)
+                        LOG__("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，有敌方小兵先打小兵 " + hero_name)
                         return action
 
                 # 掩护充足的情况下攻击对方塔
                 if units_in_tower_range >= 2:
-                    print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，掩护充足的情况下攻击对方塔 " + hero_name)
+                    LOG__("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，掩护充足的情况下攻击对方塔 " + hero_name)
                     return LineTrainerPolicy.get_attack_tower_action(hero_name, hero_info, rival_near_tower)
 
                 # 不足的情况下后撤（如果在塔的攻击范围内）
                 if units_in_tower_range <= 2 and StateUtil.cal_distance(hero_info.pos, rival_near_tower.pos) <= StateUtil.TOWER_ATTACK_RADIUS:
-                    print("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，不足的情况下后撤（如果在塔的攻击范围内） " + hero_name)
+                    LOG__("启动策略 如果附近没有地方英雄，在敌方塔下，且有小兵掩护，不足的情况下后撤（如果在塔的攻击范围内） " + hero_name)
                     return LineTrainerPolicy.policy_move_retreat(hero_info)
 
         #TODO 超低血量下撤退
@@ -86,7 +91,7 @@ class LineTrainerPolicy:
             # 另外一个条件是双方应该目前有一定的距离
             heros_distance = StateUtil.cal_distance(hero_info.pos, rival_hero_info.pos)
             if heros_distance >= LineTrainerPolicy.KEEP_AWAY_FROM_HERO_START_DISTANCE:
-                print('策略选择', state_info.battleid, hero_name, '差距明显情况下不要接近对方英雄')
+                LOG__('策略选择', state_info.battleid, hero_name, '差距明显情况下不要接近对方英雄')
                 action_ratios = LineTrainerPolicy.keep_away_from(state_info, hero_info, rival_hero_info, action_ratios,
                                                                  rival_hero_info.pos, heros_distance)
 
@@ -95,7 +100,7 @@ class LineTrainerPolicy:
         if rival_tower_distance <= LineTrainerPolicy.RIVAL_TOWER_NEARBY_RADIUS+4:
             units_in_tower_range = LineTrainerPolicy.units_in_tower_range(near_friend_units, rival_near_tower.pos)
             if units_in_tower_range <= 2:
-                print('策略选择', state_info.battleid, hero_name, '检测会不会贸然进入对方的塔下')
+                LOG__('策略选择', state_info.battleid, hero_name, '检测会不会贸然进入对方的塔下')
                 action_ratios = LineTrainerPolicy.keep_away_from(state_info, hero_info, rival_hero_info, action_ratios,
                                                                  rival_near_tower.pos, StateUtil.TOWER_ATTACK_RADIUS)
 
@@ -111,20 +116,20 @@ class LineTrainerPolicy:
             # 选择模型分数较高的行为
             selected_skill = -1
             skill_score = -1
-            print('启动策略, 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, ', state_info.battleid, hero_name, rival_tower_distance)
+            LOG__('启动策略, 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, ', state_info.battleid, hero_name, rival_tower_distance)
             for i in range(4):
                 action_id = 10 * i + 9
                 if action_ratios[action_id] > skill_score:
                     skill_score = action_ratios[action_id]
                     selected_skill = i
             if selected_skill >= 0:
-                print("启动策略 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, 从技能中选择 ", hero_name, selected_skill, skill_score)
+                LOG__("启动策略 如果对方英雄血量很低，且不在塔下，且我方英雄血量较高, 从技能中选择 ", hero_name, selected_skill, skill_score)
                 return LineTrainerPolicy.get_attack_hero_action(state_info, hero_name, rival_hero, selected_skill)
 
         current_max_q = max(action_ratios)
         current_selected = action_ratios.index(current_max_q)
         if original_max_q != current_max_q:
-            print('策略选择', state_info.battleid, hero_name, '策略改变', original_selected, current_selected)
+            LOG__('策略选择', state_info.battleid, hero_name, '策略改变', original_selected, current_selected)
             if current_max_q == -1:
                 return LineTrainerPolicy.policy_move_retreat(hero_info)
             else:
@@ -138,7 +143,7 @@ class LineTrainerPolicy:
             if rival_hero_dis > LineTrainerPolicy.SKILL_RANGE_CHAERSI_SKILL3:
                 if LineTrainerPolicy.units_in_range(rival_near_units, hero_info.pos,
                                                     LineTrainerPolicy.SKILL_RANGE_CHAERSI_SKILL3) == 0:
-                    print('策略选择', state_info.battleid, hero_info.hero_name, '查尔斯大招不应该在没人的时候使用')
+                    LOG__('策略选择', state_info.battleid, hero_info.hero_name, '查尔斯大招不应该在没人的时候使用')
                     for i in range(38, 48):
                         action_ratios[i] = -1
         return action_ratios
@@ -158,23 +163,23 @@ class LineTrainerPolicy:
                 tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 0.5 * hero_info.speed / 1000, hero_info.pos.y + fwd.y * 0.5 * hero_info.speed / 1000,
                                       hero_info.pos.z + fwd.z * 0.5 * hero_info.speed / 1000)
                 if StateUtil.cal_distance(tgtpos, danger_pos) <= danger_radius:
-                    print('策略选择', state_info.battleid, hero_info.hero_name, '移动方向会进入危险区域', hero_info.pos.to_string(),
+                    LOG__('策略选择', state_info.battleid, hero_info.hero_name, '移动方向会进入危险区域', hero_info.pos.to_string(),
                           tgtpos.to_string())
                     action_ratios[selected] = -1
             elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻， 针对近战英雄的检测
                 if selected == 8:  # 敌方塔
-                    print('策略选择', state_info.battleid, hero_info.hero_name, '不要去攻击塔')
+                    LOG__('策略选择', state_info.battleid, hero_info.hero_name, '不要去攻击塔')
                     action_ratios[selected] = -1
                 elif selected == 9:  # 敌方英雄
                     if StateUtil.cal_distance(rival_hero_info.pos, danger_pos) <= danger_radius:
-                        print('策略选择', state_info.battleid, hero_info.hero_name, '不要去近身攻击塔范围内的英雄')
+                        LOG__('策略选择', state_info.battleid, hero_info.hero_name, '不要去近身攻击塔范围内的英雄')
                         action_ratios[selected] = -1
                 else:  # 小兵
                     creeps = StateUtil.get_nearby_enemy_units(state_info, hero_info.hero_name)
                     n = selected - 10
                     tgt = creeps[n]
                     if StateUtil.cal_distance(tgt.pos, danger_pos) <= danger_radius:
-                        print('策略选择', state_info.battleid, hero_info.hero_name, '不要去近身攻击塔范围内的小兵')
+                        LOG__('策略选择', state_info.battleid, hero_info.hero_name, '不要去近身攻击塔范围内的小兵')
                         action_ratios[selected] = -1
             elif hero_info.cfg_id == '101' and 28 <= selected < 38:  # 专门针对查尔斯的跳跃技能
                 skillid = int((selected - 18) / 10 + 1)
@@ -183,7 +188,7 @@ class LineTrainerPolicy:
                                                                 hero_info.hero_name, hero_info.pos, rival_hero_info.hero_name)
                 if tgtpos is not None:
                     if StateUtil.cal_distance(tgtpos, danger_pos) <= danger_radius:
-                        print('策略选择', state_info.battleid, hero_info.hero_name, '跳跃技能在朝着塔下的目标')
+                        LOG__('策略选择', state_info.battleid, hero_info.hero_name, '跳跃技能在朝着塔下的目标')
                         action_ratios[selected] = -1
         return action_ratios
 
@@ -214,7 +219,7 @@ class LineTrainerPolicy:
             for unit in rival_near_units:
                 if unit.hp <= hero_info.att - 20:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
-                    print("启动策略 如果附近没有敌方英雄，而且不在塔下，补兵 " + hero_name)
+                    LOG__("启动策略 如果附近没有敌方英雄，而且不在塔下，补兵 " + hero_name)
                     return action
 
             # 如果敌方小兵在攻击自己，后撤到己方的小兵后面
@@ -223,7 +228,7 @@ class LineTrainerPolicy:
                 if att is not None:
                     # 优先物理攻击
                     retreat = LineTrainerPolicy.policy_move_retreat(hero_info)
-                    print("启动策略 被小兵攻击的情况下后撤 " + hero_name)
+                    LOG__("启动策略 被小兵攻击的情况下后撤 " + hero_name)
                     return retreat
 
             # 物理攻击，不攻击血量较少的，留给补刀
@@ -234,7 +239,7 @@ class LineTrainerPolicy:
             for unit in rival_near_units_sorted:
                 if unit.hp > hero_info.att * 3:
                     action = LineTrainerPolicy.get_attack_unit_action(state_info, hero_name, unit.unit_name, 0)
-                    print("启动策略 如果附近没有敌方英雄，而且不在塔下，攻击敌方小兵 " + hero_name)
+                    LOG__("启动策略 如果附近没有敌方英雄，而且不在塔下，攻击敌方小兵 " + hero_name)
                     return action
         return None
 
@@ -259,7 +264,7 @@ class LineTrainerPolicy:
             [fwd, output_index] = Replayer.get_closest_fwd(fwd)
             tgtpos = PosStateInfo(hero_info.pos.x + fwd.x * 15, hero_info.pos.y + fwd.y * 15,
                                   hero_info.pos.z + fwd.z * 15)
-            print("朝塔移动，", hero_name, "hero_pos", hero_info.pos.to_string(), "tower_pos", tower_unit.pos.to_string(),
+            LOG__("朝塔移动，", hero_name, "hero_pos", hero_info.pos.to_string(), "tower_pos", tower_unit.pos.to_string(),
                   "fwd", fwd.to_string(), "output_index", output_index)
             action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, output_index, None)
         else:

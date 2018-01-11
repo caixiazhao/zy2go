@@ -99,7 +99,7 @@ class PPO_CACHE2:
     def output4replay(self, cur_new, next_vpred):
         batch_size = len(self.rews)
         if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
-            print("训练数据长度 " + str(len(self.obs)))
+            # print("训练数据长度 " + str(len(self.obs)))
             return {"ob": np.array(self.obs), "rew": np.array(self.rews),
                "vpred": np.array(self.vpreds), "new": np.array(self.news),
                "ac": np.array(self.acs), "prevac": np.array(self.prevacs),
