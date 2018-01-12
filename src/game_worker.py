@@ -31,6 +31,8 @@ from train.linetrainer_manager import LineTrainerManager
 from common import cf as C
 
 define("port", default=9000, help="run on the given port", type=int)
+define("slot", default=10, help="model slots", type=int)
+define("base", default=0, help="base id", type=int)
 
 # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
@@ -54,11 +56,10 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 def main():
-    trainer_num = int(sys.argv[1])
-    manager = LineTrainerManager(trainer_num)
+    tornado.options.parse_command_line()
+    manager = LineTrainerManager(options.base, options.slot)
     manager.start()
 
-    tornado.options.parse_command_line()
     application = tornado.web.Application([
         (r"/", MainHandler,
          dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict, lock=manager.lock)),

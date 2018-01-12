@@ -20,7 +20,7 @@ GAME_WORKER_SLOTS = C.GAME_WORKER_SLOTS
 def battle_id_and_game_worker_port(content):
     id_str = content.partition(b'}')[0].rpartition(b':')[2]
     battle_id = int(id_str)
-    port = GAME_BASE_PORT + battle_id // GAME_WORKER_SLOTS
+    port = GAME_BASE_PORT + (battle_id - 1)// GAME_WORKER_SLOTS
     return (battle_id, port)
 
 

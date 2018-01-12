@@ -17,7 +17,7 @@ from util.ppocache2 import PPO_CACHE2
 
 
 class LineTrainerManager:
-    def __init__(self, battle_id_num):
+    def __init__(self, base_bid, battle_id_num):
         self.model_process = ModelProcess(battle_id_num)
 
         # TODO: Temporarily hold the original variables
@@ -28,9 +28,10 @@ class LineTrainerManager:
         #model1_hero = '27'
         #model2_hero = '28'
 
+        self.base_bid = base_bid
         self.line_trainers = {}
         for bid in range(1, 1 + battle_id_num):
-            self.line_trainers[bid] = self.setup_line_trainer(bid)
+            self.line_trainers[base_bid + bid] = self.setup_line_trainer(bid)
         #self.line_trainer = self.line_trainers[1]
 
         LineTrainerManager.One = self

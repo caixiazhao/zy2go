@@ -12,8 +12,8 @@ import numpy as np
 class HttpUtil:
     @staticmethod
     def get_save_root_path():
-        #date_str = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-        date_str = datetime.now().strftime('%Y%m%d_%H%M')
+        date_str = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+        #date_str = datetime.now().strftime('%Y%m%d_%H%M')
         save_dir = os.path.join(
             C.DATA_ROOT_PATH,
             'model_' + date_str)
