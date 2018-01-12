@@ -514,9 +514,9 @@ class StateUtil:
         if action.action == CmdActionEnum.RESTART:
             return {"hero_id": action.hero_name, "action": 'RESTART'}
         if action.action == CmdActionEnum.ADDGOLD:
-            return {"hero_id": action.hero_name, "action": 'ADDGOLD', "gold": action.gold}
+            return {"hero_id": action.hero_name, "action": 'ADDGOLD', "gold": str(action.gold)}
         if action.action == CmdActionEnum.ADDLV:
-            return {"hero_id": action.hero_name, "action": 'ADDLV', "lv": action.lv}
+            return {"hero_id": action.hero_name, "action": 'ADDLV', "lv": str(action.lv)}
         raise ValueError('unexpected action type ' + str(action.action))
 
     @staticmethod

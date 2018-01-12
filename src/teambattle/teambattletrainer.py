@@ -15,10 +15,14 @@ import json as JSON
 #   输入考虑添加其它人的行为
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
+from model.skillcfginfo import SkillTargetEnum
 from model.stateinfo import StateInfo
+from teambattle.teambattle_input import TeamBattleInput
+from teambattle.teambattle_util import TeamBattleUtil
 from train.cmdactionenum import CmdActionEnum
 from util.equiputil import EquipUtil
 from util.httputil import HttpUtil
+from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from random import randint
 from time import gmtime, strftime
@@ -29,8 +33,9 @@ class TeamBattleTrainer:
     BATTLE_POINT_X = 0
     BATTLE_POINT_Z = -30000
 
-    def __init__(self, battle_id):
+    def __init__(self, battle_id, model_util):
         self.battle_id = battle_id
+        self.model_util = model_util
         save_dir = HttpUtil.get_save_root_path()
         self.state_cache = []
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
@@ -53,6 +58,11 @@ class TeamBattleTrainer:
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
             return {"ID": raw_state_info.battleid, "tick": -1}
+
+        if raw_state_info.tick <= StateUtil.TICK_PER_STATE and (prev_state_info is None or prev_state_info.tick > raw_state_info.tick):
+            print("clear")
+            prev_state_info = None
+            self.state_cache = []
 
         # 战斗前准备工作
         if len(self.state_cache) == 0:
@@ -78,10 +88,10 @@ class TeamBattleTrainer:
                 if buy_cmd is not None:
                     response_strs.append(buy_cmd)
 
+        battle_heros = self.search_team_battle(state_info)
+
         for hero in self.heros:
-            # 启动模型规则为周围有敌方英雄
-            near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, StateUtil.LINE_MODEL_RADIUS)
-            if len(near_enemy_heroes) == 0:
+            if hero not in battle_heros:
                 # 移动到团站点附近，添加部分随机
                 rdm_delta_x = randint(0, 1000)
                 rdm_delta_z = randint(0, 1000)
@@ -100,10 +110,190 @@ class TeamBattleTrainer:
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
 
-    # def get_model_actions(self, state_info, hero):
+    def search_team_battle(self, state_info):
+        max_team = set()
+        for hero in self.heros:
+            battle_heros = self.search_team_battle_hero(state_info, hero)
+            if len(battle_heros) > max_team:
+                max_team = battle_heros
+        return max_team
+
+    def search_team_battle_hero(self, state_info, hero):
+        # 检查是否有团战，并且得到团战的范围内所有的单位
+        # 团战范围的定义
+        # 首先从一个英雄开始找起，如果它周围有敌人，就把敌人和自己人全都列为范围内，然后用新的人物继续寻找
+        # 注：这里只找一个开团点
+        checked_heros = set()
+        team_battle_heros = set()
+
+        # 找到第一个周围有敌人的
+        team_battle_heros.add(hero)
+
+        while len(checked_heros) < len(team_battle_heros):
+            for hero in team_battle_heros:
+                if hero not in checked_heros:
+                    near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, StateUtil.LINE_MODEL_RADIUS)
+                    for enemy in near_enemy_heroes:
+                        team_battle_heros.add(enemy.hero_name)
+                    checked_heros.add(hero)
+
+        return team_battle_heros
+
+    def get_model_actions(self, state_info, heros):
+        # 目前的思路是，每个英雄首先自己算行为，然后拿到每个英雄的行为之后，将状态信息+队友的选择都交给模型，重新计算自己的选择，迭代
+        # 最后得到每个英雄的行为
+        for hero in heros:
+            hero_info = state_info.get_hero(hero)
+            input = TeamBattleInput.gen_input(state_info, hero)
+            action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
+            filtered_action_list = TeamBattleTrainer.remove_unaval_actions(action_list, state_info, hero, heros)
+
+            friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
+            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, state_info, hero_info, friends, opponents)
+        return
+
+    @staticmethod
+    # 过滤输出结果，删除掉不可执行的选择
+    # 这里有两个思路，像原来一样只执行可以执行的
+    # 第二种是面对不可执行的，我们就选择逼近对方
+    # 输出信息：
+    # 移动：八个方向；物理攻击：五个攻击目标；技能1：五个攻击目标；技能2：五个攻击目标；技能3：五个攻击目标
+    # 技能攻击目标默认为对方英雄。如果是辅助技能，目标调整为自己人
+    # 对于技能可以是自己也可以是对方的，目前无法处理
+    def remove_unaval_actions(acts, state_info, hero_name, team_battle_heros, debug=False):
+        friends, opponents = TeamBattleUtil.get_friend_opponent_heros(team_battle_heros, hero_name)
+        for i in range(len(acts)):
+            hero = state_info.get_hero(hero_name)
+            selected = i
+            if selected < 8:  # move
+                # 不再检查movelock，因为攻击硬直也会造成这个值变成false（false表示不能移动）
+                continue
+            elif selected < 13:  # 物理攻击：五个攻击目标
+                if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):
+                    # 普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
+                    # 所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
+                    # 被控制住
+                    acts[selected] = -1
+                    if debug: print("普攻受限，放弃普攻")
+                    continue
+                else:  # 敌方英雄
+                    target_index = selected - 8
+                    target_hero = TeamBattleUtil.get_target_hero(hero_name, friends, opponents, target_index)
+                    rival_info = state_info.get_hero(target_hero)
+                    dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
+                    # 英雄不可见
+                    if not rival_info.is_enemy_visible():
+                        acts[selected] = -1
+                        if debug: print("英雄不可见")
+                        continue
+                    # 英雄太远，放弃普攻
+                    # if dist > self.att_dist:
+                    if dist > StateUtil.ATTACK_HERO_RADIUS:
+                        acts[selected] = -1
+                        if debug: print("英雄太远，放弃普攻")
+                        continue
+                    # 对方英雄死亡时候忽略这个目标
+                    elif rival_info.hp <= 0:
+                        acts[selected] = -1
+                        if debug: print("对方英雄死亡")
+                        continue
+            elif selected < 28:  # skill1
+                skillid = int((selected - 13) / 5 + 1)
+                if hero.skills[skillid].canuse != True:
+                    # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
+                    acts[selected] = -1
+                    if debug: print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(
+                        hero.skills[skillid].canuse) + " tick=" + str(state_info.tick))
+                    continue
+                if hero.skills[skillid].cost is not None and hero.skills[skillid].cost > hero.mp:
+                    # mp不足
+                    acts[selected] = -1
+                    if debug: print("mp不足，放弃施法" + str(skillid))
+                    continue
+                if hero.skills[skillid].cd > 0:
+                    # 技能未冷却
+                    acts[selected] = -1
+                    if debug: print("技能cd中，放弃施法" + str(skillid))
+                    continue
+                tgt_index = selected - 13 - (skillid - 1) * 5
+                skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
+                is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
+                tgt_hero = TeamBattleUtil.get_target_hero(hero, friends, opponents, tgt_index, is_buff)
+                [tgtid, tgtpos] = TeamBattleTrainer.choose_skill_target(tgt_index, state_info,
+                                                                        skill_info, hero_name, hero.pos, tgt_hero, debug)
+                if tgtid == -1:
+                    acts[selected] = -1
+                    if debug: print("目标不符合施法要求")
+                    continue
+        return acts
+
+    @staticmethod
+    def choose_skill_target(selected, state_info, skill_info, hero_name, pos, tgt_hero_name, debug=False):
+        hero_info = state_info.get_hero(hero_name)
+        if selected == 0:
+            # 施法目标为自己
+            # 首先判断施法目标是不是只限于敌方英雄
+            if skill_info.cast_target == SkillTargetEnum.rival:
+                return [-1, None]
+            tgtid = hero_name
+            # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
+            tgtpos = None
+        elif selected == 1:
+            # 攻击对方英雄
+            # 首先判断施法目标是不是只限于自己
+            if skill_info.cast_target == SkillTargetEnum.self:
+                return [-1, None]
+            tgt_hero = state_info.get_hero(tgt_hero_name)
+            if tgt_hero.team != hero_info.team and not tgt_hero.is_enemy_visible():
+                if debug: print("敌方英雄不可见")
+                tgtid = -1
+                tgtpos = None
+            elif StateUtil.cal_distance(tgt_hero.pos, pos) > skill_info.cast_distance:
+                if debug: print("技能攻击不到对方 %s %s %s" % (
+                    tgt_hero_name, StateUtil.cal_distance(tgt_hero.pos, pos), skill_info.cast_distance))
+                tgtid = -1
+                tgtpos = None
+            # 对方英雄死亡时候忽略这个目标
+            elif tgt_hero.hp <= 0:
+                if debug: print("技能攻击不了对方，对方已经死亡")
+                tgtid = -1
+                tgtpos = None
+            else:
+                tgtid = tgt_hero_name
+                tgtpos = tgt_hero.pos
+        return tgtid, tgtpos
+
+    @staticmethod
+    def get_action(action_list, state_info, hero, friends, opponents, revert=False):
+        max_q = max(action_list)
+
+        if max_q <= -1:
+            action = CmdAction(hero.hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
+            return action
+
+        selected = action_list.index(max_q)
+        if selected < 8:  # move
+            fwd = StateUtil.mov(selected, revert)
+            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
+            action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
+            return action
+        elif selected < 13:  # 对敌英雄，塔，敌小兵1~8使用普攻
+            target_index = selected - 8
+            target_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, target_index)
+            action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
+            return action
+        elif selected < 28:  # skill
+            skillid = int((selected - 13) / 5 + 1)
+            tgt_index = selected - 13 - (skillid - 1) * 5
+            skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
+            is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
+            tgt_hero = TeamBattleUtil.get_target_hero(hero, friends, opponents, tgt_index, is_buff)
+            tgt_pos = state_info.get_hero(tgt_hero).pos
+            fwd = tgt_pos.fwd(hero.pos)
+            action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
+            return action
 
     def upgrade_skills(self, state_info, hero_name):
-
         # 决定是否购买道具
         buy_action = EquipUtil.buy_equip(state_info, hero_name)
         if buy_action is not None:

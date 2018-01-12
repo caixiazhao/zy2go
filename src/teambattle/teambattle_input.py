@@ -14,17 +14,18 @@ class TeamBattleInput:
 
     @staticmethod
     def gen_input(state_info, hero_name):
-        # 得到周围范围内友方英雄信息
-
-        # 得到周围范围内敌方英雄信息
-        nearest_towers = StateUtil.get_nearby_enemy_heros(self.stateInformation, my_he
-                                                           self.NEAR_TOWER_RADIUS)
-        nearest_towers_rival = [t for t in nearest_towers if t.team != my_hero_info.team]
-        nearest_towers_team = [t for t in nearest_towers if t.team == my_hero_info.team]
-
-        # 添加英雄状态
-
-        # 添加技能状态
-
-    @staticmethod
-    def add_hero_action_info():
+        return
+    #     # 得到周围范围内友方英雄信息
+    #
+    #     # 得到周围范围内敌方英雄信息
+    #     nearest_towers = StateUtil.get_nearby_enemy_heros(self.stateInformation, my_he
+    #                                                        self.NEAR_TOWER_RADIUS)
+    #     nearest_towers_rival = [t for t in nearest_towers if t.team != my_hero_info.team]
+    #     nearest_towers_team = [t for t in nearest_towers if t.team == my_hero_info.team]
+    #
+    #     # 添加英雄状态
+    #
+    #     # 添加技能状态
+    #
+    # @staticmethod
+    # def add_hero_action_info():
