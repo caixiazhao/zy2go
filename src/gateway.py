@@ -85,6 +85,7 @@ def run_proxy(port, start_ioloop=True):
     app = tornado.web.Application([
         (r'.*', ForwardHandler),
     ])
+    C.set_worker_name('gw')
     app.listen(port)
     ioloop = tornado.ioloop.IOLoop.instance()
     if start_ioloop:
