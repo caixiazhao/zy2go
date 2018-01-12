@@ -27,3 +27,7 @@ LOG__MANAGER_READ_PROCESSOR = True
 PRELOAD_MODEL1_PATH = None
 PRELOAD_MODEL2_PATH = None
 
+GAME_WORKERS = 2 # game worker 进程数量
+GAME_WORKER_SLOTS = 50 # 每个game worker为几个game.exe提供服务
+GAME_BASE_PORT = 9000 # game worker的起始端口
+TRAINER_PORT = 8999 #训练worker的端口
