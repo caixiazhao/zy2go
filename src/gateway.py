@@ -1,4 +1,5 @@
 import sys
+import hashlib
 
 import tornado.httpserver
 import tornado.httpclient
@@ -77,12 +78,24 @@ class ForwardHandler(tornado.web.RequestHandler):
                 allow_nonstandard_methods=True)
 
 
-def run_proxy(port, start_ioloop=True):
+class Data0Handler(tornado.web.RequestHandler):
+    def get(self):
+        body = self.request.body
+        size = len(body)
+        md5 = hashlib.md5(body).hexdigest()
+        msg = '%s %s' % (size, md5)
+        self.write(msg)
+        print(msg)
+        self.finish()
+
+
+def run_gateway(port, start_ioloop=True):
     """
     Run proxy on the specified port. If start_ioloop is True (default),
     the tornado IOLoop will be started immediately.
     """
     app = tornado.web.Application([
+        (r'/data0', Data0Handler),
         (r'.*', ForwardHandler),
     ])
     C.set_worker_name('gw')
@@ -99,4 +112,4 @@ if __name__ == '__main__':
 
     print ("Starting HTTP proxy on port %d" % port)
     C.set_run_mode("gateway")
-    run_proxy(port)
+    run_gateway(port)
