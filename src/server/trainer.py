@@ -29,22 +29,30 @@ import tornado.web
 import traceback
 
 from tornado.options import define, options
-from train.linetrainer_manager import LineTrainerManager
+from train.linetrainer_manager_2 import LineTrainerManager
 
 define("port", default=8999, help="run on the given port", type=int)
 
-# curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
-class MainHandler(tornado.web.RequestHandler):
-    def initialize(self, p_request_dict, p_result_dict, lock):
-        self.p_request_dict = p_request_dict
-        self.p_result_dict = p_result_dict
-        self.lock = lock
+manager = LineTrainerManager(C.get_run_mode())
 
+
+class TrainerHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
-            content = tornado.escape.to_basestring(self.request.body)
-            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
-            self.finish(response)
+            data = self.request.body
+            path = self.request.path
+            if path.startswith('/generation_id'):
+                self.finish(str(manager.get_generation_id()))
+            if path.startswith('/data'):
+                manager.push_data(data)
+                self.finish(str(manager.get_batch_num()))
+                return
+            if path.startswith('/train'):
+                manager.train()
+                self.finish(manager.get_generation_id())
+                return
+            self.finish()
+            return
         except Exception as e:
             print('nonblock server catch exception')
             print('nonblock server catch exception', traceback.format_exc())
@@ -56,12 +64,9 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     tornado.options.parse_command_line()
-    manager = LineTrainerManager(options.base, options.slot)
-    manager.start()
 
     application = tornado.web.Application([
-        (r"/", MainHandler,
-         dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict, lock=manager.lock)),
+        (r"/", TrainerHandler)
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 

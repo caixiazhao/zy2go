@@ -59,22 +59,11 @@ class ModelProcess:
         r = push_data(battle_id, train_model_name,
             generation_id, o4rdata)
         print(r)
-
-        """
-        self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
-        print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
-            battle_id, train_model_name, batch_size, 
-            len(self.train_datas), C.TRAIN_GAME_BATCH))
-
-        if len(self.train_datas) >= C.TRAIN_GAME_BATCH:
-            self._train()
-        """
         return
 
-    def _train(self):
-        o4rs_1 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_1]
-        o4rs_2 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_2]
-        self.train_datas.clear()
+    def do_real_train(self, o4rs):
+        o4rs_1 = [ x[2] for x in o4rs if x[1] == C.NAME_MODEL_1]
+        o4rs_2 = [ x[2] for x in o4rs if x[1] == C.NAME_MODEL_2]
 
         begin_time = time.time()
         print ('REAL_TRAIN - model1:%s, model2:%s' % 
@@ -87,6 +76,7 @@ class ModelProcess:
             if_save_model(self.model_2, self.model2_save_header, self.save_batch)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
+
         print('model train time', delta_millionseconds)
 
     def act(self, battle_id, act_model_name, state_inputs):
