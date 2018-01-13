@@ -20,7 +20,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 from common import cf as C
-C.set_run_mode(C.RUN_MODE_TRAINER)
+C.set_run_mode(C.RUN_MODE_TRAIN)
 
 import tornado.httpserver
 import tornado.ioloop
