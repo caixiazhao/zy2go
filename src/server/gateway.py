@@ -108,13 +108,15 @@ class DataHandler(tornado.web.RequestHandler):
         if G['train_lock']:
             return
 
-        if int(generation_id) == C.get_generation_id():
-            fetch_request(
-                'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),
-                train__data_callback,
-                method='GET', body=body,
-                follow_redirects=False,
-                allow_nonstandard_methods=True)
+        #if int(generation_id) != C.get_generation_id():
+        #    return
+
+        fetch_request(
+            'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),
+            train__data_callback,
+            method='GET', body=body,
+            follow_redirects=False,
+            allow_nonstandard_methods=True)
 
 
 def run_gateway(port, start_ioloop=True):
