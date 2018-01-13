@@ -140,7 +140,6 @@ class LineTrainerPPO:
                 # 等到下次训练开始再清空
                 # 一直等待，这里需要观察客户端连接超时开始重试后的情况
                 # TODO 这里清空缓存是不是不太好
-                #model_process.train_queue.put((self.battle_id, model_name, o4r, batchsize))
                 model_process.train(self.battle_id, model_name, o4r, batchsize)
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')

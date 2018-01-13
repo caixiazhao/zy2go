@@ -2,7 +2,9 @@
 import sys
 # import queue
 import time
+import json
 
+import numpy as np
 
 from common import cf as C
 from model.cmdaction import CmdAction
@@ -42,10 +44,13 @@ class ModelProcess:
 
         self.train_datas = []
 
-
     # 只是将训练数据放入队列, 等长度足够之后，调用_train进行
     # 触发完整训练
     def train(self, battle_id, train_model_name, o4r, batch_size):
+        print('====train-data====')
+        print(json.dumps(o4r))
+        o4r = o4r_json_to_numpy(o4r)
+
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
         print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
             battle_id, train_model_name, batch_size, 
@@ -79,52 +84,6 @@ class ModelProcess:
         print('model train time', delta_millionseconds)
  
 
-    """
-    def train__OLD(self, battle_id, train_model_name, o4r, batch_size):
-        o4r_list_model1 = {}
-        o4r_list_model2 = {}
-        
-        print('model_process', battle_id, train_model_name,
-            'receive train signal, batch size', batch_size)
-
-        if train_model_name == C.NAME_MODEL_1:
-            o4r_list_model1[battle_id] = o4r
-            print('model_process model1 train collection',
-                ';'.join((str(k) for k in o4r_list_model1.keys())))
-        elif train_model_name == C.NAME_MODEL_2:
-            o4r_list_model2[battle_id] = o4r
-            print('model_process model2 train collection',
-                ';'.join((str(k) for k in o4r_list_model2.keys())))
-
-        begin_time = time.time()
-
-        if train_model_name == C.NAME_MODEL_1:
-            print('model_process1', train_model_name, 'begin to train')
-            self.model_1.replay(o4r_list_model1.values(), batch_size)
-            o4r_list_model1.clear()
-            if_save_model(
-                self.model_1, self.model1_save_header, self.save_batch)
-
-        if train_model_name == C.NAME_MODEL_2:
-            print('model_process2', train_model_name, 'begin to train')
-            self.model_2.replay(o4r_list_model2.values(), batch_size)
-            o4r_list_model2.clear()
-            if_save_model(
-                self.model_2, self.model2_save_header, self.save_batch)
-
-        end_time = time.time()
-
-        delta_millionseconds = (end_time - begin_time) * 1000
-        print('model train time', delta_millionseconds)
-        # 由自己来决定什么时候缓存模型
-        trained = True
-
-        restartCmd = CmdAction(
-            C.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
-            None, None, None, None, None, None)
-        return (restartCmd, None, None)
-    """
-
     def act(self, battle_id, act_model_name, state_inputs):
         begin_time = time.time()
         if act_model_name == C.NAME_MODEL_1:
@@ -150,6 +109,10 @@ class ModelProcess:
     def start(self):
         pass
 
+def o4r_json_to_numpy(o4r):
+    for key in ("ob",  "rew", "vpred", "new", "ac", "prevac"):
+        o4r[key] = np.array(o4r[key])
+    return o4r
 
 if __name__ == '__main__':
     model_process = ModelProcess()

@@ -1,29 +1,9 @@
 # -*- coding: utf8 -*-
 import collections
 
-from baselines import logger
 import numpy as np
-import tensorflow as tf
-import tensorflow.contrib.layers as layers
-from baselines.common import Dataset, explained_variance, fmt_row, zipsame
-
-import baselines.common.tf_util as U
-from baselines import deepq
-from baselines.common.mpi_adam import MpiAdam
-from baselines.common.schedules import LinearSchedule
-from baselines.deepq import ReplayBuffer
-from train.line_input import Line_input
-from train.ppo_nn import PPONet
-from train.linemodel import LineModel
-from baselines.common.mpi_moments import mpi_moments
-from train.linemodel_dpn import LineModel_DQN
-from util.rewardutil import RewardUtil
-from util.stateutil import StateUtil
-
-from baselines.common.mpi_moments import mpi_moments
-from mpi4py import MPI
-from collections import deque
 import time
+
 
 class PPO_CACHE2:
     REWARD_RIVAL_DMG = 250
@@ -96,7 +76,7 @@ class PPO_CACHE2:
             self.cur_ep_len = 0
         self.t += 1
 
-    def output4replay(self, cur_new, next_vpred):
+    def output4replay__(self, cur_new, next_vpred):
         batch_size = len(self.rews)
         if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
             # print("训练数据长度 " + str(len(self.obs)))
@@ -105,6 +85,24 @@ class PPO_CACHE2:
                "ac": np.array(self.acs), "prevac": np.array(self.prevacs),
                "nextvpred": next_vpred * (1 - cur_new),
                "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}, batch_size
+
+        elif self.t > 0 and cur_new == 1 and len(self.obs) == 0:
+            # TODO 是不是有更优雅的方式
+            print('真的出现了new但是训练数据为空的情况')
+        else:
+            return None, batch_size
+
+
+    def output4replay(self, cur_new, next_vpred):
+        batch_size = len(self.rews)
+        if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
+            # print("训练数据长度 " + str(len(self.obs)))
+            return {"ob":self.obs, "rew": self.rews,
+               "vpred": self.vpreds, "new": self.news,
+               "ac": self.acs, "prevac": self.prevacs,
+               "nextvpred": next_vpred * (1 - cur_new),
+               "ep_rets": self.ep_rets, "ep_lens": self.ep_lens
+            }, batch_size
 
         elif self.t > 0 and cur_new == 1 and len(self.obs) == 0:
             # TODO 是不是有更优雅的方式
