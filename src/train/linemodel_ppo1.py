@@ -33,6 +33,7 @@ class LineModel_PPO1:
         optim_epochs=4, optim_stepsize=1e-3,  # optimization hypers
         schedule='linear', max_timesteps=40e6):
         self.run_mode = C.get_run_mode()
+
         self.act = None
         self.train = None
         self.update_target = None
@@ -84,6 +85,8 @@ class LineModel_PPO1:
         self._build_model(input_space=statesize, action_size=actionsize, policy_func=policy_func)
 
         self.tstart = time.time()
+        self.saver = tf.train.Saver(
+            tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
 
     def _build_model(self, input_space, action_size, policy_func,
         clip_param=0.2, entcoeff=0.01,  # clipping parameter epsilon, entropy coeff
@@ -158,15 +161,14 @@ class LineModel_PPO1:
             if (self.adam != None):
                 self.adam.sync()
 
+
     def load(self, name):
-        saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
         sess = U.get_session()
-        saver.restore(sess, name)
+        self.saver.restore(sess, name)
 
     def save(self, name):
-        saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
         sess = U.get_session()
-        saver.save(sess, name)
+        self.saver.save(sess, name)
 
     @staticmethod
     def gen_input(cur_state, hero_name, rival_hero):
