@@ -4,7 +4,7 @@
 import pickle
 
 from util.modelprocess import ModelProcess
-
+from common import cf as C
 
 class LineTrainerManager:
     def __init__(self, run_mode):
@@ -24,10 +24,11 @@ class LineTrainerManager:
                 o4r['battle_id'], o4r['generation_id'],
                 len(data)))
         else:
-            print("/data %d %d %d" % (
-                o4r['battle_id'], o4r['generation_id'],
-                len(data)))
             self.train_data.append(o4r)
+            print("/data %d %d %d - %d/%d" % (
+                o4r['battle_id'], o4r['generation_id'],
+                len(data), len(self.train_data), C.TRAIN_GAME_BATCH))
+
 
     def train(self):
         train_data = list(self.train_data)
