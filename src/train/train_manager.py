@@ -47,8 +47,8 @@ class LineTrainerManager:
         if (os.path.isdir(base_path)):
             shutil.rmtree(base_path)
         os.makedirs(base_path)
-        self.model_process.model_1.save(base_path + '/1')
-        self.model_process.model_2.save(base_path + '/2')
+        self.model_process.model_1.save(base_path + '/1/1')
+        self.model_process.model_2.save(base_path + '/2/2')
 
     def start(self):
         print('start')
