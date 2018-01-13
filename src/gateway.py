@@ -95,7 +95,7 @@ def run_gateway(port, start_ioloop=True):
     the tornado IOLoop will be started immediately.
     """
     app = tornado.web.Application([
-        (r'/data0', Data0Handler),
+        (r'/data0/.*', Data0Handler),
         (r'.*', ForwardHandler),
     ])
     C.set_worker_name('gw')
