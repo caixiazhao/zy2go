@@ -8,21 +8,23 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 
-#from tornado.options import define, options
-
 from common import cf as C
-
-#define("port", default=8780, help="run on the given port", type=int)
 
 GAME_BASE_PORT = C.GAME_BASE_PORT
 GAME_WORKER_SLOTS = C.GAME_WORKER_SLOTS
 
 
+G = {
+    'batches': 0,
+    'train_lock': False,
+}
+
+
 def battle_id_and_game_worker_port(content):
     id_str = content.partition(b'}')[0].rpartition(b':')[2]
     battle_id = int(id_str)
-    port = GAME_BASE_PORT + (battle_id - 1)// GAME_WORKER_SLOTS
-    return (battle_id, port)
+    port = GAME_BASE_PORT + (battle_id - 1) // GAME_WORKER_SLOTS
+    return battle_id, port
 
 
 def fetch_request(url, callback, **kwargs):
@@ -78,21 +80,40 @@ class ForwardHandler(tornado.web.RequestHandler):
                 allow_nonstandard_methods=True)
 
 
-class Data0Handler(tornado.web.RequestHandler):
+class DataHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         body = self.request.body
-        size = len(body)
-        md5 = hashlib.md5(body).hexdigest()
-        msg = '%s %s' % (size, md5)
-        print(msg)
-        self.finish(msg)
-        fetch_request(
-            'http://127.0.0.1:%d/data' % C.TRAINER_PORT,
-            None,
-            method = 'GET', body = body,
-            follow_redirects=False,
-            allow_nonstandard_methods=True)
+        path = self.request.path
+        battle_id, model_name, generation_id = path[6:].split('/')
+        self.finish(C.get_generation_id())
+
+        def train__data_callback(response):
+            G['batches'] += 1
+            if G['batches'] >= C.TRAIN_GAME_BATCH:
+                G['train_lock'] = True
+                fetch_request(
+                    'http://127.0.0.1:%d/train' % (C.TRAINER_PORT),
+                    train__train_callback,
+                    method='GET',
+                    follow_redirects=False,
+                    allow_nonstandard_methods=True)
+
+        def train__train_callback(response):
+            G['train_look'] = False
+            G['batches'] = 0
+            C.set_generation_id(int(response.body))
+
+        if G['train_look']:
+            return
+
+        if int(generation_id) == C.get_generation_id():
+            fetch_request(
+                'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),
+                train__data_callback,
+                method='GET', body=body,
+                follow_redirects=False,
+                allow_nonstandard_methods=True)
 
 
 def run_gateway(port, start_ioloop=True):
@@ -101,7 +122,7 @@ def run_gateway(port, start_ioloop=True):
     the tornado IOLoop will be started immediately.
     """
     app = tornado.web.Application([
-        (r'/data0/.*', Data0Handler),
+        (r'/data/.*', DataHandler),
         (r'.*', ForwardHandler),
     ])
     C.set_worker_name('gw')
@@ -116,6 +137,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
 
-    print ("Starting HTTP proxy on port %d" % port)
+    print("Starting HTTP proxy on port %d" % port)
     C.set_run_mode("gateway")
+    C.set_generation_id(0)
     run_gateway(port)

@@ -19,16 +19,21 @@ class LineTrainerManager:
 
     def push_data(self, data):
         o4r = pickle.loads(data)
-        print("/data %d %d %d" % (
-            o4r['battle_id'], o4r['generation_id'],
-            len(data)))
-        self.train_data.append(o4r)
+        if o4r['generation_id'] != self.generation_id:
+            print("/data %d %d %d skip" % (
+                o4r['battle_id'], o4r['generation_id'],
+                len(data)))
+        else:
+            print("/data %d %d %d" % (
+                o4r['battle_id'], o4r['generation_id'],
+                len(data)))
+            self.train_data.append(o4r)
 
     def train(self):
         train_data = list(self.train_data)
         self.train_data.clear()
         self.model_process.do_real_train(train_data)
-        self.generation_id += 1
+        # self.generation_id += 1
 
     def start(self):
         print('start')

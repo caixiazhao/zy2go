@@ -8,7 +8,7 @@ import numpy as np
 from multiprocessing import Event
 
 from model.stateinfo import StateInfo
-from train.linetrainer_manager import LineTrainerManager
+from train.game_manager import LineTrainerManager
 
 
 def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict, lock):

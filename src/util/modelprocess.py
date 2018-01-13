@@ -10,10 +10,9 @@ from util.modelutil import ModelUtil
 
 
 def push_data(battle_id, model_name, generation_id, data):
-    url = 'http://127.0.0.1:8780/data0/%d/%d/%s' % (
+    url = 'http://127.0.0.1:8780/data/%d/%d/%s' % (
         generation_id, battle_id, model_name)
-    r = requests.get('http://127.0.0.1:8780/data0/%s/%s',
-        data=data)
+    r = requests.get(url, data=data)
     return r.text
 
 
@@ -62,8 +61,8 @@ class ModelProcess:
         return
 
     def do_real_train(self, o4rs):
-        o4rs_1 = [ x[2] for x in o4rs if x[1] == C.NAME_MODEL_1]
-        o4rs_2 = [ x[2] for x in o4rs if x[1] == C.NAME_MODEL_2]
+        o4rs_1 = [ x for x in o4rs if x['model_name'] == C.NAME_MODEL_1]
+        o4rs_2 = [ x for x in o4rs if x['model_name'] == C.NAME_MODEL_2]
 
         begin_time = time.time()
         print ('REAL_TRAIN - model1:%s, model2:%s' % 
@@ -76,7 +75,6 @@ class ModelProcess:
             if_save_model(self.model_2, self.model2_save_header, self.save_batch)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
-
         print('model train time', delta_millionseconds)
 
     def act(self, battle_id, act_model_name, state_inputs):

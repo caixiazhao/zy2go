@@ -29,7 +29,7 @@ import tornado.web
 import traceback
 
 from tornado.options import define, options
-from train.linetrainer_manager_2 import LineTrainerManager
+from train.train_manager import LineTrainerManager
 
 define("port", default=8999, help="run on the given port", type=int)
 

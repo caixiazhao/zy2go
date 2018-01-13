@@ -59,3 +59,6 @@ def get_run_mode():
 
 def set_generation_id(id):
     GLOBAL['generation_id'] = id
+
+def get_generation_id():
+    return GLOBAL['generation_id']

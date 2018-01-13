@@ -3,7 +3,7 @@ import random
 import time
 import _thread
 
-from train.linetrainer_manager import LineTrainerManager
+from train.game_manager import LineTrainerManager
 
 
 def read_thread(name, raw_log_path):
