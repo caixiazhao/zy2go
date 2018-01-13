@@ -7,7 +7,7 @@ import queue
 import baselines.common.tf_util as U
 import tensorflow as tf
 
-from util.httputil import HttpUtil
+from util.modelutil import HttpUtil
 
 
 # 维护三个队列，一个action队列用来计算英雄行为，一个train队列用来训练模型，一个save队列用来存储模型

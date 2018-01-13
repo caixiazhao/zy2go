@@ -10,7 +10,7 @@ import time
 
 from common import cf as C
 from model.stateinfo import StateInfo
-from util.httputil import HttpUtil
+from util.modelutil import HttpUtil
 from util.linetrainer_ppo import LineTrainerPPO
 from util.modelprocess import ModelProcess
 from util.ppocache2 import PPO_CACHE2

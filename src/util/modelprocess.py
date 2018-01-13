@@ -9,7 +9,7 @@ import pickle
 from common import cf as C
 from model.cmdaction import CmdAction
 from train.cmdactionenum import CmdActionEnum
-from util.httputil import HttpUtil
+from util.modelutil import HttpUtil
 # from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
 
 

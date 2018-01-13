@@ -24,7 +24,7 @@ from model.stateinfo import StateInfo
 from train.ppo_nn import PPONet
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
-from util.httputil import HttpUtil
+from util.modelutil import HttpUtil
 from util.linetrainer import LineTrainer
 import json as JSON
 from datetime import datetime
