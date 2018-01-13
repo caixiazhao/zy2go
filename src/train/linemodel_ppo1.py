@@ -253,7 +253,7 @@ class LineModel_PPO1:
         for _ in range(self.optim_epochs):
             g_list = []
             for seg in seg_list:
-
+                self.act_times += len(seg["ob"])
                 self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
                 # print(seg)
