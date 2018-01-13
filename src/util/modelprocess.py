@@ -2,9 +2,9 @@
 import sys
 # import queue
 import time
-import json
 
 import numpy as np
+import ujson as json
 
 from common import cf as C
 from model.cmdaction import CmdAction
@@ -48,7 +48,7 @@ class ModelProcess:
     # 触发完整训练
     def train(self, battle_id, train_model_name, o4r, batch_size):
         print('====train-data====')
-        print(json.dumps(o4r))
+        print(len(json.dumps(o4r)))
         o4r = o4r_json_to_numpy(o4r)
 
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
