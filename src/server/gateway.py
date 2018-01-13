@@ -79,14 +79,20 @@ class ForwardHandler(tornado.web.RequestHandler):
 
 
 class Data0Handler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
     def get(self):
         body = self.request.body
         size = len(body)
         md5 = hashlib.md5(body).hexdigest()
         msg = '%s %s' % (size, md5)
-        self.write(msg)
         print(msg)
-        self.finish()
+        self.finish(msg)
+        fetch_request(
+            'http://127.0.0.1:%d/data' % C.TRAINER_PORT,
+            None,
+            method = 'GET', body = body,
+            follow_redirects=False,
+            allow_nonstandard_methods=True)
 
 
 def run_gateway(port, start_ioloop=True):
