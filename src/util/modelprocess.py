@@ -1,16 +1,20 @@
 # -*- coding: utf8 -*-
-import sys
-# import queue
 import time
-
 import pickle
+import hashlib
 
+import requests
 
 from common import cf as C
-from model.cmdaction import CmdAction
-from train.cmdactionenum import CmdActionEnum
 from util.modelutil import HttpUtil
-# from multiprocessing import Process, Manager, Value, Array, Lock, Queue, Event
+
+
+def post_data(battle_id, generation_id, data):
+    url = 'http://127.0.0.1:8780/data0/%d/%d' % (
+        generation_id, battle_id)
+    r = requests.get('http://127.0.0.1:8780/data0/%s/%s',
+        data=data)
+    return r.text
 
 
 def if_save_model(model, save_header, save_batch):
@@ -22,8 +26,6 @@ def if_save_model(model, save_header, save_batch):
 
 class ModelProcess:
     def __init__(self, battle_id_num):
-        self.action_queue = None
-        self.train_queue = None
         self.results = None
         self.save_batch = C.SAVE_BATCH
         self.init_signal = None
@@ -52,7 +54,10 @@ class ModelProcess:
         o4r['model_name'] = train_model_name
 
         print('====train-data====')
-        print(len(pickle.dumps(o4r)))
+        o4rdata = pickle.dumps(o4r)
+        print(hashlib.md5(o4rdata).hexdigest())
+        r = post_data(battle_id, generation_id, o4rdata)
+        print(r)
 
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
         print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
@@ -61,12 +66,6 @@ class ModelProcess:
 
         if len(self.train_datas) >= C.TRAIN_GAME_BATCH:
             self._train()
-
-        #restartCmd = CmdAction(
-        #    C.NAME_MODEL_1, CmdActionEnum.RESTART, 0,
-        #    None, None, None, None, None, None)
-        #return (restartCmd, None, None)
-
 
     def _train(self):
         o4rs_1 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_1]
@@ -85,7 +84,6 @@ class ModelProcess:
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
         print('model train time', delta_millionseconds)
- 
 
     def act(self, battle_id, act_model_name, state_inputs):
         begin_time = time.time()
