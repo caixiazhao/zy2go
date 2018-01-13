@@ -19,10 +19,11 @@ from train.linemodel_dpn import LineModel_DQN
 from util.rewardutil import RewardUtil
 from util.stateutil import StateUtil
 
-from baselines.common.mpi_moments import mpi_moments
 from collections import deque
 import time
 import random
+
+from common import cf as C
 
 if C.GLOBAL['run_mode'] == C.RUN_MODE_TRAIN:
     from mpi4py import MPI
