@@ -120,11 +120,11 @@ class ModelProcess:
     def update_model_from_disk(self, generation_id):
         self.generation_id = generation_id
         base_path = os.path.join(C.DATA_ROOT_PATH, "trainer", str(generation_id))
-        try:
-            self.model_1.load(base_path + '/1/1')
-            self.model_2.load(base_path + '/2/2')
-        except Exception as ex:
-            print('update_model_from_disk - steal generation: %d' % self.generation_id)
+        if not os.path.isdir(base_path):
+            print('update_model steal generation: %d' % generation_id)
+
+        self.model_1.load(base_path + '/1/1')
+        self.model_2.load(base_path + '/2/2')
 
 
     def start(self):
