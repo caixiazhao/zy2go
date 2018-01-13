@@ -19,7 +19,9 @@ import logging
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-import sys
+from common import cf as C
+C.set_run_mode('predict')
+
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
@@ -28,7 +30,6 @@ import traceback
 
 from tornado.options import define, options
 from train.linetrainer_manager import LineTrainerManager
-from common import cf as C
 
 define("port", default=9000, help="run on the given port", type=int)
 define("slot", default=10, help="model slots", type=int)
@@ -56,6 +57,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 
 def main():
+    C.set_run_mode("predict")
     tornado.options.parse_command_line()
     manager = LineTrainerManager(options.base, options.slot)
     manager.start()

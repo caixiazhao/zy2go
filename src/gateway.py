@@ -98,4 +98,5 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
 
     print ("Starting HTTP proxy on port %d" % port)
+    C.set_run_mode("gateway")
     run_proxy(port)

@@ -9,6 +9,7 @@ NAME_MODEL_1 = 'model_1'
 NAME_MODEL_2 = 'model_2'
 
 PARAMS = {}
+GLOBAL = {}
 
 LOG = {
     'LINEMODEL__ACT_0': True,
@@ -27,7 +28,32 @@ LOG__MANAGER_READ_PROCESSOR = True
 PRELOAD_MODEL1_PATH = None
 PRELOAD_MODEL2_PATH = None
 
-GAME_WORKERS = 20 # game worker 进程数量
-GAME_WORKER_SLOTS = 8 # 每个game worker为几个game.exe提供服务
-GAME_BASE_PORT = 9000 # game worker的起始端口
-TRAINER_PORT = 8999 #训练worker的端口
+# game worker 进程数量
+GAME_WORKERS = 20
+
+# 每个game worker为几个game.exe提供服务
+GAME_WORKER_SLOTS = 8
+
+# game worker的起始端口
+GAME_BASE_PORT = 9000
+
+#训练worker的端口
+TRAINER_PORT = 8999
+
+RUN_MODE_GATEWAY = 'gateway'
+RUN_MODE_PREDICT = 'predict'
+RUN_MODE_TRAIN = 'train'
+
+
+# ----
+def set_worker_name(s):
+    if os.environ.get('TMUX') is not None:
+        os.system("tmux rename-window '%s'" % s)
+
+
+def set_run_mode(mode):
+    GLOBAL['run_mode'] = mode
+
+
+def set_generation_id(id):
+    GLOBAL['generation_id'] = id

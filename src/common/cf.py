@@ -39,6 +39,4 @@ LOG.update({
 })
 
 
-def set_worker_name(s):
-    if os.environ.get('TMUX') != None:
-        os.system("tmux rename-window '%s'" % s)
+
