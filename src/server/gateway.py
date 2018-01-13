@@ -108,8 +108,8 @@ class DataHandler(tornado.web.RequestHandler):
         if G['train_lock']:
             return
 
-        #if int(generation_id) != C.get_generation_id():
-        #    return
+        if int(generation_id) != C.get_generation_id():
+            return
 
         fetch_request(
             'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),

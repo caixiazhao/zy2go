@@ -3,10 +3,11 @@
 
 #from multiprocessing import Process, Manager, Lock
 
-import sys
 import json as JSON
 import traceback
 import time
+
+import requests
 
 from common import cf as C
 from model.stateinfo import StateInfo
@@ -15,10 +16,20 @@ from util.linetrainer_ppo import LineTrainerPPO
 from util.modelprocess import ModelProcess
 from util.ppocache2 import PPO_CACHE2
 
+def sync_generation_id_from_trainer():
+    try:
+        r = requests.get('http://127.0.0.1:%d/generation_id' % C.TRAINER_PORT)
+        return int(r.text)
+    except Exception as ex:
+        print(ex)
+        return 0
 
 class LineTrainerManager:
     def __init__(self, base_bid, battle_id_num):
         self.model_process = ModelProcess(battle_id_num)
+
+        self.lastCheckGenerationId = time.time()
+        C.set_generation_id(sync_generation_id_from_trainer())
 
         # TODO: Temporarily hold the original variables
         self.lock = None
@@ -51,9 +62,13 @@ class LineTrainerManager:
             model2_hero, model2_cache,
             real_hero=None, policy_ratio=1, policy_continue_acts=3)
 
-
     def read_process_(self, json_str):
         begin_time = time.time()
+        if begin_time - self.lastCheckGenerationId > 1.5:
+            C.set_generation_id(sync_generation_id_from_trainer())
+            self.lastCheckGenerationId = begin_time
+            begin_time = time.time()
+
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
@@ -69,7 +84,7 @@ class LineTrainerManager:
         return response
 
     @staticmethod
-    def read_process(json_str, p_request_dict, p_result_dict, lock):
+    def read_process(json_str):
         try:
             return LineTrainerManager.One.read_process_(json_str)
         except Exception as ex:

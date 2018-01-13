@@ -28,6 +28,7 @@ import tornado.options
 import tornado.web
 import traceback
 
+
 from tornado.options import define, options
 from train.game_manager import LineTrainerManager
 
@@ -35,17 +36,11 @@ define("port", default=9000, help="run on the given port", type=int)
 define("slot", default=10, help="model slots", type=int)
 define("base", default=0, help="base id", type=int)
 
-# curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
-    def initialize(self, p_request_dict, p_result_dict, lock):
-        self.p_request_dict = p_request_dict
-        self.p_result_dict = p_result_dict
-        self.lock = lock
-
     def get(self, *args, **kwargs):
         try:
             content = tornado.escape.to_basestring(self.request.body)
-            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
+            response = LineTrainerManager.read_process(content)
             self.finish(response)
         except Exception as e:
             print('nonblock server catch exception')
@@ -63,12 +58,12 @@ def main():
     manager.start()
 
     application = tornado.web.Application([
-        (r"/", MainHandler,
-         dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict, lock=manager.lock)),
+        (r"/", MainHandler),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 
     C.set_worker_name("g%d" % options.port)
+
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)

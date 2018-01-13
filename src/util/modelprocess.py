@@ -1,4 +1,7 @@
 # -*- coding: utf8 -*-
+import os
+import shutil
+
 import time
 import pickle
 import hashlib
@@ -25,6 +28,7 @@ def if_save_model(model, save_header, save_batch):
 
 class ModelProcess:
     def __init__(self, battle_id_num):
+
         self.results = None
         self.save_batch = C.SAVE_BATCH
         self.init_signal = None
@@ -43,6 +47,7 @@ class ModelProcess:
             model1_initial_p=0.05, model1_final_p=0.05, model1_gamma=0.95,
             model2_initial_p=0.05, model2_final_p=0.05, model2_gamma=0.95)
 
+        self.generation_id = 0
         self.train_datas = []
 
     # 只是将训练数据放入队列, 等长度足够之后，调用_train进行
@@ -57,7 +62,11 @@ class ModelProcess:
         print(hashlib.md5(o4rdata).hexdigest())
         r = push_data(battle_id, train_model_name,
             generation_id, o4rdata)
-        print(r)
+        gateway_generation_id = int(r)
+        if (self.generation_id == gateway_generation_id):
+            return
+
+
         return
 
     def do_real_train(self, o4rs):
@@ -98,6 +107,21 @@ class ModelProcess:
             self.time_cache.clear()
             self.num_cache.clear()
         return (actions_list, explor_value, vpreds)
+
+    def dump_model_to_disk(self, generation_id):
+        self.generation_id = generation_id
+        base_path = os.path.join(C.DATA_ROOT_PATH, "trainer", str(generation_id))
+        if (os.path.isdir(base_path)):
+            shutil.rmtree(base_path)
+        os.makedirs(base_path)
+        self.model_1.save(base_path + '/1/1')
+        self.model_2.save(base_path + '/2/2')
+
+    def update_model_from_disk(self, generation_id):
+        self.generation_id = generation_id
+        base_path = os.path.join(C.DATA_ROOT_PATH, "trainer", str(generation_id))
+        self.model_1.load(base_path + '/1/1')
+        self.model_2.load(base_path + '/2/2')
 
     def start(self):
         pass
