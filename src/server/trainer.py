@@ -32,6 +32,7 @@ from tornado.options import define, options
 from train.train_manager import LineTrainerManager
 
 define("port", default=8999, help="run on the given port", type=int)
+define("g", default=0, help="generation id")
 
 manager = LineTrainerManager(C.get_run_mode())
 
@@ -76,6 +77,7 @@ def main():
     http_server = tornado.httpserver.HTTPServer(application)
 
     C.set_worker_name("tr%d" % options.port)
+    manager.generation_id = options.g
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)

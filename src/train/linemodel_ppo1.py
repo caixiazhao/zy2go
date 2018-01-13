@@ -95,7 +95,7 @@ class LineModel_PPO1:
 
         if sess is None:
             if (C.get_run_mode() == C.RUN_MODE_TRAIN):
-                sess = U.make_session(8)
+                sess = U.make_session(12)
             else:
                 sess = U.make_session(1)
             sess.__enter__()
