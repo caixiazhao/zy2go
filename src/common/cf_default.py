@@ -4,6 +4,7 @@ DATA_ROOT_PATH = os.path.join(os.environ['HOME'], 'data')
 
 SAVE_BATCH = 10
 TRAIN_GAME_BATCH = 60
+TRAIN_CPUS = 16
 
 NAME_MODEL_1 = 'model_1'
 NAME_MODEL_2 = 'model_2'
@@ -39,8 +40,6 @@ GAME_BASE_PORT = 9000
 
 #训练worker的端口
 TRAINER_PORT = 8999
-
-
 GATEWAY_PORT = 8780
 
 RUN_MODE_GATEWAY = 'gateway'
