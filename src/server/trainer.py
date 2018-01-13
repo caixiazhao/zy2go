@@ -35,7 +35,6 @@ define("port", default=8999, help="run on the given port", type=int)
 
 manager = LineTrainerManager(C.get_run_mode())
 
-
 class TrainerHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
@@ -50,7 +49,7 @@ class TrainerHandler(tornado.web.RequestHandler):
                 return
             if path.startswith('/train'):
                 manager.train()
-                self.finish(manager.get_generation_id())
+                self.finish(str(manager.get_generation_id()))
                 return
             self.finish()
             return

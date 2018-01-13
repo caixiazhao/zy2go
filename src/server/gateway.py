@@ -60,8 +60,8 @@ class ForwardHandler(tornado.web.RequestHandler):
                     self.set_header('Content-Length', len(response.body))
                     self.write(response.body)
             self.finish()
-            print('forward %d:%d %d/%d' % (
-                info['id'], info['port'], len(self.request.body), len(response.body)))
+            #print('forward %d:%d %d/%d' % (
+            #    info['id'], info['port'], len(self.request.body), len(response.body)))
 
         body = self.request.body
 
@@ -85,8 +85,9 @@ class DataHandler(tornado.web.RequestHandler):
     def get(self):
         body = self.request.body
         path = self.request.path
-        battle_id, model_name, generation_id = path[6:].split('/')
-        self.finish(C.get_generation_id())
+        generation_id, battle_id, model_name = path[6:].split('/')
+        print(battle_id, model_name, generation_id)
+        self.finish(str(C.get_generation_id()))
 
         def train__data_callback(response):
             G['batches'] += 1
@@ -100,11 +101,11 @@ class DataHandler(tornado.web.RequestHandler):
                     allow_nonstandard_methods=True)
 
         def train__train_callback(response):
-            G['train_look'] = False
+            G['train_lock'] = False
             G['batches'] = 0
             C.set_generation_id(int(response.body))
 
-        if G['train_look']:
+        if G['train_lock']:
             return
 
         if int(generation_id) == C.get_generation_id():
