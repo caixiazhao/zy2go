@@ -3,8 +3,8 @@ import sys
 # import queue
 import time
 
-import numpy as np
-import ujson as json
+import pickle
+
 
 from common import cf as C
 from model.cmdaction import CmdAction
@@ -48,8 +48,7 @@ class ModelProcess:
     # 触发完整训练
     def train(self, battle_id, train_model_name, o4r, batch_size):
         print('====train-data====')
-        print(len(json.dumps(o4r)))
-        o4r = o4r_json_to_numpy(o4r)
+        print(len(pickle.dumps(o4r)))
 
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
         print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
@@ -108,11 +107,6 @@ class ModelProcess:
 
     def start(self):
         pass
-
-def o4r_json_to_numpy(o4r):
-    for key in ("ob",  "rew", "vpred", "new", "ac", "prevac"):
-        o4r[key] = np.array(o4r[key])
-    return o4r
 
 if __name__ == '__main__':
     model_process = ModelProcess()
