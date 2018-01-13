@@ -68,7 +68,7 @@ def main():
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 
-    C.set_worker_name("w%d" % options.port)
+    C.set_worker_name("g%d" % options.port)
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)
