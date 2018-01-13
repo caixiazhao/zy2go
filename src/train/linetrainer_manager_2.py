@@ -19,6 +19,9 @@ class LineTrainerManager:
 
     def push_data(self, data):
         o4r = pickle.loads(data)
+        print("/data %d %d %d" % (
+            o4r['battle_id'], o4r['generation_id'],
+            len(data)))
         self.train_data.append(o4r)
 
     def train(self):

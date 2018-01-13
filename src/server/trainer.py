@@ -44,7 +44,7 @@ class TrainerHandler(tornado.web.RequestHandler):
             if path.startswith('/generation_id'):
                 self.finish(str(manager.get_generation_id()))
             if path.startswith('/data'):
-                print('/data %d' % len(data))
+                # print('/data %d' % len(data))
                 manager.push_data(data)
                 self.finish(str(manager.get_batch_num()))
                 return
@@ -67,7 +67,7 @@ def main():
     tornado.options.parse_command_line()
 
     application = tornado.web.Application([
-        (r"/", TrainerHandler)
+        (r"/.*", TrainerHandler)
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 
