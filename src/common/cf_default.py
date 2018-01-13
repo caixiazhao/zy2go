@@ -40,6 +40,9 @@ GAME_BASE_PORT = 9000
 #训练worker的端口
 TRAINER_PORT = 8999
 
+
+GATEWAY_PORT = 8780
+
 RUN_MODE_GATEWAY = 'gateway'
 RUN_MODE_PREDICT = 'predict'
 RUN_MODE_TRAIN = 'train'

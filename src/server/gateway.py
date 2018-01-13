@@ -44,6 +44,10 @@ class ForwardHandler(tornado.web.RequestHandler):
     def get(self):
         info = {}
 
+        if (self.request.path == '/generation_id'):
+            self.finish(str(C.get_generation_id()))
+            return
+
         def handle_response(response):
             if (response.error and not isinstance(response.error, tornado.httpclient.HTTPError)):
                 self.set_status(500)

@@ -19,7 +19,7 @@ from util.ppocache2 import PPO_CACHE2
 
 def sync_generation_id_from_trainer():
     try:
-        r = requests.get('http://127.0.0.1:%d/generation_id' % C.TRAINER_PORT)
+        r = requests.get('http://127.0.0.1:%d/generation_id' % C.GATEWAY_PORT)
         return int(r.text)
     except Exception as ex:
         print(ex)
