@@ -1,27 +1,17 @@
 # -*- coding: utf8 -*-
-import collections
-
-import threading
 from baselines import logger
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.layers as layers
 from baselines.common import Dataset, explained_variance, fmt_row, zipsame
 
 import baselines.common.tf_util as U
-from baselines import deepq
 from baselines.common.schedules import LinearSchedule
-from baselines.deepq import ReplayBuffer
 from train.line_input_lite import Line_Input_Lite
 from train.ppo_nn import PPONet
-from train.linemodel import LineModel
-from train.linemodel_dpn import LineModel_DQN
-from util.rewardutil import RewardUtil
 from util.stateutil import StateUtil
 
 from collections import deque
 import time
-import random
 
 from common import cf as C
 
@@ -408,7 +398,7 @@ class LineModel_PPO1:
         self_hp_loss = (cur_hero.hp - next_hero.hp) / float(cur_hero.maxhp) / 2 if (
             cur_hero.hp >= next_hero.hp >= next_hero.hp) else 0
         self_hp_loss *= 3 * cur_hero.maxhp / float(cur_hero.hp + cur_hero.maxhp)
-        dmg_delta = int((dmg - self_hp_loss) * LineModel.REWARD_RIVAL_DMG)
+        dmg_delta = int((dmg - self_hp_loss) * LineModel_PPO1.REWARD_RIVAL_DMG)
 
         # 统计和更新变量
         # print('reward debug info, hero: %s, max_gold: %s, gold_gain: %s, dmg: %s, hp_loss: %s, dmg_delta: %s, '
