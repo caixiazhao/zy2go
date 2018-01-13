@@ -10,35 +10,38 @@ from baselines.common import Dataset, explained_variance, fmt_row, zipsame
 
 import baselines.common.tf_util as U
 from baselines import deepq
-from baselines.common.mpi_adam import MpiAdam
 from baselines.common.schedules import LinearSchedule
 from baselines.deepq import ReplayBuffer
 from train.line_input_lite import Line_Input_Lite
 from train.ppo_nn import PPONet
 from train.linemodel import LineModel
-from baselines.common.mpi_moments import mpi_moments
 from train.linemodel_dpn import LineModel_DQN
 from util.rewardutil import RewardUtil
 from util.stateutil import StateUtil
 
 from baselines.common.mpi_moments import mpi_moments
-from mpi4py import MPI
 from collections import deque
 import time
 import random
 
+if C.GLOBAL['run_mode'] == C.RUN_MODE_TRAIN:
+    from mpi4py import MPI
+    from baselines.common.mpi_adam import MpiAdam
+    from baselines.common.mpi_moments import mpi_moments
+
 from common import cf as C
+
 
 class LineModel_PPO1:
     REWARD_RIVAL_DMG = 250
 
     def __init__(self, statesize, actionsize, hero, ob, ac,
-                 policy_func=None,
-                 update_target_period=100, scope="ppo1", schedule_timesteps=10000, initial_p=0, final_p=0,
-                 gamma=0.99, lam=0.95,
-                 optim_epochs=4, optim_stepsize=1e-3,  # optimization hypers
-                 schedule='linear', max_timesteps=40e6
-                 ):
+        policy_func=None,
+        update_target_period=100, scope="ppo1", schedule_timesteps=10000, initial_p=0, final_p=0,
+        gamma=0.99, lam=0.95,
+        optim_epochs=4, optim_stepsize=1e-3,  # optimization hypers
+        schedule='linear', max_timesteps=40e6):
+        self.run_mode = C.get_run_mode()
         self.act = None
         self.train = None
         self.update_target = None
@@ -92,11 +95,15 @@ class LineModel_PPO1:
         self.tstart = time.time()
 
     def _build_model(self, input_space, action_size, policy_func,
-                     clip_param=0.2, entcoeff=0.01,  # clipping parameter epsilon, entropy coeff
-                     adam_epsilon=1e-5):
+        clip_param=0.2, entcoeff=0.01,  # clipping parameter epsilon, entropy coeff
+        adam_epsilon=1e-5):
         sess = U.get_session()
+
         if sess is None:
-            sess = U.make_session(8)
+            if (C.get_run_mode() == C.RUN_MODE_TRAIN):
+                sess = U.make_session(8)
+            else:
+                sess = U.make_session(1)
             sess.__enter__()
 
         # Setup losses and stuff
@@ -108,7 +115,7 @@ class LineModel_PPO1:
             ret = tf.placeholder(dtype=tf.float32, shape=[None])  # Empirical return
 
             lrmult = tf.placeholder(name='lrmult', dtype=tf.float32,
-                                    shape=[])  # learning rate multiplier, updated with schedule
+                shape=[])  # learning rate multiplier, updated with schedule
             clip_param = clip_param * lrmult  # Annealed cliping parameter epislon
 
             ob = U.get_placeholder_cached(name="ob")
@@ -142,16 +149,23 @@ class LineModel_PPO1:
             losses = [pol_surr, pol_entpen, vf_loss, meankl, meanent]
             debugs = [debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss]
 
-            self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult], losses + debugs + [var_list, grads] + [U.flatgrad(total_loss, var_list)])
-            self.adam = MpiAdam(var_list, epsilon=adam_epsilon)
+            self.lossandgrad = U.function([ob, ac, atarg, ret, lrmult],
+                losses + debugs + [var_list, grads] + [U.flatgrad(total_loss, var_list)])
 
-            self.assign_old_eq_new = U.function([], [], updates=[tf.assign(oldv, newv)
-                                                            for (oldv, newv) in
-                                                            zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
+            self.assign_old_eq_new = U.function([], [],
+                updates=[tf.assign(oldv, newv)
+                    for (oldv, newv) in
+                    zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
             self.compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
 
+            if (self.run_mode == C.RUN_MODE_TRAIN):
+                self.adam = MpiAdam(var_list, epsilon=adam_epsilon)
+            else:
+                self.adam = None
             U.initialize()
-            self.adam.sync()
+
+            if (self.adam != None):
+                self.adam.sync()
 
     def load(self, name):
         saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.scope))
@@ -214,7 +228,8 @@ class LineModel_PPO1:
         """
         Compute target value using TD(lambda) estimator, and advantage with GAE(lambda)
         """
-        new = np.append(seg["new"], 0)  # last element is only used for last vtarg, but we already zeroed it if last new = 1
+        new = np.append(seg["new"],
+            0)  # last element is only used for last vtarg, but we already zeroed it if last new = 1
         vpred = np.append(seg["vpred"], seg["nextvpred"])
         T = len(seg["rew"])
         seg["adv"] = gaelam = np.empty(T, 'float32')
@@ -261,7 +276,7 @@ class LineModel_PPO1:
                 self.assign_old_eq_new()  # set old parameter values to new parameter values
 
                 # 完整的拿所有行为
-                batch =  d.next_batch(d.n)
+                batch = d.next_batch(d.n)
                 # print("ob", batch["ob"], "ac", batch["ac"], "atarg", batch["atarg"], "vtarg", batch["vtarg"])
                 *newlosses, debug_atarg, pi_ac, opi_ac, vpred, pi_pd, opi_pd, kl_oldnew, total_loss, var_list, grads, g = \
                     self.lossandgrad(batch["ob"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
@@ -357,7 +372,8 @@ class LineModel_PPO1:
         next_hero = next_state.get_hero(hero_name)
         next_rival_hero = next_state.get_hero(rival_hero_name)
         # 找到英雄附近死亡的敌方小兵
-        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero, StateUtil.GOLD_GAIN_RADIUS)
+        dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero,
+            StateUtil.GOLD_GAIN_RADIUS)
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
         dead_unit_str = (','.join([u.unit_name for u in dead_units]))
 
@@ -370,11 +386,12 @@ class LineModel_PPO1:
         gold_delta = gold_delta * 2 - dead_golds
         if gold_delta < 0:
             if C.LOG['LINEMODEL_PPO1__0']:
-                print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain', (next_hero.gold - cur_hero.gold))
+                print('获得击杀金币不应该小于零', cur_state.tick, 'dead_units', dead_unit_str, 'gold_gain',
+                    (next_hero.gold - cur_hero.gold))
             gold_delta = 0
 
         # if dead_golds > 0:
-            # print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
+        # print('dead_gold', dead_golds, 'delta_gold', gold_delta, "hero", hero_name, "tick", cur_state.tick)
 
         # 计算对指定敌方英雄造成的伤害，计算接受的伤害
         # 伤害信息和击中信息都有延迟，在两帧之后（但是一般会出现在同一条信息中，偶尔也会出现在第二条中）
@@ -444,10 +461,10 @@ class LineModel_PPO1:
             model_input = LineModel_PPO1.gen_input(cur_state, hero_name, rival_hero)
             if model_input[44] == Line_Input_Lite.normalize_value_static(int(tower)):
                 print('yes found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
-                      StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
+                    StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
             else:
                 print('not found attack tower in input', tower, 'distance', model_input[50], 'cal_distance',
-                      StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
+                    StateUtil.cal_distance2(tower_info.pos, hero_info.pos))
 
     @staticmethod
     # 只使用当前帧（做决定帧）+下一帧来计算奖惩，目的是在游戏结束时候可以计算所有之前行为的奖惩，不会因为需要延迟n下而没法计算
@@ -465,7 +482,7 @@ class LineModel_PPO1:
         next_rival_hero = next_state.get_hero(rival_hero_name)
         # 找到英雄附近死亡的敌方小兵
         dead_units = StateUtil.get_dead_units_in_line(next_state, rival_team, line_idx, cur_hero,
-                                                      StateUtil.GOLD_GAIN_RADIUS)
+            StateUtil.GOLD_GAIN_RADIUS)
         dead_golds = sum([StateUtil.get_unit_value(u.unit_name, u.cfg_id) for u in dead_units])
 
         # 如果英雄有小额金币变化，则忽略

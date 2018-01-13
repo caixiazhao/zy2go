@@ -60,6 +60,7 @@ class ModelProcess:
             generation_id, o4rdata)
         print(r)
 
+        """
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
         print('model_process train-queue: %s/%s batchsize:%d -- %s/%s' %(
             battle_id, train_model_name, batch_size, 
@@ -67,6 +68,8 @@ class ModelProcess:
 
         if len(self.train_datas) >= C.TRAIN_GAME_BATCH:
             self._train()
+        """
+        return
 
     def _train(self):
         o4rs_1 = [ x[2] for x in self.train_datas if x[1] == C.NAME_MODEL_1]

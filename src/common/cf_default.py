@@ -54,6 +54,8 @@ def set_worker_name(s):
 def set_run_mode(mode):
     GLOBAL['run_mode'] = mode
 
+def get_run_mode():
+    return GLOBAL['run_mode']
 
 def set_generation_id(id):
     GLOBAL['generation_id'] = id
