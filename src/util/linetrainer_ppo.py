@@ -84,6 +84,8 @@ class LineTrainerPPO:
         self.model1_cache = model1_cache
         self.model2_cache = model2_cache
 
+        self.generation_id = 0
+
     def if_restart(self, state_infos, state_index):
         # 重开条件：英雄死亡两次或者第一个塔被打掉
         state_info = state_infos[state_index]
@@ -140,7 +142,9 @@ class LineTrainerPPO:
                 # 等到下次训练开始再清空
                 # 一直等待，这里需要观察客户端连接超时开始重试后的情况
                 # TODO 这里清空缓存是不是不太好
-                model_process.train(self.battle_id, model_name, o4r, batchsize)
+                model_process.train(
+                    self.battle_id, model_name, o4r, batchsize,
+                    self.generation_id)
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')
 
@@ -174,7 +178,9 @@ class LineTrainerPPO:
             o4r, batch_size = model_cache.output4replay(prev_new, -1)
             model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
             if o4r is not None:
-                model_process.train(self.battle_id, model_name, o4r, batch_size)
+                model_process.train(
+                    self.battle_id, model_name,
+                    o4r, batch_size, self.generation_id)
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')
 

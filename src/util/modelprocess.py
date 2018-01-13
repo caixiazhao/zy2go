@@ -46,7 +46,11 @@ class ModelProcess:
 
     # 只是将训练数据放入队列, 等长度足够之后，调用_train进行
     # 触发完整训练
-    def train(self, battle_id, train_model_name, o4r, batch_size):
+    def train(self, battle_id, train_model_name, o4r, batch_size, generation_id):
+        o4r['battle_id'] = battle_id
+        o4r['generation_id'] = generation_id
+        o4r['model_name'] = train_model_name
+
         print('====train-data====')
         print(len(pickle.dumps(o4r)))
 
