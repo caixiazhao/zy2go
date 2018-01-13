@@ -90,7 +90,13 @@ class DataHandler(tornado.web.RequestHandler):
         self.finish(str(C.get_generation_id()))
 
         def train__data_callback(response):
-            G['batches'] += 1
+            generation_id = int(response.body)
+            if generation_id == C.get_generation_id():
+                G['batches'] += 1
+            else:
+                G['batches'] = 0
+                C.set_generation_id(generation_id)
+
             if G['batches'] >= C.TRAIN_GAME_BATCH:
                 G['train_lock'] = True
                 fetch_request(
@@ -106,9 +112,6 @@ class DataHandler(tornado.web.RequestHandler):
             C.set_generation_id(int(response.body))
 
         if G['train_lock']:
-            return
-
-        if int(generation_id) != C.get_generation_id():
             return
 
         fetch_request(
