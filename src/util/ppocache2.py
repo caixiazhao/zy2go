@@ -26,8 +26,8 @@ class PPO_CACHE2:
         self.cur_ep_ret = 0
         self.cur_ep_len = 0
 
-        self.lenbuffer = deque(maxlen=100)  # rolling buffer for episode lengths
-        self.rewbuffer = deque(maxlen=100)  # rolling buffer for episode rewards
+        # self.lenbuffer = deque(maxlen=100)  # rolling buffer for episode lengths
+        # self.rewbuffer = deque(maxlen=100)  # rolling buffer for episode rewards
         self.episodes_so_far = 0
         self.timesteps_so_far = 0
         self.iters_so_far = 0
