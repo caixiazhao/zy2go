@@ -24,7 +24,7 @@ from model.stateinfo import StateInfo
 from train.ppo_nn import PPONet
 from train.linemodel_dpn import LineModel_DQN
 from train.linemodel_ppo1 import LineModel_PPO1
-from util.modelutil import HttpUtil
+from util.modelutil import ModelUtil
 from util.linetrainer import LineTrainer
 import json as JSON
 from datetime import datetime
@@ -114,7 +114,7 @@ class S(BaseHTTPRequestHandler):
         return
 
     line_trainers = {}
-    save_dir, model_1, model1_save_header, model_2, model2_save_header = HttpUtil.build_models_ppo(
+    save_dir, model_1, model1_save_header, model_2, model2_save_header = ModelUtil.build_models_ppo(
         model1_path=None,
         model2_path=None,
         schedule_timesteps=200000,

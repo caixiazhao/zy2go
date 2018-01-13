@@ -7,7 +7,7 @@ from train.linemodel_ppo1 import LineModel_PPO1
 import numpy as np
 
 
-class HttpUtil:
+class ModelUtil:
     @staticmethod
     def get_save_root_path():
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S%f")

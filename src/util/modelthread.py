@@ -7,7 +7,7 @@ import queue
 import baselines.common.tf_util as U
 import tensorflow as tf
 
-from util.modelutil import HttpUtil
+from util.modelutil import ModelUtil
 
 
 # 维护三个队列，一个action队列用来计算英雄行为，一个train队列用来训练模型，一个save队列用来存储模型
@@ -38,7 +38,7 @@ class ModelThread(threading.Thread):
         self.init_signal = threading.Event()
 
     def init_models(self):
-        self.save_dir, self.model_1, self.model1_save_header, self.model_2, self.model2_save_header = HttpUtil.build_models_ppo(
+        self.save_dir, self.model_1, self.model1_save_header, self.model_2, self.model2_save_header = ModelUtil.build_models_ppo(
             model1_path=None,
             model2_path=None,
             schedule_timesteps=200000,

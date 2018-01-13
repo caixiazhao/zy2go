@@ -3,8 +3,6 @@
 
 #from multiprocessing import Process, Manager, Lock
 
-import sys
-import json as JSON
 import traceback
 import time
 

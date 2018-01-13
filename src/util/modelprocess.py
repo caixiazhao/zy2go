@@ -6,7 +6,7 @@ import hashlib
 import requests
 
 from common import cf as C
-from util.modelutil import HttpUtil
+from util.modelutil import ModelUtil
 
 
 def push_data(battle_id, model_name, generation_id, data):
@@ -31,13 +31,13 @@ class ModelProcess:
         self.init_signal = None
         self.lock = None
         self.battle_id_num = battle_id_num
-        self.save_dir = HttpUtil.get_save_root_path()
+        self.save_dir = ModelUtil.get_save_root_path()
 
         self.time_cache = []
         self.num_cache = []
 
         self.model_1, self.model1_save_header, \
-        self.model_2, self.model2_save_header = HttpUtil.build_models_ppo(
+        self.model_2, self.model2_save_header = ModelUtil.build_models_ppo(
             self.save_dir,
             model1_path=C.PRELOAD_MODEL1_PATH, model2_path=C.PRELOAD_MODEL2_PATH,
             schedule_timesteps=200000,
