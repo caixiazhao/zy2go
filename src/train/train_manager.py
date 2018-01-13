@@ -44,7 +44,8 @@ class LineTrainerManager:
 
     def dump_model_to_disk(self):
         base_path = os.path.join(C.DATA_ROOT_PATH, "trainer", str(self.get_generation_id()))
-        shutil.rmtree(base_path)
+        if (os.path.isdir(base_path)):
+            shutil.rmtree(base_path)
         os.makedirs(base_path)
         self.model_process.model_1.save(base_path + '/1')
         self.model_process.model_2.save(base_path + '/2')
