@@ -9,9 +9,9 @@ from common import cf as C
 from util.modelutil import HttpUtil
 
 
-def post_data(battle_id, generation_id, data):
-    url = 'http://127.0.0.1:8780/data0/%d/%d' % (
-        generation_id, battle_id)
+def push_data(battle_id, model_name, generation_id, data):
+    url = 'http://127.0.0.1:8780/data0/%d/%d/%s' % (
+        generation_id, battle_id, model_name)
     r = requests.get('http://127.0.0.1:8780/data0/%s/%s',
         data=data)
     return r.text
@@ -56,7 +56,8 @@ class ModelProcess:
         print('====train-data====')
         o4rdata = pickle.dumps(o4r)
         print(hashlib.md5(o4rdata).hexdigest())
-        r = post_data(battle_id, generation_id, o4rdata)
+        r = push_data(battle_id, train_model_name,
+            generation_id, o4rdata)
         print(r)
 
         self.train_datas.append((battle_id, train_model_name, o4r, batch_size))
