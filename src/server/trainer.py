@@ -40,17 +40,22 @@ class TrainerHandler(tornado.web.RequestHandler):
         try:
             data = self.request.body
             path = self.request.path
+
             if path.startswith('/generation_id'):
                 self.finish(str(manager.get_generation_id()))
+                return
+
             if path.startswith('/data'):
                 # print('/data %d' % len(data))
                 manager.push_data(data)
                 self.finish(str(manager.get_batch_num()))
                 return
+
             if path.startswith('/train'):
                 manager.train()
                 self.finish(str(manager.get_generation_id()))
                 return
+
             self.finish()
             return
         except Exception as e:

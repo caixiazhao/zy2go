@@ -16,6 +16,7 @@ from util.linetrainer_ppo import LineTrainerPPO
 from util.modelprocess import ModelProcess
 from util.ppocache2 import PPO_CACHE2
 
+
 def sync_generation_id_from_trainer():
     try:
         r = requests.get('http://127.0.0.1:%d/generation_id' % C.TRAINER_PORT)
@@ -24,7 +25,8 @@ def sync_generation_id_from_trainer():
         print(ex)
         return 0
 
-class LineTrainerManager:
+
+class GameManager:
     def __init__(self, base_bid, battle_id_num):
         self.model_process = ModelProcess(battle_id_num)
 
@@ -45,7 +47,7 @@ class LineTrainerManager:
             self.line_trainers[base_bid + bid] = self.setup_line_trainer(bid)
         #self.line_trainer = self.line_trainers[1]
 
-        LineTrainerManager.One = self
+        GameManager.One = self
         print('训练器初始化完毕, 训练器数量', battle_id_num)
 
     def setup_line_trainer(self, battle_id):
@@ -86,7 +88,7 @@ class LineTrainerManager:
     @staticmethod
     def read_process(json_str):
         try:
-            return LineTrainerManager.One.read_process_(json_str)
+            return GameManager.One.read_process_(json_str)
         except Exception as ex:
             print("LineTrainerManager Exception")
             traceback.print_exc()

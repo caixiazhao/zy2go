@@ -30,7 +30,7 @@ import traceback
 
 
 from tornado.options import define, options
-from train.game_manager import LineTrainerManager
+from train.game_manager import GameManager
 
 define("port", default=9000, help="run on the given port", type=int)
 define("slot", default=10, help="model slots", type=int)
@@ -40,7 +40,7 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
             content = tornado.escape.to_basestring(self.request.body)
-            response = LineTrainerManager.read_process(content)
+            response = GameManager.read_process(content)
             self.finish(response)
         except Exception as e:
             print('nonblock server catch exception')
@@ -54,7 +54,7 @@ class MainHandler(tornado.web.RequestHandler):
 def main():
     C.set_run_mode("predict")
     tornado.options.parse_command_line()
-    manager = LineTrainerManager(options.base, options.slot)
+    manager = GameManager(options.base, options.slot)
     manager.start()
 
     application = tornado.web.Application([

@@ -3,13 +3,13 @@ import random
 import time
 import _thread
 
-from train.game_manager import LineTrainerManager
+from train.game_manager import GameManager
 
 
 def read_thread(name, raw_log_path):
     raw_file = open(raw_log_path, "r")
     lines = raw_file.readlines()
-    manager = LineTrainerManager()
+    manager = GameManager()
     for line in lines:
         time.sleep(0.05)
         json_str = line[23:]

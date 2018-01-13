@@ -8,7 +8,7 @@ import numpy as np
 from multiprocessing import Event
 
 from model.stateinfo import StateInfo
-from train.game_manager import LineTrainerManager
+from train.game_manager import GameManager
 
 
 def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict, lock):
@@ -20,7 +20,7 @@ def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict, lock):
         json_str = line[23:]
         json_str = json_str.replace('"ID":1', '"ID":'+str(battle_id), 1)
         begin_time = time.time()
-        response = LineTrainerManager.read_process(json_str, p_request_dict, p_result_dict, lock)
+        response = GameManager.read_process(json_str, p_request_dict, p_result_dict, lock)
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
         producer_times.append(delta_millionseconds)
@@ -34,7 +34,7 @@ def read_process(battle_id, raw_log_path, p_request_dict, p_result_dict, lock):
 if __name__ == "__main__":
     try:
         num = 1
-        manager = LineTrainerManager(num)
+        manager = GameManager(num)
         manager.start()
         print('训练器准备完毕')
 

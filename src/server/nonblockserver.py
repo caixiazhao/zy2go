@@ -26,7 +26,7 @@ import tornado.web
 import traceback
 
 from tornado.options import define, options
-from train.game_manager import LineTrainerManager
+from train.game_manager import GameManager
 from common import cf as C
 
 define("port", default=8780, help="run on the given port", type=int)
@@ -41,7 +41,7 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
             content = tornado.escape.to_basestring(self.request.body)
-            response = LineTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
+            response = GameManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
             self.finish(response)
         except Exception as e:
             print('nonblock server catch exception')
@@ -54,7 +54,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     trainer_num = int(sys.argv[1])
-    manager = LineTrainerManager(trainer_num)
+    manager = GameManager(trainer_num)
     manager.start()
 
     tornado.options.parse_command_line()
