@@ -44,7 +44,7 @@ class ForwardHandler(tornado.web.RequestHandler):
     def get(self):
         info = {}
 
-        if (self.request.path == '/generation_id'):
+        if self.request.path == '/generation_id':
             self.finish(str(C.get_generation_id()))
             return
 
@@ -94,10 +94,11 @@ class DataHandler(tornado.web.RequestHandler):
         self.finish(str(C.get_generation_id()))
 
         def train__data_callback(response):
-            generation_id = int(response.body)
-            if generation_id == C.get_generation_id():
+            cur_generation_id = int(response.body)
+            if cur_generation_id == generation_id:
                 G['batches'] += 1
-            else:
+
+            if cur_generation_id != C.get_generation_id():
                 G['batches'] = 0
                 C.set_generation_id(generation_id)
 
