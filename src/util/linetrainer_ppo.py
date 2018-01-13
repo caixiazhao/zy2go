@@ -194,9 +194,9 @@ class LineTrainerPPO:
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')
 
-    def session_reset(self, state_info):
-        self.model1_cache.clear()
-        self.model2_cache.clear()
+    def reset_session(self, state_info):
+        self.model1_cache.clear_cache()
+        self.model2_cache.clear_cache()
         action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": action_strs}
         rsp_str = JSON.dumps(rsp_obj)
@@ -212,13 +212,13 @@ class LineTrainerPPO:
 
         if self.generation_id > self.model_process.generation_id:
             self.model_process.update_model_from_disk(self.generation_id)
-            return self.session_reset(raw_state_info)
+            return self.reset_session(raw_state_info)
 
         if C.get_generation_id() > self.generation_id:
             self.generation_id = C.get_generation_id()
             if self.generation_id > self.model_process.generation_id:
                 self.model_process.update_model_from_disk(self.generation_id)
-            return self.session_reset(raw_state_info)
+            return self.reset_session(raw_state_info)
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
