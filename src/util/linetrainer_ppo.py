@@ -209,7 +209,7 @@ class LineTrainerPPO:
         if self.generation_id > self.model_process.generation_id:
             is_empty = self.model1_cache.isempty() and self.model2_cache.isempty()
             if C.LOG['GENERATION_UPDATE']:
-                empty_tag = " empty" if is_empty else ""
+                empty_tag = "" if is_empty else " reset"
                 print('%s generation update P1 %d - trainer:%d to process:%d%s' % (
                     time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
@@ -221,7 +221,7 @@ class LineTrainerPPO:
 
         if C.get_generation_id() > self.generation_id:
             is_empty = self.model1_cache.isempty() and self.model2_cache.isempty()
-            empty_tag = " empty" if is_empty else ""
+            empty_tag = "" if is_empty else " reset"
             if C.LOG['GENERATION_UPDATE']:
                 print('%s generation update P2 %d - global:%d to trainer:%d/process:%d%s' % (
                     time.strftime('%H:%M:%S'),
