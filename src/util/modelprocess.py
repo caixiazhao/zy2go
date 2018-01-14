@@ -57,9 +57,15 @@ class ModelProcess:
         o4r['generation_id'] = generation_id
         o4r['model_name'] = train_model_name
 
-        print('====train-data====')
+
         o4rdata = pickle.dumps(o4r)
-        print(hashlib.md5(o4rdata).hexdigest())
+        digest = hashlib.md5(o4rdata).hexdigest()
+        print('%s push-data %d g:%d m:%s - %d %s' % (
+            time.strftime('%H:%M:%S'),
+            battle_id,
+            generation_id,
+            train_model_name,
+            len(o4rdata), digest))
         r = push_data(battle_id, train_model_name,
             generation_id, o4rdata)
         gateway_generation_id = int(r)
@@ -67,7 +73,8 @@ class ModelProcess:
             return
 
         if C.LOG['GENERATION_UPDATE']:
-            print('generation update P3 %d - process %d:%d' % (
+            print('%s generation update P3 %d - process %d:%d' % (
+                time.strftime('%H:%M:%S'),
                 battle_id,
                 self.generation_id, gateway_generation_id))
         self.update_model_from_disk(gateway_generation_id)

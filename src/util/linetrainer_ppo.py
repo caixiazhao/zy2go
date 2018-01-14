@@ -5,12 +5,8 @@
 
 import json as JSON
 import random
-# import queue
-import sys
 import numpy as np
-import traceback
 
-import tensorflow as tf
 import time
 from time import gmtime, strftime
 
@@ -212,7 +208,8 @@ class LineTrainerPPO:
 
         if self.generation_id > self.model_process.generation_id:
             if C.LOG['GENERATION_UPDATE']:
-                print('generation update P1 %d - trainer:%d to process:%d' % (
+                print('%s generation update P1 %d - trainer:%d to process:%d' % (
+                    time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
                     self.generation_id, self.model_process.generation_id))
             self.model_process.update_model_from_disk(self.generation_id)
@@ -220,7 +217,8 @@ class LineTrainerPPO:
 
         if C.get_generation_id() > self.generation_id:
             if C.LOG['GENERATION_UPDATE']:
-                print('generation update P2 %d - global:%d to trainer:%d/process:%d' % (
+                print('%s generation update P2 %d - global:%d to trainer:%d/process:%d' % (
+                    time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
                     C.get_generation_id(),
                     self.generation_id,
