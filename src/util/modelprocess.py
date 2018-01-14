@@ -67,7 +67,7 @@ class ModelProcess:
             return
 
         if C.LOG['GENERATION_UPDATE']:
-            print('generation update %d - process %d:%d' % (
+            print('generation update P3 %d - process %d:%d' % (
                 battle_id,
                 self.generation_id, gateway_generation_id))
         self.update_model_from_disk(gateway_generation_id)
