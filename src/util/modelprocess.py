@@ -10,6 +10,7 @@ import requests
 
 from common import cf as C
 from util.modelutil import ModelUtil
+from train.linemodel_ppo1 import LineModel_PPO1
 
 
 def push_data(battle_id, model_name, generation_id, data):
@@ -39,6 +40,8 @@ class ModelProcess:
         self.time_cache = []
         self.num_cache = []
 
+        self.model_1 = None # type: LineModel_PPO1
+        self.model_2 = None # type: LineModel_PPO1
         self.model_1, self.model1_save_header, \
         self.model_2, self.model2_save_header = ModelUtil.build_models_ppo(
             self.save_dir,
@@ -57,7 +60,6 @@ class ModelProcess:
         o4r['generation_id'] = generation_id
         o4r['model_name'] = train_model_name
 
-
         o4rdata = pickle.dumps(o4r)
         digest = hashlib.md5(o4rdata).hexdigest()
         print('%s push-data %d g:%d m:%s - %d %s' % (
@@ -66,10 +68,12 @@ class ModelProcess:
             generation_id,
             train_model_name,
             len(o4rdata), digest))
+
         r = push_data(battle_id, train_model_name,
             generation_id, o4rdata)
+
         gateway_generation_id = int(r)
-        if (self.generation_id == gateway_generation_id):
+        if self.generation_id == gateway_generation_id:
             return
 
         if C.LOG['GENERATION_UPDATE']:
@@ -83,12 +87,12 @@ class ModelProcess:
         return
 
     def do_real_train(self, o4rs):
-        o4rs_1 = [ x for x in o4rs if x['model_name'] == C.NAME_MODEL_1]
-        o4rs_2 = [ x for x in o4rs if x['model_name'] == C.NAME_MODEL_2]
+        o4rs_1 = [x for x in o4rs if x['model_name'] == C.NAME_MODEL_1]
+        o4rs_2 = [x for x in o4rs if x['model_name'] == C.NAME_MODEL_2]
 
         begin_time = time.time()
-        print ('REAL_TRAIN - model1:%s, model2:%s' % 
-            (len(o4rs_1), len(o4rs_2)))
+        print('REAL_TRAIN - model1:%s, model2:%s' %
+              (len(o4rs_1), len(o4rs_2)))
         if len(o4rs_1) > 0:
             self.model_1.replay(o4rs_1, 0)
             if_save_model(self.model_1, self.model1_save_header, self.save_batch)
@@ -96,8 +100,8 @@ class ModelProcess:
             self.model_2.replay(o4rs_2, 0)
             if_save_model(self.model_2, self.model2_save_header, self.save_batch)
         end_time = time.time()
-        delta_millionseconds = (end_time - begin_time) * 1000
-        print('model train time', delta_millionseconds)
+        delta_millisecond = (end_time - begin_time) * 1000
+        print('model train time', delta_millisecond)
 
     def act(self, battle_id, act_model_name, state_inputs):
         begin_time = time.time()
@@ -111,8 +115,8 @@ class ModelProcess:
             actions_list, explor_value, vpreds = None, None, None
 
         end_time = time.time()
-        delta_millionseconds = (end_time - begin_time) * 1000
-        self.time_cache.append(delta_millionseconds)
+        delta_millisecond = (end_time - begin_time) * 1000
+        self.time_cache.append(delta_millisecond)
         self.num_cache.append(len(state_inputs))
         if len(self.time_cache) >= 1000:
             print("model get_action average calculate time(ms)",
@@ -126,7 +130,7 @@ class ModelProcess:
     def dump_model_to_disk(self, generation_id):
         self.generation_id = generation_id
         base_path = os.path.join(C.DATA_ROOT_PATH, "trainer", str(generation_id))
-        if (os.path.isdir(base_path)):
+        if os.path.isdir(base_path):
             shutil.rmtree(base_path)
         os.makedirs(base_path)
         self.model_1.save(base_path + '/1/1')
@@ -141,9 +145,9 @@ class ModelProcess:
         self.model_1.load(base_path + '/1/1')
         self.model_2.load(base_path + '/2/2')
 
-
     def start(self):
         pass
+
 
 if __name__ == '__main__':
     model_process = ModelProcess(1)

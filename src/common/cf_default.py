@@ -48,10 +48,6 @@ RUN_MODE_PREDICT = 'predict'
 RUN_MODE_TRAIN = 'train'
 
 
-REVISION_GAMER = 'r4'
-REVISION_GATEWAY = 'r0'
-REVISION_TRAINER = 'r2'
-
 # ----
 def set_worker_name(s):
     if os.environ.get('TMUX') is not None:
@@ -69,3 +65,10 @@ def set_generation_id(id):
 
 def get_generation_id():
     return GLOBAL['generation_id']
+
+# ----
+REVISION_GAMER = 'r5'
+REVISION_GATEWAY = 'r0'
+REVISION_TRAINER = 'r2'
+
+

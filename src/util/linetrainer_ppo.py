@@ -22,9 +22,9 @@ from train.linemodel_ppo1 import LineModel_PPO1
 from util.equiputil import EquipUtil
 from util.linetrainer_policy import LineTrainerPolicy
 from util.modelprocess import ModelProcess
-from util.modelthread import ModelThread
 from util.replayer import Replayer
 from util.stateutil import StateUtil
+from util.ppocache2 import PPO_CACHE2
 import baselines.common.tf_util as U
 from datetime import datetime
 from engine.playengine import PlayEngine
@@ -86,8 +86,8 @@ class LineTrainerPPO:
         self.revert_model1 = revert_model1
         self.revert_model2 = revert_model2
 
-        self.model1_cache = model1_cache
-        self.model2_cache = model2_cache
+        self.model1_cache = model1_cache  # type: PPO_CACHE2
+        self.model2_cache = model2_cache  # type: PPO_CACHE2
 
         self.generation_id = 0
 
@@ -236,7 +236,6 @@ class LineTrainerPPO:
             if not (is_empty):
                 return self.reset_session(raw_state_info)
 
-
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
             return {"ID": raw_state_info.battleid, "tick": -1}
@@ -364,10 +363,12 @@ class LineTrainerPPO:
         action_strs = []
         restart = False
 
+        prev_hero = None
         # 对于模型，分析当前帧的行为
         if self.real_hero != hero_name:
             state_info = state_cache[state_index]
-            prev_hero = state_cache[state_index - 1].get_hero(hero_name) if len(state_cache) >= 2 is not None else None
+            prev_hero = state_cache[state_index - 1].get_hero(hero_name) \
+                if len(state_cache) >= 2 is not None else None
         # 如果有真实玩家，我们需要一些历史数据，所以分析3帧前的行为
         elif len(state_cache) > 3:
             state_info = state_cache[state_index - 3]
@@ -402,9 +403,10 @@ class LineTrainerPPO:
         # 回城相关逻辑
         # 如果在回城中且没有被打断则继续回城，什么也不用返回
         if prev_hero is not None:
-            if hero.hero_name in self.hero_strategy and self.hero_strategy[hero.hero_name] == ActionEnum.town_ing \
-                and prev_hero.hp <= hero.hp \
-                and not StateUtil.if_hero_at_basement(hero):
+            if (hero.hero_name in self.hero_strategy and
+                self.hero_strategy[hero.hero_name] == ActionEnum.town_ing and
+                prev_hero.hp <= hero.hp and
+                not StateUtil.if_hero_at_basement(hero)):
                 if not hero.skills[6].canuse:
                     LOG__(self.battle_id, hero.hero_name, '回城中，继续回城')
                     return action_strs, False
@@ -415,9 +417,11 @@ class LineTrainerPPO:
                     action_str = StateUtil.build_command(town_action)
                     action_strs.append(action_str)
                     return action_strs, False
-                if hero.hp <= 0:
-                    self.hero_strategy[hero.hero_name] = None
-                    return action_strs, False
+
+                #if hero.hp <= 0:
+                #    self.hero_strategy[hero.hero_name] = None
+                #    return action_strs, False
+
 
         # # 补血逻辑
         # if prev_hero is not None and hero.hero_name in self.hero_strategy and self.hero_strategy[
@@ -632,7 +636,7 @@ class LineTrainerPPO:
     # 注意，对方的行为使用自己的模型翻转计算。所以需要对线的英雄完全相同。后续我们有足够多英雄的模型之后可以使用对应模型猜测英雄行为
     # 这里同样需要注意的是，需要使用一个新的queue，和单个英雄的queue区分开
     def get_actions(self, state_infos, hero_name, rival_hero):
-        model_name = ModelProcess.NAME_MODEL_1 if hero_name == self.model1_hero else ModelProcess.NAME_MODEL_2
+        model_name = C.NAME_MODEL_1 if hero_name == self.model1_hero else C.NAME_MODEL_2
 
         # 对每个状态，都分别计算英雄和反转后的结果，第二个用来预测对方英雄的行动
         line_inputs = []
@@ -649,9 +653,12 @@ class LineTrainerPPO:
             state_input = np.array(state_input)
             line_inputs.append(state_input)
 
+        begin_time = time.time()
         actions_list, explorer_ratio, vpreds = self.model_process.act(
             self.battle_id, model_name, line_inputs)
-        LOG__('line_trainer', self.battle_id, '返回结果', delta_millionseconds)
+        end_time = time.time()
+        delta_millisecond = (end_time - begin_time) * 1000
+        LOG__('line_trainer', self.battle_id, '返回结果', delta_millisecond)
 
         # 特殊情况为模型通知我们它已经训练完成
         if isinstance(actions_list, CmdAction):
@@ -659,7 +666,7 @@ class LineTrainerPPO:
         else:
             # 返回标注过不可用的
             masked_actions_list = []
-            for i in range(len(actions_list) / 2):
+            for i in range(len(actions_list) // 2):
                 actions = actions_list[i * 2]
                 action_ratios = list(actions)
                 masked_actions = LineModel.remove_unaval_actions(action_ratios, state_info, hero_name, rival_hero)
