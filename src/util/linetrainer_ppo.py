@@ -212,18 +212,19 @@ class LineTrainerPPO:
 
         if self.generation_id > self.model_process.generation_id:
             if C.LOG['GENERATION_UPDATE']:
-                print('generation update - trainer:%d to process:%d' % (
+                print('generation update %d - trainer:%d to process:%d' % (
+                    raw_state_info.battleid,
                     self.generation_id, self.model_process.generation_id))
             self.model_process.update_model_from_disk(self.generation_id)
             return self.reset_session(raw_state_info)
 
         if C.get_generation_id() > self.generation_id:
             if C.LOG['GENERATION_UPDATE']:
-                print('generation update - global:%d to trainer:%d/process:%d' % (
+                print('generation update - %d global:%d to trainer:%d/process:%d' % (
+                    raw_state_info.battleid,
                     C.get_generation_id(),
                     self.generation_id,
                     self.model_process.generation_id))
-
             self.generation_id = C.get_generation_id()
             if self.generation_id > self.model_process.generation_id:
                 self.model_process.update_model_from_disk(self.generation_id)
