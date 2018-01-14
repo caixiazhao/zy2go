@@ -1,13 +1,12 @@
 import baselines.common.tf_util as U
 import tensorflow as tf
-import gym
 from baselines.common.distributions import make_pdtype, CategoricalPdType
 import tensorflow.contrib.layers as layers
 
 
-
 class PPONet(object):
     recurrent = False
+
     def __init__(self, name, ob_space, ac_space):
         self.scope = name
         with tf.variable_scope(name):
