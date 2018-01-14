@@ -36,6 +36,8 @@ define("port", default=9000, help="run on the given port", type=int)
 define("slot", default=10, help="model slots", type=int)
 define("base", default=0, help="base id", type=int)
 
+revision = 'r1'
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         try:
@@ -62,7 +64,7 @@ def main():
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 
-    C.set_worker_name("g%d" % options.port)
+    C.set_worker_name("g%d%s" % (options.port - 9000, revision))
 
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):

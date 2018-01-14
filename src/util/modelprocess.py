@@ -66,6 +66,10 @@ class ModelProcess:
         if (self.generation_id == gateway_generation_id):
             return
 
+        if C.LOG['GENERATION_UPDATE']:
+            print('generation update - process %d:%d' % (
+                self.generation_id, gateway_generation_id))
+        self.update_model_from_disk(gateway_generation_id)
 
         return
 
@@ -94,6 +98,8 @@ class ModelProcess:
         elif act_model_name == C.NAME_MODEL_2:
             actions_list, explor_value, vpreds = \
                 self.model_2.get_actions(state_inputs)
+        else:
+            actions_list, explor_value, vpreds = None, None, None
 
         end_time = time.time()
         delta_millionseconds = (end_time - begin_time) * 1000
@@ -106,7 +112,7 @@ class ModelProcess:
 
             self.time_cache.clear()
             self.num_cache.clear()
-        return (actions_list, explor_value, vpreds)
+        return actions_list, explor_value, vpreds
 
     def dump_model_to_disk(self, generation_id):
         self.generation_id = generation_id
@@ -131,5 +137,5 @@ class ModelProcess:
         pass
 
 if __name__ == '__main__':
-    model_process = ModelProcess()
+    model_process = ModelProcess(1)
     model_process.start()

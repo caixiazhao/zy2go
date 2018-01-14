@@ -22,6 +22,7 @@ LOG = {
     'LINEMODEL_PPO1__0': True,
 
     'UTIL__EQUIPUTIL': True,
+    'GENERATION_UPDATE': True,
 }
 
 LOG__MANAGER_READ_PROCESSOR = True

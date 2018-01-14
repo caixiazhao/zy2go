@@ -36,6 +36,7 @@ LOG.update({
     'LINEMODEL_PPO1__0': False,
 
     'UTIL__EQUIPUTIL': False,
+    'GENERATION_UPDATE': True,
 })
 
 
