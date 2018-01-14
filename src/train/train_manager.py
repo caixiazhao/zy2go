@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
-import shutil
+import time
 import pickle
 
 
@@ -24,21 +23,30 @@ class LineTrainerManager:
         o4r = pickle.loads(data)
 
         if o4r['generation_id'] != self.generation_id:
-            print("/data %d %d %d skip" % (
+            print("%s /data %d %d %d skip" % (
+                time.strftime('%H:%M:%S'),
                 o4r['battle_id'], o4r['generation_id'],
                 len(data)))
         else:
             self.train_data.append(o4r)
-            print("/data %d %d %d - %d/%d" % (
+            print("%s /data %d %d %d - %d/%d" % (
+                time.strftime('%H:%M:%S'),
                 o4r['battle_id'], o4r['generation_id'],
                 len(data), len(self.train_data), C.TRAIN_GAME_BATCH))
 
     def train(self):
+        begin_time = time.time()
         train_data = list(self.train_data)
         self.train_data.clear()
         self.model_process.do_real_train(train_data)
         self.generation_id += 1
         self.model_process.dump_model_to_disk(self.generation_id)
+        end_time = time.time()
+        print('%s /train %d %.2f' % (
+            time.strftime('%H:%M:%S'),
+            self.generation_id,
+            (end_time - begin_time) * 1000
+        ))
 
 
     def start(self):

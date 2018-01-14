@@ -50,7 +50,7 @@ RUN_MODE_TRAIN = 'train'
 
 REVISION_GAMER = 'r3'
 REVISION_GATEWAY = 'r0'
-REVISION_TRAINER = 'r1'
+REVISION_TRAINER = 'r2'
 
 # ----
 def set_worker_name(s):
