@@ -78,6 +78,7 @@ class ModelProcess:
                 battle_id,
                 self.generation_id, gateway_generation_id))
         self.update_model_from_disk(gateway_generation_id)
+        C.set_generation_id(gateway_generation_id)
 
         return
 
