@@ -207,26 +207,35 @@ class LineTrainerPPO:
         raw_state_info = StateInfo.decode(obj)
 
         if self.generation_id > self.model_process.generation_id:
+            is_empty = self.model1_cache.isempty() and self.model2_cache.isempty()
             if C.LOG['GENERATION_UPDATE']:
-                print('%s generation update P1 %d - trainer:%d to process:%d' % (
+                empty_tag = " empty" if is_empty else ""
+                print('%s generation update P1 %d - trainer:%d to process:%d%s' % (
                     time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
-                    self.generation_id, self.model_process.generation_id))
+                    self.generation_id, self.model_process.generation_id,
+                    empty_tag))
             self.model_process.update_model_from_disk(self.generation_id)
-            return self.reset_session(raw_state_info)
+            if not is_empty:
+                return self.reset_session(raw_state_info)
 
         if C.get_generation_id() > self.generation_id:
+            is_empty = self.model1_cache.isempty() and self.model2_cache.isempty()
+            empty_tag = " empty" if is_empty else ""
             if C.LOG['GENERATION_UPDATE']:
-                print('%s generation update P2 %d - global:%d to trainer:%d/process:%d' % (
+                print('%s generation update P2 %d - global:%d to trainer:%d/process:%d%s' % (
                     time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
                     C.get_generation_id(),
                     self.generation_id,
-                    self.model_process.generation_id))
+                    self.model_process.generation_id,
+                    empty_tag))
             self.generation_id = C.get_generation_id()
             if self.generation_id > self.model_process.generation_id:
                 self.model_process.update_model_from_disk(self.generation_id)
-            return self.reset_session(raw_state_info)
+            if not (is_empty):
+                return self.reset_session(raw_state_info)
+
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
