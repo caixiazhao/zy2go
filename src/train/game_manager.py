@@ -44,7 +44,7 @@ class GameManager:
         self.base_bid = base_bid
         self.line_trainers = {}
         for bid in range(1, 1 + battle_id_num):
-            self.line_trainers[base_bid + bid] = self.setup_line_trainer(bid)
+            self.line_trainers[base_bid + bid] = self.setup_line_trainer(base_bid + bid)
         #self.line_trainer = self.line_trainers[1]
 
         GameManager.One = self
