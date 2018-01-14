@@ -48,6 +48,10 @@ RUN_MODE_PREDICT = 'predict'
 RUN_MODE_TRAIN = 'train'
 
 
+REVISION_GAMER = 'r3'
+REVISION_GATEWAY = 'r0'
+REVISION_TRAINER = 'r1'
+
 # ----
 def set_worker_name(s):
     if os.environ.get('TMUX') is not None:

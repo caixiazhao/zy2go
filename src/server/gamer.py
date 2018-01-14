@@ -36,7 +36,7 @@ define("port", default=9000, help="run on the given port", type=int)
 define("slot", default=10, help="model slots", type=int)
 define("base", default=0, help="base id", type=int)
 
-revision = 'r2'
+revision = C.REVISION_GAMER
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
