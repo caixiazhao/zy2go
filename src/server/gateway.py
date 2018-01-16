@@ -91,11 +91,12 @@ class DataHandler(tornado.web.RequestHandler):
         path = self.request.path
         generation_id, battle_id, model_name = path[6:].split('/')
         print(battle_id, model_name, generation_id)
+
         self.finish(str(C.get_generation_id()))
 
         def train__data_callback(response):
             cur_generation_id = int(response.body)
-            if cur_generation_id == generation_id:
+            if cur_generation_id == int(generation_id):
                 G['batches'] += 1
 
             if cur_generation_id != C.get_generation_id():
