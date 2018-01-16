@@ -11,12 +11,13 @@ from util.httputil import HttpUtil
 class TeamBattleModelUtil:
     def build_model_ppo(self, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
                          model_initial_p=1.0, model_final_p=0.02, model_gamma=0.99):
-        ob_size = 270
-        act_size = 49
+        ob_size = 979
+        act_size = 28
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
+        print(model_hero)
         model = LineModel_PPO1(ob_size, act_size, model_hero, ob, ac, LinePPOModel, gamma=model_gamma,
-                            scope="model1", schedule_timesteps=schedule_timesteps, initial_p=model_initial_p, final_p=model_final_p)
+                            scope=model_hero, schedule_timesteps=schedule_timesteps, initial_p=model_initial_p, final_p=model_final_p)
 
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
@@ -33,7 +34,7 @@ class TeamBattleModelUtil:
         self.save_batch = save_batch
         self.model_map = {}
         self.train_data_map = {}
-        for hero_name in hero_names:
+        for hero_name in ["27"]:
             # 准备模型
             model, save_header = self.build_model_ppo(save_root, hero_name, None)
             self.model_map[hero_name] = (model, save_header)
@@ -42,10 +43,10 @@ class TeamBattleModelUtil:
             battle_data_map = {}
             self.train_data_map[hero_name] = battle_data_map
 
-    def get_action(self, hero_name, state_inputs):
+    def get_action(self, hero_name, state_input):
         model, _ = self.model_map[hero_name]
-        actions_list, explor_value, vpreds = model.get_actions(state_inputs)
-        return actions_list, explor_value, vpreds
+        actions_list, explor_value, vpred = model.get_action(state_input)
+        return actions_list[0], explor_value, vpred
 
     def if_save_model(self, model, save_header, save_batch):
         # 训练之后检查是否保存

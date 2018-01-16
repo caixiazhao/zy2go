@@ -33,15 +33,10 @@ define("port", default=8780, help="run on the given port", type=int)
 
 # curl -l -H "Content-type: application/json" -X POST -d 'save' http://localhost:8780
 class MainHandler(tornado.web.RequestHandler):
-    def initialize(self, p_request_dict, p_result_dict, lock):
-        self.p_request_dict = p_request_dict
-        self.p_result_dict = p_result_dict
-        self.lock = lock
-
     def get(self, *args, **kwargs):
         try:
             content = tornado.escape.to_basestring(self.request.body)
-            response = TeamBattleTrainerManager.read_process(content, self.p_request_dict, self.p_result_dict, self.lock)
+            response = TeamBattleTrainerManager.One.read_process(content)
             self.finish(response)
         except Exception as e:
             print('nonblock server catch exception')
@@ -55,12 +50,10 @@ class MainHandler(tornado.web.RequestHandler):
 def main():
     trainer_num = int(sys.argv[1])
     manager = TeamBattleTrainerManager(trainer_num)
-    manager.start()
 
     tornado.options.parse_command_line()
     application = tornado.web.Application([
-        (r"/", MainHandler,
-         dict(p_request_dict=manager.request_dict, p_result_dict=manager.result_dict, lock=manager.lock)),
+        (r"/", MainHandler),
     ])
     http_server = tornado.httpserver.HTTPServer(application)
 

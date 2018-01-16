@@ -26,12 +26,14 @@ from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from random import randint
 from time import gmtime, strftime
+import numpy as np
 
 
 class TeamBattleTrainer:
 
     BATTLE_POINT_X = 0
     BATTLE_POINT_Z = -30000
+    MODEL_RANGE = 15
 
     def __init__(self, battle_id, model_util):
         self.battle_id = battle_id
@@ -47,6 +49,7 @@ class TeamBattleTrainer:
 
     def build_response(self, raw_state_str):
         print(raw_state_str)
+        self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
         response_strs = []
 
@@ -89,9 +92,13 @@ class TeamBattleTrainer:
                     response_strs.append(buy_cmd)
 
         battle_heros = self.search_team_battle(state_info)
+        if len(battle_heros) > 0:
+            print("team battle heros", ';'.join(battle_heros))
 
+        heros_need_model = []
         for hero in self.heros:
-            if hero not in battle_heros:
+            near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
+            if len(near_enemy_heroes) == 0:
                 # 移动到团站点附近，添加部分随机
                 rdm_delta_x = randint(0, 1000)
                 rdm_delta_z = randint(0, 1000)
@@ -99,8 +106,16 @@ class TeamBattleTrainer:
                 move_action = CmdAction(hero, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, None, None)
                 mov_cmd_str = StateUtil.build_command(move_action)
                 response_strs.append(mov_cmd_str)
-            # else:
+            else:
                 # 启动模型决策
+                heros_need_model.append(hero)
+
+        if len(heros_need_model) > 0:
+            action_cmds = self.get_model_actions(state_info, heros_need_model)
+            for action_cmd in action_cmds:
+                action_str = StateUtil.build_command(action_cmd)
+                response_strs.append(action_str)
+                state_info.add_action(action_cmd)
 
         # 添加记录到缓存中
         self.state_cache.append(state_info)
@@ -114,7 +129,7 @@ class TeamBattleTrainer:
         max_team = set()
         for hero in self.heros:
             battle_heros = self.search_team_battle_hero(state_info, hero)
-            if len(battle_heros) > max_team:
+            if len(battle_heros) > 1 and len(battle_heros) > len(max_team):
                 max_team = battle_heros
         return max_team
 
@@ -130,7 +145,7 @@ class TeamBattleTrainer:
         team_battle_heros.add(hero)
 
         while len(checked_heros) < len(team_battle_heros):
-            for hero in team_battle_heros:
+            for hero in team_battle_heros.copy():
                 if hero not in checked_heros:
                     near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, StateUtil.LINE_MODEL_RADIUS)
                     for enemy in near_enemy_heroes:
@@ -142,15 +157,40 @@ class TeamBattleTrainer:
     def get_model_actions(self, state_info, heros):
         # 目前的思路是，每个英雄首先自己算行为，然后拿到每个英雄的行为之后，将状态信息+队友的选择都交给模型，重新计算自己的选择，迭代
         # 最后得到每个英雄的行为
+        action_cmds = []
+        input_list = []
         for hero in heros:
             hero_info = state_info.get_hero(hero)
             input = TeamBattleInput.gen_input(state_info, hero)
+            input = np.array(input)
             action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
+            action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
+            print("model action list", action_str)
             filtered_action_list = TeamBattleTrainer.remove_unaval_actions(action_list, state_info, hero, heros)
-
+            filtered_action_str = ' '.join(str("%.4f" % float(act)) for act in filtered_action_list)
+            print("model remove_unaval_actions", filtered_action_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
             action_cmd = TeamBattleTrainer.get_action(filtered_action_list, state_info, hero_info, friends, opponents)
-        return
+            print("model get_action", StateUtil.build_command(action_cmd))
+
+            action_cmds.append(action_cmd)
+            input_list.append(input)
+
+        # 添加所有人的行为之后重新计算
+        for action_cmd in action_cmds:
+            for hero, input in zip(heros, input_list):
+                hero_info = state_info.get_hero(hero)
+                TeamBattleInput.add_other_hero_action(input, hero_info, action_cmd)
+
+        # 重新计算
+        action_cmds.clear()
+        for hero, input in zip(heros, input_list):
+            action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
+            filtered_action_list = TeamBattleTrainer.remove_unaval_actions(action_list, state_info, hero, heros)
+            friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
+            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, state_info, hero_info, friends, opponents)
+            action_cmds.append(action_cmd)
+        return action_cmds
 
     @staticmethod
     # 过滤输出结果，删除掉不可执行的选择
