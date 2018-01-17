@@ -11,7 +11,7 @@ from util.httputil import HttpUtil
 class TeamBattleModelUtil:
     def build_model_ppo(self, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
                          model_initial_p=1.0, model_final_p=0.02, model_gamma=0.99):
-        ob_size = 979
+        ob_size = 890
         act_size = 28
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()

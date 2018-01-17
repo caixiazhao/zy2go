@@ -25,7 +25,7 @@ class TeamBattleInput:
     @staticmethod
     def gen_input_hero(hero, query_hero, revert=False):
         if hero is None or hero.state == 'out' or hero.hp <= 0:
-            return list(np.zeros(16 + 3 * 17))
+            return list(np.zeros(20 + 3 * 23))
 
         # 添加英雄基础信息
         hero_input = [

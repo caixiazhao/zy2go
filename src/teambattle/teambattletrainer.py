@@ -11,6 +11,11 @@ import json as JSON
 #   战斗中由模型给出每个英雄的行为
 #   计算双方战斗得分
 
+# 控制开团
+#   首先根据英雄持续搜索周围的敌方英雄，锁链式的找到所有在周围的英雄
+#   然后，屏蔽不可用的技能时候，如果是因为距离过远，将结果变为向对方移动
+#   最后，设定一个团战范围，如果英雄想要离开团战圈子，需要将他拉回来
+
 #   首先尝试的方案：
 #   输入考虑添加其它人的行为
 from model.cmdaction import CmdAction
@@ -97,8 +102,8 @@ class TeamBattleTrainer:
 
         heros_need_model = []
         for hero in self.heros:
-            near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
-            if len(near_enemy_heroes) == 0:
+            # near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
+            if hero not in battle_heros:
                 # 移动到团站点附近，添加部分随机
                 rdm_delta_x = randint(0, 1000)
                 rdm_delta_z = randint(0, 1000)
@@ -147,7 +152,7 @@ class TeamBattleTrainer:
         while len(checked_heros) < len(team_battle_heros):
             for hero in team_battle_heros.copy():
                 if hero not in checked_heros:
-                    near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, StateUtil.LINE_MODEL_RADIUS)
+                    near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
                     for enemy in near_enemy_heroes:
                         team_battle_heros.add(enemy.hero_name)
                     checked_heros.add(hero)
@@ -166,11 +171,11 @@ class TeamBattleTrainer:
             action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
             print("model action list", action_str)
-            filtered_action_list = TeamBattleTrainer.remove_unaval_actions(action_list, state_info, hero, heros)
-            filtered_action_str = ' '.join(str("%.4f" % float(act)) for act in filtered_action_list)
-            print("model remove_unaval_actions", filtered_action_str)
+            unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
+            unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
+            print("model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, state_info, hero_info, friends, opponents)
+            action_cmd = TeamBattleTrainer.get_action(action_list, unaval_list, state_info, hero_info, friends, opponents)
             print("model get_action", StateUtil.build_command(action_cmd))
 
             action_cmds.append(action_cmd)
@@ -186,9 +191,9 @@ class TeamBattleTrainer:
         action_cmds.clear()
         for hero, input in zip(heros, input_list):
             action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
-            filtered_action_list = TeamBattleTrainer.remove_unaval_actions(action_list, state_info, hero, heros)
+            unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, state_info, hero_info, friends, opponents)
+            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, unaval_list, state_info, hero_info, friends, opponents)
             action_cmds.append(action_cmd)
         return action_cmds
 
@@ -200,72 +205,86 @@ class TeamBattleTrainer:
     # 移动：八个方向；物理攻击：五个攻击目标；技能1：五个攻击目标；技能2：五个攻击目标；技能3：五个攻击目标
     # 技能攻击目标默认为对方英雄。如果是辅助技能，目标调整为自己人
     # 对于技能可以是自己也可以是对方的，目前无法处理
-    def remove_unaval_actions(acts, state_info, hero_name, team_battle_heros, debug=False):
+    def list_unaval_actions(acts, state_info, hero_name, team_battle_heros, debug=False):
         friends, opponents = TeamBattleUtil.get_friend_opponent_heros(team_battle_heros, hero_name)
+        avail_list = acts.copy()
         for i in range(len(acts)):
             hero = state_info.get_hero(hero_name)
             selected = i
             if selected < 8:  # move
                 # 不再检查movelock，因为攻击硬直也会造成这个值变成false（false表示不能移动）
+                avail_list[selected] = 1
                 continue
             elif selected < 13:  # 物理攻击：五个攻击目标
                 if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):
                     # 普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
                     # 所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
                     # 被控制住
-                    acts[selected] = -1
+                    avail_list[selected] = -1
                     if debug: print("普攻受限，放弃普攻")
                     continue
                 else:  # 敌方英雄
                     target_index = selected - 8
                     target_hero = TeamBattleUtil.get_target_hero(hero_name, friends, opponents, target_index)
+                    if target_hero is None:
+                        avail_list[selected] = -1
+                        if debug: print("找不到对应目标英雄")
+                        continue
                     rival_info = state_info.get_hero(target_hero)
                     dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
                     # 英雄不可见
                     if not rival_info.is_enemy_visible():
-                        acts[selected] = -1
+                        avail_list[selected] = -1
                         if debug: print("英雄不可见")
                         continue
                     # 英雄太远，放弃普攻
                     # if dist > self.att_dist:
                     if dist > StateUtil.ATTACK_HERO_RADIUS:
-                        acts[selected] = -1
+                        avail_list[selected] = 0
                         if debug: print("英雄太远，放弃普攻")
                         continue
                     # 对方英雄死亡时候忽略这个目标
                     elif rival_info.hp <= 0:
-                        acts[selected] = -1
+                        avail_list[selected] = -1
                         if debug: print("对方英雄死亡")
                         continue
+                avail_list[selected] = 1
             elif selected < 28:  # skill1
                 skillid = int((selected - 13) / 5 + 1)
                 if hero.skills[skillid].canuse != True:
                     # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
-                    acts[selected] = -1
+                    avail_list[selected] = -1
                     if debug: print("技能受限，放弃施法" + str(skillid) + " hero.skills[x].canuse=" + str(
                         hero.skills[skillid].canuse) + " tick=" + str(state_info.tick))
                     continue
                 if hero.skills[skillid].cost is not None and hero.skills[skillid].cost > hero.mp:
                     # mp不足
-                    acts[selected] = -1
+                    avail_list[selected] = -1
                     if debug: print("mp不足，放弃施法" + str(skillid))
                     continue
                 if hero.skills[skillid].cd > 0:
                     # 技能未冷却
-                    acts[selected] = -1
+                    avail_list[selected] = -1
                     if debug: print("技能cd中，放弃施法" + str(skillid))
                     continue
                 tgt_index = selected - 13 - (skillid - 1) * 5
                 skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
                 is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
-                tgt_hero = TeamBattleUtil.get_target_hero(hero, friends, opponents, tgt_index, is_buff)
+                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
+
+                if tgt_hero is None:
+                    avail_list[selected] == -1
+                    if debug: print("找不到对应目标英雄")
+                    continue
                 [tgtid, tgtpos] = TeamBattleTrainer.choose_skill_target(tgt_index, state_info,
                                                                         skill_info, hero_name, hero.pos, tgt_hero, debug)
-                if tgtid == -1:
-                    acts[selected] = -1
+                if tgtid == -1 or tgtid == 0:
+                    avail_list[selected] = tgtid
                     if debug: print("目标不符合施法要求")
                     continue
-        return acts
+                else:
+                    avail_list[selected] = 1
+        return avail_list
 
     @staticmethod
     def choose_skill_target(selected, state_info, skill_info, hero_name, pos, tgt_hero_name, debug=False):
@@ -291,7 +310,7 @@ class TeamBattleTrainer:
             elif StateUtil.cal_distance(tgt_hero.pos, pos) > skill_info.cast_distance:
                 if debug: print("技能攻击不到对方 %s %s %s" % (
                     tgt_hero_name, StateUtil.cal_distance(tgt_hero.pos, pos), skill_info.cast_distance))
-                tgtid = -1
+                tgtid = 0
                 tgtpos = None
             # 对方英雄死亡时候忽略这个目标
             elif tgt_hero.hp <= 0:
@@ -304,23 +323,35 @@ class TeamBattleTrainer:
         return tgtid, tgtpos
 
     @staticmethod
-    def get_action(action_list, state_info, hero, friends, opponents, revert=False):
-        max_q = max(action_list)
+    def get_action(action_list, unaval_list, state_info, hero, friends, opponents, revert=False):
+        found = False
+        while not found:
+            max_q = max(action_list)
 
-        if max_q <= -1:
-            action = CmdAction(hero.hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
-            return action
+            if max_q <= -1:
+                action = CmdAction(hero.hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
+                return action
 
-        selected = action_list.index(max_q)
+            selected = action_list.index(max_q)
+            avail_type = unaval_list[selected]
+            if avail_type == -1:
+                # 不可用行为
+                action_list[selected] = -1
+                continue
+
         if selected < 8:  # move
             fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
             action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
             return action
-        elif selected < 13:  # 对敌英雄，塔，敌小兵1~8使用普攻
+        elif selected < 13:  # 对敌英雄使用普攻
             target_index = selected - 8
             target_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, target_index)
-            action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
+            avail_type = unaval_list[selected]
+            if avail_type == 0:
+                action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, target_hero.pos, None, None, selected, None)
+            else:
+                action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
             return action
         elif selected < 28:  # skill
             skillid = int((selected - 13) / 5 + 1)
@@ -330,7 +361,11 @@ class TeamBattleTrainer:
             tgt_hero = TeamBattleUtil.get_target_hero(hero, friends, opponents, tgt_index, is_buff)
             tgt_pos = state_info.get_hero(tgt_hero).pos
             fwd = tgt_pos.fwd(hero.pos)
-            action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
+            avail_type = unaval_list[selected]
+            if avail_type == 0:
+                action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, selected, None)
+            else:
+                action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
             return action
 
     def upgrade_skills(self, state_info, hero_name):

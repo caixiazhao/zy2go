@@ -6,10 +6,12 @@ class TeamBattleUtil:
     def get_friend_opponent_heros(team_battle_heros, hero):
         if int(hero) <= 31:
             friends = [hero for hero in team_battle_heros if int(hero) <= 31]
+            friends.remove(hero)
             opponents = [hero for hero in team_battle_heros if int(hero) > 31]
             return friends, opponents
         elif int(hero) > 31:
             friends = [hero for hero in team_battle_heros if int(hero) > 31]
+            friends.remove(hero)
             opponents = [hero for hero in team_battle_heros if int(hero) <= 31]
             return friends, opponents
 
@@ -19,14 +21,14 @@ class TeamBattleUtil:
         if not is_buff:
             start_hero_id = 27 if int(hero) > 31 else 32
             target_hero_id = start_hero_id + target_index
-            if target_hero_id in opponents:
-                return target_hero_id
+            if str(target_hero_id) in opponents:
+                return str(target_hero_id)
             else:
                 return None
         else:
             start_hero_id = 27 if int(hero) <= 31 else 32
             target_hero_id = start_hero_id + target_index
-            if target_hero_id in friends:
-                return target_hero_id
+            if str(target_hero_id) in friends:
+                return str(target_hero_id)
             else:
                 return None
