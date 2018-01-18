@@ -162,6 +162,10 @@ class TeamBattleTrainer:
     def get_model_actions(self, state_info, heros):
         # 目前的思路是，每个英雄首先自己算行为，然后拿到每个英雄的行为之后，将状态信息+队友的选择都交给模型，重新计算自己的选择，迭代
         # 最后得到每个英雄的行为
+
+        # TODO 另一个思路：调整为第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
+        # 这样的好处是所有人选择的行为就是最后执行的行为
+
         action_cmds = []
         input_list = []
         for hero in heros:
@@ -193,7 +197,7 @@ class TeamBattleTrainer:
             action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action(filtered_action_list, unaval_list, state_info, hero_info, friends, opponents)
+            action_cmd = TeamBattleTrainer.get_action(action_list, unaval_list, state_info, hero_info, friends, opponents)
             action_cmds.append(action_cmd)
         return action_cmds
 
@@ -273,7 +277,7 @@ class TeamBattleTrainer:
                 tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
 
                 if tgt_hero is None:
-                    avail_list[selected] == -1
+                    avail_list[selected] = -1
                     if debug: print("找不到对应目标英雄")
                     continue
                 [tgtid, tgtpos] = TeamBattleTrainer.choose_skill_target(tgt_index, state_info,
@@ -297,7 +301,7 @@ class TeamBattleTrainer:
             tgtid = hero_name
             # TODO 这里有点问题，如果是目标是自己的技能，是不是要区分下目的，否则fwd计算会出现问题
             tgtpos = None
-        elif selected == 1:
+        elif selected <= 4:
             # 攻击对方英雄
             # 首先判断施法目标是不是只限于自己
             if skill_info.cast_target == SkillTargetEnum.self:
@@ -339,34 +343,35 @@ class TeamBattleTrainer:
                 action_list[selected] = -1
                 continue
 
-        if selected < 8:  # move
-            fwd = StateUtil.mov(selected, revert)
-            tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
-            action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
-            return action
-        elif selected < 13:  # 对敌英雄使用普攻
-            target_index = selected - 8
-            target_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, target_index)
-            avail_type = unaval_list[selected]
-            if avail_type == 0:
-                action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, target_hero.pos, None, None, selected, None)
-            else:
-                action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
-            return action
-        elif selected < 28:  # skill
-            skillid = int((selected - 13) / 5 + 1)
-            tgt_index = selected - 13 - (skillid - 1) * 5
-            skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
-            is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
-            tgt_hero = TeamBattleUtil.get_target_hero(hero, friends, opponents, tgt_index, is_buff)
-            tgt_pos = state_info.get_hero(tgt_hero).pos
-            fwd = tgt_pos.fwd(hero.pos)
-            avail_type = unaval_list[selected]
-            if avail_type == 0:
-                action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, selected, None)
-            else:
-                action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
-            return action
+            if selected < 8:  # move
+                fwd = StateUtil.mov(selected, revert)
+                tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
+                action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
+                return action
+            elif selected < 13:  # 对敌英雄使用普攻
+                target_index = selected - 8
+                target_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, target_index)
+                target_hero_info = state_info.get_hero(target_hero)
+                avail_type = unaval_list[selected]
+                if avail_type == 0:
+                    action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, target_hero_info.pos, None, None, selected, None)
+                else:
+                    action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
+                return action
+            elif selected < 28:  # skill
+                skillid = int((selected - 13) / 5 + 1)
+                tgt_index = selected - 13 - (skillid - 1) * 5
+                skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
+                is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
+                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
+                tgt_pos = state_info.get_hero(tgt_hero).pos
+                fwd = tgt_pos.fwd(hero.pos)
+                avail_type = unaval_list[selected]
+                if avail_type == 0:
+                    action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, selected, None)
+                else:
+                    action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
+                return action
 
     def upgrade_skills(self, state_info, hero_name):
         # 决定是否购买道具

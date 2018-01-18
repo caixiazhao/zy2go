@@ -34,7 +34,7 @@ class TeamBattleModelUtil:
         self.save_batch = save_batch
         self.model_map = {}
         self.train_data_map = {}
-        for hero_name in ["27"]:
+        for hero_name in hero_names:
             # 准备模型
             model, save_header = self.build_model_ppo(save_root, hero_name, None)
             self.model_map[hero_name] = (model, save_header)
@@ -46,7 +46,7 @@ class TeamBattleModelUtil:
     def get_action(self, hero_name, state_input):
         model, _ = self.model_map[hero_name]
         actions_list, explor_value, vpred = model.get_action(state_input)
-        return actions_list[0], explor_value, vpred
+        return list(actions_list[0]), explor_value, vpred
 
     def if_save_model(self, model, save_header, save_batch):
         # 训练之后检查是否保存
