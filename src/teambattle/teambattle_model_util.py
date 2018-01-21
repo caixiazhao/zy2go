@@ -43,7 +43,7 @@ class TeamBattleModelUtil:
             battle_data_map = {}
             self.train_data_map[hero_name] = battle_data_map
 
-    def get_action(self, hero_name, state_input):
+    def get_action_list(self, hero_name, state_input):
         model, _ = self.model_map[hero_name]
         actions_list, explor_value, vpred = model.get_action(state_input)
         return list(actions_list[0]), explor_value, vpred

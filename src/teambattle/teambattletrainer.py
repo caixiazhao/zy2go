@@ -172,14 +172,14 @@ class TeamBattleTrainer:
             hero_info = state_info.get_hero(hero)
             input = TeamBattleInput.gen_input(state_info, hero)
             input = np.array(input)
-            action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
+            action_list, explor_value, vpreds = self.model_util.get_action_list(hero, input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
             print("model action list", action_str)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
             print("model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action(action_list, unaval_list, state_info, hero_info, friends, opponents)
+            action_cmd = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
             print("model get_action", StateUtil.build_command(action_cmd))
 
             action_cmds.append(action_cmd)
@@ -194,10 +194,10 @@ class TeamBattleTrainer:
         # 重新计算
         action_cmds.clear()
         for hero, input in zip(heros, input_list):
-            action_list, explor_value, vpreds = self.model_util.get_action(hero, input)
+            action_list, explor_value, vpreds = self.model_util.get_action_list(hero, input)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action(action_list, unaval_list, state_info, hero_info, friends, opponents)
+            action_cmd = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
             action_cmds.append(action_cmd)
         return action_cmds
 
@@ -273,6 +273,9 @@ class TeamBattleTrainer:
                     continue
                 tgt_index = selected - 13 - (skillid - 1) * 5
                 skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
+                if skill_info.cast_target == SkillTargetEnum.self:
+                        # TODO
+                        cast_debug = 1
                 is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
                 tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
 
@@ -327,13 +330,14 @@ class TeamBattleTrainer:
         return tgtid, tgtpos
 
     @staticmethod
-    def get_action(action_list, unaval_list, state_info, hero, friends, opponents, revert=False):
+    def get_action_cmd(action_list, unaval_list, state_info, hero_name, friends, opponents, revert=False):
+        hero = state_info.get_hero(hero_name)
         found = False
         while not found:
             max_q = max(action_list)
 
             if max_q <= -1:
-                action = CmdAction(hero.hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
+                action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
                 return action
 
             selected = action_list.index(max_q)

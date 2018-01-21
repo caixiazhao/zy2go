@@ -19,6 +19,8 @@ import numpy as np
 class TeamBattleInput:
     NORMARLIZE = 10000
     HERO_LIST = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
+    TEAM_A = ['27', '28', '29', '30', '31']
+    TEAM_B = ['32', '33', '34', '35', '36']
 
     # 英雄信息向量大小20+3*23
     # query_hero 表示这是哪个英雄进行计算发起的请求
@@ -27,7 +29,7 @@ class TeamBattleInput:
         if hero is None or hero.state == 'out' or hero.hp <= 0:
             return list(np.zeros(20 + 3 * 23))
 
-        # 添加英雄基础信息
+        # 添加英雄基础信息 11个
         hero_input = [
             TeamBattleInput.normalize_value(hero.pos.x - query_hero.pos.x if not revert else -(hero.pos.x - query_hero.pos.x)),
             TeamBattleInput.normalize_value(hero.pos.z - query_hero.pos.z if not revert else -(hero.pos.z - query_hero.pos.z)),
@@ -43,7 +45,7 @@ class TeamBattleInput:
             TeamBattleInput.normalize_value(hero.magpenrate),
             hero.team if not revert else 1 - hero.team]
 
-        # 添加物理攻击信息，预留5个攻击对象位
+        # 添加物理攻击信息，预留5个攻击对象位，9个
         hero_input.append(TeamBattleInput.normalize_value(hero.att)),
         hero_input.append(TeamBattleInput.normalize_value(hero.attspeed)),
         hero_input.append(TeamBattleInput.normalize_value(hero.attpen)),
@@ -104,6 +106,8 @@ class TeamBattleInput:
         skill_input.append(skill_canuse)
 
         # 施法对象，预留5个空位，敌人或者队友
+        # 这里的目标，统一为，敌人，队友都是27-31这种顺序排序
+        # TODO 需要决定这里到底留几个槽，5个还是10个
         skill_input.append(0)
         skill_input.append(0)
         skill_input.append(0)
@@ -134,25 +138,31 @@ class TeamBattleInput:
     # 所以缩减到英雄后面添加几个信息，技能1-4攻击对方英雄1-5或者治疗己方英雄1-5
     @staticmethod
     def add_other_hero_action(input_data, hero_info, action_cmd):
+        # 如果是自己，则忽略
+        if hero_info.hero_name == action_cmd.hero_name:
+            return
+
         # 如果不是攻击类行为，忽略
         if action_cmd.action != CmdActionEnum.ATTACK and action_cmd.action != CmdActionEnum.CAST:
             return
 
         # 如果不是己方的动作，忽略
-        friends, opponents = TeamBattleUtil.get_friend_opponent_heros(TeamBattleInput.HERO_LIST, hero_name)
+        friends, opponents = TeamBattleUtil.get_friend_opponent_heros(TeamBattleInput.HERO_LIST, hero_info.hero_name)
         if action_cmd.hero_name != hero_info.hero_name and action_cmd.hero_name not in friends:
             return
 
         # 更新输入数据
-        hero_index = 0 if action_cmd.hero_name == hero_info.hero_name else friends.index(action_cmd.hero_name)
-        skill_cfg_info = SkillUtil.get_skill_info(hero_info.cfg_id, action_cmd.skillid)
-        tgt_hero_index = opponents.index(action_cmd.tgt_id) if skill_cfg_info.cast_target == SkillTargetEnum.rival \
-            else 0 if action_cmd.tgt_id == hero_info.hero_name \
-            else friends.index(action_cmd.tgt_id)
-        change_index = hero_index * 89 + 15 + 1 + tgt_hero_index if action_cmd.action == CmdActionEnum.ATTACK \
-            else hero_index * 89 + 20 + action_cmd.skillid * 23 + 18 + 1 + tgt_hero_index
+        # 首先找到目标英雄ID，然后找到使用的技能ID
+        hero_index = friends.index(action_cmd.hero_name) + 1
+        tgt_hero_index = TeamBattleInput.TEAM_A.index(action_cmd.tgtid) if action_cmd.tgtid in TeamBattleInput.TEAM_A \
+            else TeamBattleInput.TEAM_B.index(action_cmd.tgtid)
+        change_index = hero_index * 89 + 15 + tgt_hero_index if action_cmd.action == CmdActionEnum.ATTACK \
+            else hero_index * 89 + 20 + (int(action_cmd.skillid) - 1) * 23 + 18 + tgt_hero_index
 
+        prev_value = input_data[change_index]
         input_data[change_index] = 1
+        print("add_other_hero_action", "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
+              "action_cmd.action", action_cmd.action, "action_cmd_skill", action_cmd.skillid, "change_index", change_index, prev_value)
         return
 
 

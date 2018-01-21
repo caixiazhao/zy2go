@@ -91,9 +91,9 @@ class ModelThread(threading.Thread):
                 (battle_id, act_model_name, state_info, hero_name, rival_hero) = self.action_queue.get(timeout=1)
                 print(battle_id, 'receive act signal', act_model_name, hero_name)
                 if act_model_name == ModelThread.NAME_MODEL_1:
-                    action, explorer_ratio, action_ratios = self.model_1.get_action(state_info, hero_name, rival_hero)
+                    action, explorer_ratio, action_ratios = self.model_1.get_action_cmd(state_info, hero_name, rival_hero)
                 elif act_model_name == ModelThread.NAME_MODEL_2:
-                    action, explorer_ratio, action_ratios = self.model_2.get_action(state_info, hero_name, rival_hero)
+                    action, explorer_ratio, action_ratios = self.model_2.get_action_cmd(state_info, hero_name, rival_hero)
                 print(str(battle_id) + ' Getting for ' + str(act_model_name)
                                   + ' : ' + str(self.action_queue.qsize()) + ' items in queue ')
                 self.results[(battle_id, act_model_name)] = (action, explorer_ratio, action_ratios)
