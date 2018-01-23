@@ -140,16 +140,16 @@ class TeamBattleInput:
     def add_other_hero_action(input_data, hero_info, action_cmd):
         # 如果是自己，则忽略
         if hero_info.hero_name == action_cmd.hero_name:
-            return
+            return input_data
 
         # 如果不是攻击类行为，忽略
         if action_cmd.action != CmdActionEnum.ATTACK and action_cmd.action != CmdActionEnum.CAST:
-            return
+            return input_data
 
         # 如果不是己方的动作，忽略
         friends, opponents = TeamBattleUtil.get_friend_opponent_heros(TeamBattleInput.HERO_LIST, hero_info.hero_name)
         if action_cmd.hero_name != hero_info.hero_name and action_cmd.hero_name not in friends:
-            return
+            return input_data
 
         # 更新输入数据
         # 首先找到目标英雄ID，然后找到使用的技能ID
@@ -160,10 +160,13 @@ class TeamBattleInput:
             else hero_index * 89 + 20 + (int(action_cmd.skillid) - 1) * 23 + 18 + tgt_hero_index
 
         prev_value = input_data[change_index]
+        if prev_value != 0:
+            print("add_other_hero_action", "must be something wrong", "prev_value not zero")
         input_data[change_index] = 1
-        print("add_other_hero_action", "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
-              "action_cmd.action", action_cmd.action, "action_cmd_skill", action_cmd.skillid, "change_index", change_index, prev_value)
-        return
+        debug_action_str = StateUtil.build_command(action_cmd)
+        print("add_other_hero_action", "add_hero_info", hero_info.hero_name, "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
+              "action_cmd.action", action_cmd.action, "action_cmd_skill", action_cmd.skillid, "change_index", change_index, "cmd", debug_action_str)
+        return input_data
 
 
 
