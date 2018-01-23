@@ -40,6 +40,7 @@ class TeamBattleTrainer:
     BATTLE_POINT_Z = -30000
     BATTLE_CIRCLE = PosStateInfo(BATTLE_POINT_X, 0, BATTLE_POINT_Z)
     MODEL_RANGE = 15
+    BATTLE_CIRCLE_RADIUS = 7
 
     def __init__(self, battle_id, model_util):
         self.battle_id = battle_id
@@ -49,6 +50,7 @@ class TeamBattleTrainer:
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.raw_log_file = open(save_dir + '/raw_' + str(battle_id) + '.log', 'w')
         self.dead_heroes = []
+        self.battle_started = False
 
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
@@ -73,6 +75,7 @@ class TeamBattleTrainer:
             print("clear")
             prev_state_info = None
             self.state_cache = []
+            self.battle_started = False
 
         # 战斗前准备工作
         if len(self.state_cache) == 0:
@@ -98,9 +101,58 @@ class TeamBattleTrainer:
                 if buy_cmd is not None:
                     response_strs.append(buy_cmd)
 
-        battle_heros = self.search_team_battle(state_info)
-        if len(battle_heros) > 0:
-            print("team battle heros", ';'.join(battle_heros))
+        for hero in self.heros:
+            # 判断是否英雄死亡
+            if prev_state_info is not None:
+                dead = StateUtil.if_hero_dead(prev_state_info, state_info, hero)
+                if dead == 1 and hero not in self.dead_heroes:
+                    self.dead_heroes.append(hero)
+
+        # 首先要求所有英雄站到团战圈内，然后开始模型计算，这时候所有的行动都有模型来决定
+        # 需要过滤掉无效的行动，同时屏蔽会离开战斗圈的移动
+        #TODO 开始团战后，如果有偶尔的技能移动会离开圈，则拉回来
+
+        # 这里会排除掉死亡的英雄，他们不需要再加入团战
+        heroes_in_range, heroes_out_range = self.all_in_battle_range(state_info, self.heros, self.dead_heroes)
+
+        # 团战还没有开始，有英雄还在圈外
+        if len(heroes_out_range) > 0:
+            if self.battle_started:
+                print("战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range))
+
+            # 移动到两个开始战斗地点附近，添加部分随机
+            for hero in heroes_out_range:
+                start_point_x = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS * 1000
+                if TeamBattleUtil.get_hero_team(hero) == 0:
+                    start_point_x *= -1
+                start_point_z = TeamBattleTrainer.BATTLE_POINT_Z
+                tgt_pos = PosStateInfo(start_point_x, 0, start_point_z)
+                move_action = CmdAction(hero, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, None, None)
+                mov_cmd_str = StateUtil.build_command(move_action)
+                response_strs.append(mov_cmd_str)
+        # 团战已经开始
+        else:
+            if not self.battle_started:
+                self.battle_started = True
+            action_cmds = self.get_model_actions(state_info, heroes_in_range)
+            for action_cmd in action_cmds:
+                action_str = StateUtil.build_command(action_cmd)
+                response_strs.append(action_str)
+                state_info.add_action(action_cmd)
+
+        # 团战结束条件
+        # 首先战至最后一人
+        all_in_team = TeamBattleUtil.all_in_one_team(heroes_in_range)
+        if self.battle_started:
+            if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
+                # 重启游戏
+                print("重启游戏", "剩余人员", ','.join(heroes_in_range))
+                response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+
+                #TODO 处理奖励值，对于死亡英雄的最终奖励，应该考虑衰减系数
+                #TODO 提供训练数据
+
+
 
         #TODO 复活的英雄不要回去参加战斗
 
@@ -110,37 +162,41 @@ class TeamBattleTrainer:
 
         #TODO 如果离开团战圈，需要拉回来
 
-        heros_need_model = []
-        for hero in self.heros:
-            # 判断是否英雄死亡
-            if prev_state_info is not None:
-                dead = StateUtil.if_hero_dead(prev_state_info, state_info, hero)
-                if dead == 1 and hero not in self.dead_heroes:
-                    self.dead_heroes.append(hero)
-
-            # 复活的英雄不要再去参团
-            if hero in self.dead_heroes:
-                continue
-
-            # near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
-            if hero not in battle_heros:
-                # 移动到团战点附近，添加部分随机
-                rdm_delta_x = randint(0, 1000)
-                rdm_delta_z = randint(0, 1000)
-                tgt_pos = PosStateInfo(TeamBattleTrainer.BATTLE_POINT_X + rdm_delta_x, 0, TeamBattleTrainer.BATTLE_POINT_Z + rdm_delta_z)
-                move_action = CmdAction(hero, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, None, None)
-                mov_cmd_str = StateUtil.build_command(move_action)
-                response_strs.append(mov_cmd_str)
-            else:
-                # 启动模型决策
-                heros_need_model.append(hero)
-
-        if len(heros_need_model) > 0:
-            action_cmds = self.get_model_actions(state_info, heros_need_model)
-            for action_cmd in action_cmds:
-                action_str = StateUtil.build_command(action_cmd)
-                response_strs.append(action_str)
-                state_info.add_action(action_cmd)
+        # battle_heros = self.search_team_battle(state_info)
+        # if len(battle_heros) > 0:
+        #     print("team battle heros", ';'.join(battle_heros))
+        #
+        # heros_need_model = []
+        # for hero in self.heros:
+        #     # 判断是否英雄死亡
+        #     if prev_state_info is not None:
+        #         dead = StateUtil.if_hero_dead(prev_state_info, state_info, hero)
+        #         if dead == 1 and hero not in self.dead_heroes:
+        #             self.dead_heroes.append(hero)
+        #
+        #     # 复活的英雄不要再去参团
+        #     if hero in self.dead_heroes:
+        #         continue
+        #
+        #     # near_enemy_heroes = StateUtil.get_nearby_enemy_heros(state_info, hero, TeamBattleTrainer.MODEL_RANGE)
+        #     if hero not in battle_heros:
+        #         # 移动到团战点附近，添加部分随机
+        #         rdm_delta_x = randint(0, 1000)
+        #         rdm_delta_z = randint(0, 1000)
+        #         tgt_pos = PosStateInfo(TeamBattleTrainer.BATTLE_POINT_X + rdm_delta_x, 0, TeamBattleTrainer.BATTLE_POINT_Z + rdm_delta_z)
+        #         move_action = CmdAction(hero, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, None, None)
+        #         mov_cmd_str = StateUtil.build_command(move_action)
+        #         response_strs.append(mov_cmd_str)
+        #     else:
+        #         # 启动模型决策
+        #         heros_need_model.append(hero)
+        #
+        # if len(heros_need_model) > 0:
+        #     action_cmds = self.get_model_actions(state_info, heros_need_model)
+        #     for action_cmd in action_cmds:
+        #         action_str = StateUtil.build_command(action_cmd)
+        #         response_strs.append(action_str)
+        #         state_info.add_action(action_cmd)
 
             #TODO 记录模型输出，用于后续训练
 
@@ -154,17 +210,23 @@ class TeamBattleTrainer:
         return rsp_str
 
     def all_in_battle_range(self, state_info, all_heroes, dead_heroes):
+        heroes_in = []
+        heroes_out = []
         for hero in all_heroes:
             if hero not in dead_heroes:
                 hero_info = state_info.get_hero(hero)
-                if not self.in_battle_range(hero_info):
-                    print("all_in_battle_range", "found hero not in circle", hero)
-                    return False
-        return True
+                if not TeamBattleTrainer.in_battle_range(hero_info.pos):
+                    heroes_out.append(hero)
+                else:
+                    heroes_in.append(hero)
+        if len(heroes_out) > 0:
+            print("all_in_battle_range", "found hero not in circle", ','.join(heroes_out))
+        return heroes_in, heroes_out
 
     # 考察一个英雄是否在团战圈中
-    def in_battle_range(self, hero_info):
-        dis = StateUtil.cal_distance(hero_info.pos, TeamBattleTrainer.BATTLE_CIRCLE)
+    @staticmethod
+    def in_battle_range(pos):
+        dis = StateUtil.cal_distance(pos, TeamBattleTrainer.BATTLE_CIRCLE)
         if dis < TeamBattleTrainer.MODEL_RANGE/2:
             return True
         return False
@@ -251,7 +313,14 @@ class TeamBattleTrainer:
             selected = i
             if selected < 8:  # move
                 # 不再检查movelock，因为攻击硬直也会造成这个值变成false（false表示不能移动）
-                avail_list[selected] = 1
+                # 屏蔽会离开战圈的移动
+                fwd = StateUtil.mov(selected)
+                move_pos = TeamBattleUtil.play_move(hero, fwd)
+                in_range = TeamBattleTrainer.in_battle_range(move_pos)
+                if not in_range:
+                    avail_list[selected] = -1
+                else:
+                    avail_list[selected] = 1
                 continue
             elif selected < 13:  # 物理攻击：五个攻击目标
                 if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):

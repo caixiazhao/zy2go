@@ -33,6 +33,6 @@ if __name__ == "__main__":
         manager = TeamBattleTrainerManager(num)
         print('训练器准备完毕')
 
-        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-01-16112447.856770/raw_1.log')
+        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-01-22171237.566351/raw_1.log')
     except Exception as e:
         print(e)
