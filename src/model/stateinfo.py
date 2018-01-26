@@ -10,6 +10,8 @@ from model.unitstateinfo import UnitStateInfo
 # 注意有些信息不是完整的，
 # units是需要跟之前的信息进行累加的
 # heros信息，其中一部分属性也是需要累加的
+from train.cmdactionenum import CmdActionEnum
+
 
 class StateInfo:
     def get_hero_tower_dmg(self, hero_name):
@@ -79,11 +81,13 @@ class StateInfo:
                 hit_infos.append(hit)
         return hit_infos
 
+    # 这里是去重后的结果
     def get_hero_be_attacked_info(self, hero_name):
         hitted = []
         for hit in self.hit_infos:
             if hit.tgt == hero_name:
-                hitted.append(hit.atker)
+                if hit.atker not in hitted:
+                    hitted.append(hit.atker)
         return hitted
 
     def get_obj(self, obj_name):
@@ -182,6 +186,16 @@ class StateInfo:
                 self.actions[i] = action
                 return
         self.actions.append(action)
+
+    def get_or_insert_reward(self, hero_name):
+        for action in self.actions:
+            if action.hero_name == hero_name:
+                return action.reward
+
+        # 如果没有的话，添加一个空行为
+        empty_action = CmdAction(hero_name, CmdActionEnum.EMPTY, None, None, None, None, None, None, 0)
+        self.add_action(empty_action)
+        return empty_action.reward
 
     def add_rewards(self, hero_name, reward):
         for action in self.actions:

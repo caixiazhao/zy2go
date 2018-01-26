@@ -2,6 +2,7 @@ class CmdActionEnum:
     def __init__(self):
         pass
 
+    EMPTY = -1
     MOVE = 0
     HOLD = 1
     ATTACK = 2

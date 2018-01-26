@@ -15,7 +15,7 @@ import sys, traceback
 
 
 class TeamBattleTrainerManager:
-    def __init__(self, battle_id_num):
+    def __init__(self, battle_id_num, gamma):
         manager = Manager()
         self.request_dict = manager.dict()
         self.result_dict = manager.dict()
@@ -23,10 +23,10 @@ class TeamBattleTrainerManager:
         self.battle_trainers = {}
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.save_batch = 20
-        self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_batch)
+        self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_batch, gamma)
 
         for p_battle_id in range(1, battle_id_num+1):
-            battle_trainer = TeamBattleTrainer(p_battle_id, self.battle_model_util)
+            battle_trainer = TeamBattleTrainer(p_battle_id, self.battle_model_util, gamma)
             self.battle_trainers[battle_id_num] = battle_trainer
 
         TeamBattleTrainerManager.One = self

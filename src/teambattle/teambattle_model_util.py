@@ -3,9 +3,12 @@
 
 import numpy as np
 
+from teambattle.teambattle_util import TeamBattleUtil
+from teambattle.teambattletrainer import TeamBattleTrainer
 from train.line_ppo_model import LinePPOModel
 from train.linemodel_ppo1 import LineModel_PPO1
 from util.httputil import HttpUtil
+from util.stateutil import StateUtil
 
 
 class TeamBattleModelUtil:
@@ -27,7 +30,7 @@ class TeamBattleModelUtil:
 
         return model, model_save_header
 
-    def __init__(self, hero_names, battle_num, save_batch):
+    def __init__(self, hero_names, battle_num, save_batch, gamma):
         # 启动所有的模型
         save_root = HttpUtil.get_save_root_path()
         self.battle_num = battle_num
@@ -36,7 +39,7 @@ class TeamBattleModelUtil:
         self.train_data_map = {}
         for hero_name in hero_names:
             # 准备模型
-            model, save_header = self.build_model_ppo(save_root, hero_name, None)
+            model, save_header = self.build_model_ppo(save_root, hero_name, None, model_gamma=gamma)
             self.model_map[hero_name] = (model, save_header)
 
             # 准备训练集的存储
@@ -62,6 +65,71 @@ class TeamBattleModelUtil:
             model.replay(self.train_data_map[hero_name].values(), batch_size)
             self.train_data_map[hero_name].clear()
             self.if_save_model(model, model_save_header, self.save_batch)
+
+    # 计算模型的奖励情况
+    # 团战情况下的奖励情况非常单一
+    # 英雄杀死其它英雄，奖励
+    # 英雄被击杀，惩罚
+    # 团战胜率，奖励
+    #TODO 击杀的判定需要仔细审核，暂定规则为英雄死亡当帧，hit信息指向该英雄的攻击者都奖励
+    def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, dead_heroes):
+
+        # 首先对所有参展人员，设置初始奖励值
+        for hero_name in battle_heroes:
+            state_info.add_rewards(hero_name, 0)
+
+        # 更新奖励值
+        left_heroes = list(battle_heroes)
+        for hero_name in battle_heroes:
+            dead = StateUtil.if_hero_dead(state_info, next_state_info, hero_name)
+            if dead == 1:
+                # 死亡者惩罚
+                reward = state_info.get_or_insert_reward(hero_name)
+                print("battle_id", state_info.battleid, "hero_name", hero_name, "cal_rewards", "死亡者惩罚", "tick", state_info.tick)
+                reward -= 1
+                state_info.add_rewards(hero_name, reward)
+
+                # 攻击者奖励
+                attackers = next_state_info.get_hero_be_attacked_info(hero_name)
+                for attacker in attackers:
+                    reward = state_info.get_or_insert_reward(attacker)
+                    reward += 1
+                    state_info.add_rewards(attacker, reward)
+                    print("battle_id", state_info.battleid, "hero_name", attacker, "cal_rewards", "攻击者奖励", "tick", state_info.tick, "死亡英雄", hero_name)
+
+                # 从存活英雄中删除
+                left_heroes.remove(hero_name)
+
+        # 检查是否战斗结束
+        #TODO 这里的逻辑是有问题的
+        all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
+        win = 0
+        if all_in_team != -1:
+            win = 1
+            for hero in left_heroes:
+                reward = state_info.get_or_insert_reward(hero)
+                reward += 10
+                state_info.add_rewards(hero, reward)
+
+            #TODO 要不要给赢的队伍中死亡的人团战胜利奖励，给多少
+            for hero in dead_heroes:
+                # 这里目前认为所有没有参战的英雄都是
+                if hero not in battle_heroes:
+                    if TeamBattleUtil.get_hero_team(hero) == all_in_team:
+                        reward = state_info.get_or_insert_reward(hero)
+                        reward += 5
+                        state_info.add_rewards(hero, reward)
+                    # 失败的团队给予惩罚
+                    else:
+                        reward = state_info.get_or_insert_reward(hero)
+                        reward -= 5
+                        state_info.add_rewards(hero, reward)
+        return state_info, win, all_in_team
+
+
+
+
+
 
 
 

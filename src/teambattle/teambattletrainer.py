@@ -22,6 +22,7 @@ from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from model.skillcfginfo import SkillTargetEnum
 from model.stateinfo import StateInfo
+from teambattle.team_ppocache import TEAM_PPO_CACHE
 from teambattle.teambattle_input import TeamBattleInput
 from teambattle.teambattle_util import TeamBattleUtil
 from train.cmdactionenum import CmdActionEnum
@@ -29,20 +30,21 @@ from util.equiputil import EquipUtil
 from util.httputil import HttpUtil
 from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
-from random import randint
 from time import gmtime, strftime
 import numpy as np
 from random import shuffle
+
 
 class TeamBattleTrainer:
 
     BATTLE_POINT_X = 0
     BATTLE_POINT_Z = -30000
     BATTLE_CIRCLE = PosStateInfo(BATTLE_POINT_X, 0, BATTLE_POINT_Z)
-    MODEL_RANGE = 15
-    BATTLE_CIRCLE_RADIUS = 7
+    BATTLE_CIRCLE_RADIUS_BATTLE_START = 8
+    BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
 
-    def __init__(self, battle_id, model_util):
+
+    def __init__(self, battle_id, model_util, gamma):
         self.battle_id = battle_id
         self.model_util = model_util
         save_dir = HttpUtil.get_save_root_path()
@@ -51,6 +53,14 @@ class TeamBattleTrainer:
         self.raw_log_file = open(save_dir + '/raw_' + str(battle_id) + '.log', 'w')
         self.dead_heroes = []
         self.battle_started = False
+        self.model_caches = {}
+        for hero in self.heros:
+            self.model_caches[hero] = TEAM_PPO_CACHE(gamma)
+
+        # 计算奖励值时候因为要看历史数据，所以需要这两个当时的状态信息。后续可以考虑如何避免这种缓存
+        self.battle_heroes_cache = []
+        self.dead_heroes_cache = []
+        self.data_inputs = []
 
     def save_raw_log(self, raw_log_str):
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
@@ -76,6 +86,10 @@ class TeamBattleTrainer:
             prev_state_info = None
             self.state_cache = []
             self.battle_started = False
+            self.battle_heroes_cache = []
+            self.dead_heroes = []
+            self.dead_heroes_cache = []
+            self.data_inputs = []
 
         # 战斗前准备工作
         if len(self.state_cache) == 0:
@@ -87,7 +101,7 @@ class TeamBattleTrainer:
                 response_strs.append(add_gold_str)
 
                 add_lv_cmd = CmdAction(hero, CmdActionEnum.ADDLV, None, None, None, None, None, None, None)
-                add_lv_cmd.lv = 10
+                add_lv_cmd.lv = 5
                 add_lv_str = StateUtil.build_command(add_lv_cmd)
                 response_strs.append(add_lv_str)
         elif len(self.state_cache) > 1:
@@ -113,7 +127,12 @@ class TeamBattleTrainer:
         #TODO 开始团战后，如果有偶尔的技能移动会离开圈，则拉回来
 
         # 这里会排除掉死亡的英雄，他们不需要再加入团战
-        heroes_in_range, heroes_out_range = self.all_in_battle_range(state_info, self.heros, self.dead_heroes)
+        battle_range = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START if not self.battle_started else TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_ING
+        heroes_in_range, heroes_out_range = TeamBattleTrainer.all_in_battle_range(state_info, self.heros, self.dead_heroes, battle_range)
+
+        # 缓存参战情况和死亡情况，用于后续训练
+        self.battle_heroes_cache.append(list(heroes_in_range))
+        self.dead_heroes_cache.append(list(self.dead_heroes))
 
         # 团战还没有开始，有英雄还在圈外
         if len(heroes_out_range) > 0:
@@ -122,7 +141,7 @@ class TeamBattleTrainer:
 
             # 移动到两个开始战斗地点附近，添加部分随机
             for hero in heroes_out_range:
-                start_point_x = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS * 1000
+                start_point_x = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START * 1000
                 if TeamBattleUtil.get_hero_team(hero) == 0:
                     start_point_x *= -1
                 start_point_z = TeamBattleTrainer.BATTLE_POINT_Z
@@ -134,33 +153,36 @@ class TeamBattleTrainer:
         else:
             if not self.battle_started:
                 self.battle_started = True
-            action_cmds = self.get_model_actions(state_info, heroes_in_range)
-            for action_cmd in action_cmds:
+            action_cmds, input_list = self.get_model_actions(state_info, heroes_in_range)
+            data_input_map = {}
+            for action_cmd, data_input in zip(action_cmds, input_list):
                 action_str = StateUtil.build_command(action_cmd)
                 response_strs.append(action_str)
                 state_info.add_action(action_cmd)
+                data_input_map[action_cmd.hero_name] = data_input
 
-        # 团战结束条件
-        # 首先战至最后一人
-        all_in_team = TeamBattleUtil.all_in_one_team(heroes_in_range)
-        if self.battle_started:
-            if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
+            # 缓存所有的模型输入，用于后续训练
+            self.data_inputs.append(data_input_map)
+
+        # 添加记录到缓存中
+        self.state_cache.append(state_info)
+
+        # 将模型行为加入训练缓存，同时计算奖励值
+        # 注意：因为奖励值需要看后续状态，所以这个计算会有延迟
+        last_x_index = 2
+        if self.battle_started and len(self.data_inputs) >= last_x_index:
+            state_index = len(self.state_cache) - last_x_index
+            win, win_team = self.remember_replay_heroes(-last_x_index, state_index)
+
+            # 团战结束条件
+            # 首先战至最后一人
+            # all_in_team = TeamBattleUtil.all_in_one_team(heroes_in_range)
+            # if self.battle_started:
+            #     if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
+            if win == 1:
                 # 重启游戏
                 print("重启游戏", "剩余人员", ','.join(heroes_in_range))
                 response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
-
-                #TODO 处理奖励值，对于死亡英雄的最终奖励，应该考虑衰减系数
-                #TODO 提供训练数据
-
-
-
-        #TODO 复活的英雄不要回去参加战斗
-
-        #TODO 设置战斗结束条件
-
-        #TODO 首先移动到己方的汇合位置，然后一起朝团战位置移动
-
-        #TODO 如果离开团战圈，需要拉回来
 
         # battle_heros = self.search_team_battle(state_info)
         # if len(battle_heros) > 0:
@@ -200,22 +222,71 @@ class TeamBattleTrainer:
 
             #TODO 记录模型输出，用于后续训练
 
-
-        # 添加记录到缓存中
-        self.state_cache.append(state_info)
-
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": response_strs}
         rsp_str = JSON.dumps(rsp_obj)
         return rsp_str
 
-    def all_in_battle_range(self, state_info, all_heroes, dead_heroes):
+    # last_x_index 表示这是倒数第x个状态，这里不用准确数字而是用-1、-2是因为state_cache，data_inputs长度不同
+    # state_index 表示状态在帧缓存中的位置，用于计算奖励值折旧时候使用
+    def remember_replay_heroes(self, last_x_index, state_index):
+        prev_state = self.state_cache[last_x_index - 1]
+        state_info = self.state_cache[last_x_index]
+        next_state = self.state_cache[last_x_index + 1]
+        battle_heroes = self.battle_heroes_cache[last_x_index]
+        dead_heroes = self.dead_heroes_cache[last_x_index]
+        data_input_map = self.data_inputs[last_x_index]
+
+        # 计算奖励值情况
+        state_info, win, win_team = self.model_util.cal_rewards(prev_state, state_info, next_state, battle_heroes, dead_heroes)
+
+        if state_info.tick >= 50028:
+            debug_here = 1
+
+        for action in state_info.actions:
+            # 行为有可能为空，比如英雄已经挂了，但是他最后的动作在后续几帧都可能有影响，也有可能是因为
+            # print('battle_id', self.battle_id, "remember_replay_heroes", action.hero_name)
+            data_input = data_input_map[action.hero_name] if action.action != CmdActionEnum.EMPTY else None
+            self.remember_train_data(state_info, state_index, data_input, action.hero_name, win)
+
+        # 如果战斗结束，需要训练所有模型
+        if win == 1:
+            for hero_name in self.heros:
+                model_cache = self.model_caches[hero_name]
+                prev_new = model_cache.get_prev_new()
+                o4r, batchsize = model_cache.output4replay(prev_new)
+
+                # 提交给训练模块
+                print('battle trainer', self.battle_id, hero_name, '添加训练集')
+                self.model_util.set_train_data(hero_name, self.battle_id, o4r, batchsize)
+                model_cache.clear_cache()
+
+        return win, win_team
+
+    # 保存训练数据，计算行为奖励，触发训练
+    #TODO 在游戏重启时候需要同时训练所有的模型
+    def remember_train_data(self, state_info, state_index, data_input, hero_name, new):
+        print("remember_replay", hero_name, len(self.model_caches), new)
+        hero_act = state_info.get_hero_action(hero_name)
+        model_cache = self.model_caches[hero_name]
+
+        if hero_act is not None:
+            # prev_new 简单计算，可能会有问题
+            prev_new = model_cache.get_prev_new()
+            ob = data_input
+            ac = hero_act.output_index
+            vpred = hero_act.vpred
+            rew = hero_act.reward
+            model_cache.remember(ob, ac, vpred, new, rew, prev_new, state_index)
+
+    @staticmethod
+    def all_in_battle_range(state_info, all_heroes, dead_heroes, battle_range):
         heroes_in = []
         heroes_out = []
         for hero in all_heroes:
             if hero not in dead_heroes:
                 hero_info = state_info.get_hero(hero)
-                if not TeamBattleTrainer.in_battle_range(hero_info.pos):
+                if not TeamBattleTrainer.in_battle_range(hero_info.pos, battle_range):
                     heroes_out.append(hero)
                 else:
                     heroes_in.append(hero)
@@ -225,9 +296,9 @@ class TeamBattleTrainer:
 
     # 考察一个英雄是否在团战圈中
     @staticmethod
-    def in_battle_range(pos):
-        dis = StateUtil.cal_distance(pos, TeamBattleTrainer.BATTLE_CIRCLE)
-        if dis < TeamBattleTrainer.MODEL_RANGE/2:
+    def in_battle_range(pos, battle_range):
+        dis = StateUtil.cal_distance2(pos, TeamBattleTrainer.BATTLE_CIRCLE)
+        if dis < battle_range * 1000 + 500:
             return True
         return False
 
@@ -285,17 +356,17 @@ class TeamBattleTrainer:
 
             action_list, explor_value, vpreds = self.model_util.get_action_list(hero, data_input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
-            print("model action list", action_str)
+            print("battleid", self.battle_id, "hero", hero, "model action list", action_str)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
-            print("model remove_unaval_actions", unaval_list_str)
+            print("battleid", self.battle_id, "hero", hero, "model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
-            action_cmd = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
-            print("model get_action", StateUtil.build_command(action_cmd))
+            action_cmd, max_q, selected = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
+            print("battleid", self.battle_id, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
 
             action_cmds.append(action_cmd)
             input_list.append(data_input)
-        return action_cmds
+        return action_cmds, input_list
 
     @staticmethod
     # 过滤输出结果，删除掉不可执行的选择
@@ -316,7 +387,7 @@ class TeamBattleTrainer:
                 # 屏蔽会离开战圈的移动
                 fwd = StateUtil.mov(selected)
                 move_pos = TeamBattleUtil.play_move(hero, fwd)
-                in_range = TeamBattleTrainer.in_battle_range(move_pos)
+                in_range = TeamBattleTrainer.in_battle_range(move_pos, TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_ING)
                 if not in_range:
                     avail_list[selected] = -1
                 else:
@@ -441,7 +512,7 @@ class TeamBattleTrainer:
 
             if max_q <= -1:
                 action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
-                return action
+                return action, max_q, -1
 
             selected = action_list.index(max_q)
             avail_type = unaval_list[selected]
@@ -452,9 +523,11 @@ class TeamBattleTrainer:
 
             if selected < 8:  # move
                 fwd = StateUtil.mov(selected, revert)
-                tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
+                # 根据我们的移动公式计算一个目的地，缺点是这样可能被障碍物阻挡，同时可能真的可以移动距离比我们计算的长
+                tgtpos = TeamBattleUtil.play_move(hero, fwd)
+                # tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
                 action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
-                return action
+                return action, max_q, selected
             elif selected < 13:  # 对敌英雄使用普攻
                 target_index = selected - 8
                 target_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, target_index)
@@ -464,7 +537,7 @@ class TeamBattleTrainer:
                     action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, target_hero_info.pos, None, None, selected, None)
                 else:
                     action = CmdAction(hero.hero_name, CmdActionEnum.ATTACK, 0, target_hero, None, None, None, selected, None)
-                return action
+                return action, max_q, selected
             elif selected < 28:  # skill
                 skillid = int((selected - 13) / 5 + 1)
                 tgt_index = selected - 13 - (skillid - 1) * 5
@@ -478,7 +551,7 @@ class TeamBattleTrainer:
                     action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, selected, None)
                 else:
                     action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
-                return action
+                return action, max_q, selected
 
     def upgrade_skills(self, state_info, hero_name):
         # 决定是否购买道具
