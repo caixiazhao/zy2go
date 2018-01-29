@@ -37,6 +37,8 @@ class TeamBattleModelUtil:
         self.save_batch = save_batch
         self.model_map = {}
         self.train_data_map = {}
+        self.clear_cache_signals = []
+        self.hero_names = hero_names
         for hero_name in hero_names:
             # 准备模型
             model, save_header = self.build_model_ppo(save_root, hero_name, None, model_gamma=gamma)
@@ -46,10 +48,17 @@ class TeamBattleModelUtil:
             battle_data_map = {}
             self.train_data_map[hero_name] = battle_data_map
 
-    def get_action_list(self, hero_name, state_input):
+    def get_action_list(self, battle_id, hero_name, state_input):
         model, _ = self.model_map[hero_name]
         actions_list, explor_value, vpred = model.get_action(state_input)
-        return list(actions_list[0]), explor_value, vpred
+
+        # 判断是否已经切换了模型版本，应该清空之前的行为缓存
+        clear_cache = False
+        if battle_id in self.clear_cache_signals:
+            self.clear_cache_signals.remove(battle_id)
+            clear_cache = True
+
+        return list(actions_list[0]), explor_value, vpred, clear_cache
 
     def if_save_model(self, model, save_header, save_batch):
         # 训练之后检查是否保存
@@ -65,6 +74,12 @@ class TeamBattleModelUtil:
             model.replay(self.train_data_map[hero_name].values(), batch_size)
             self.train_data_map[hero_name].clear()
             self.if_save_model(model, model_save_header, self.save_batch)
+
+            # 添加一个清空缓存信息给每场战斗
+            for battle_id in range(1, self.battle_num+1):
+                if battle_id not in self.clear_cache_signals:
+                    self.clear_cache_signals.append(battle_id)
+
 
     # 计算模型的奖励情况
     # 团战情况下的奖励情况非常单一

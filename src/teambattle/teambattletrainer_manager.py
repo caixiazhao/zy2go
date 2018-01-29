@@ -27,7 +27,7 @@ class TeamBattleTrainerManager:
 
         for p_battle_id in range(1, battle_id_num+1):
             battle_trainer = TeamBattleTrainer(p_battle_id, self.battle_model_util, gamma)
-            self.battle_trainers[battle_id_num] = battle_trainer
+            self.battle_trainers[p_battle_id] = battle_trainer
 
         TeamBattleTrainerManager.One = self
         print('训练器初始化完毕, 训练器数量', battle_id_num)

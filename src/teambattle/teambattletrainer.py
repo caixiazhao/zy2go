@@ -137,7 +137,7 @@ class TeamBattleTrainer:
         # 团战还没有开始，有英雄还在圈外
         if len(heroes_out_range) > 0:
             if self.battle_started:
-                print("战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range))
+                print('battle_id', self.battle_id, "战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range))
 
             # 移动到两个开始战斗地点附近，添加部分随机
             for hero in heroes_out_range:
@@ -181,9 +181,8 @@ class TeamBattleTrainer:
             #     if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
             if win == 1:
                 # 重启游戏
-                print("重启游戏", "剩余人员", ','.join(heroes_in_range))
+                print('battle_id', self.battle_id, "重启游戏", "剩余人员", ','.join(heroes_in_range))
                 response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
-
         # battle_heros = self.search_team_battle(state_info)
         # if len(battle_heros) > 0:
         #     print("team battle heros", ';'.join(battle_heros))
@@ -225,6 +224,7 @@ class TeamBattleTrainer:
         # 返回结果给游戏端
         rsp_obj = {"ID": state_info.battleid, "tick": state_info.tick, "cmd": response_strs}
         rsp_str = JSON.dumps(rsp_obj)
+        print('battle_id', self.battle_id, 'response', rsp_str)
         return rsp_str
 
     # last_x_index 表示这是倒数第x个状态，这里不用准确数字而是用-1、-2是因为state_cache，data_inputs长度不同
@@ -257,7 +257,7 @@ class TeamBattleTrainer:
                 o4r, batchsize = model_cache.output4replay(prev_new)
 
                 # 提交给训练模块
-                print('battle trainer', self.battle_id, hero_name, '添加训练集')
+                print('battle_id', self.battle_id, 'trainer', hero_name, '添加训练集')
                 self.model_util.set_train_data(hero_name, self.battle_id, o4r, batchsize)
                 model_cache.clear_cache()
 
@@ -266,7 +266,6 @@ class TeamBattleTrainer:
     # 保存训练数据，计算行为奖励，触发训练
     #TODO 在游戏重启时候需要同时训练所有的模型
     def remember_train_data(self, state_info, state_index, data_input, hero_name, new):
-        print("remember_replay", hero_name, len(self.model_caches), new)
         hero_act = state_info.get_hero_action(hero_name)
         model_cache = self.model_caches[hero_name]
 
@@ -291,7 +290,7 @@ class TeamBattleTrainer:
                 else:
                     heroes_in.append(hero)
         if len(heroes_out) > 0:
-            print("all_in_battle_range", "found hero not in circle", ','.join(heroes_out))
+            print('battle_id', state_info.battleid, "all_in_battle_range", "found hero not in circle", ','.join(heroes_out))
         return heroes_in, heroes_out
 
     # 考察一个英雄是否在团战圈中
@@ -354,15 +353,21 @@ class TeamBattleTrainer:
             for prev_action in action_cmds:
                 data_input = TeamBattleInput.add_other_hero_action(data_input, hero_info, prev_action)
 
-            action_list, explor_value, vpreds = self.model_util.get_action_list(hero, data_input)
+            action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
-            print("battleid", self.battle_id, "hero", hero, "model action list", action_str)
+            print("battle_id", self.battle_id, "hero", hero, "model action list", action_str)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
             unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
-            print("battleid", self.battle_id, "hero", hero, "model remove_unaval_actions", unaval_list_str)
+            print("battle_id", self.battle_id, "hero", hero, "model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
             action_cmd, max_q, selected = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
-            print("battleid", self.battle_id, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
+            print("battle_id", self.battle_id, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
+
+            # 如果模型升级了，需要清空所有缓存用作训练的行为
+            if clear_cache:
+                print('battle_id', self.battle_id, '清空训练缓存')
+                for hero_name in self.heros:
+                    self.model_caches[hero_name].clear_cache()
 
             action_cmds.append(action_cmd)
             input_list.append(data_input)
@@ -517,6 +522,7 @@ class TeamBattleTrainer:
             selected = action_list.index(max_q)
             avail_type = unaval_list[selected]
             if avail_type == -1:
+                #TODO avail_type == 0: 是否考虑技能不可用时候不接近对方
                 # 不可用行为
                 action_list[selected] = -1
                 continue
