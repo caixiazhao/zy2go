@@ -139,7 +139,7 @@ class TeamBattleModelUtil:
                         reward = state_info.get_or_insert_reward(hero)
                         reward -= 5
                         state_info.add_rewards(hero, reward)
-        return state_info, win, all_in_team
+        return state_info, win, all_in_team, left_heroes
 
 
 

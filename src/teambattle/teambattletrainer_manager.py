@@ -13,6 +13,8 @@ from teambattle.teambattle_model_util import TeamBattleModelUtil
 from teambattle.teambattletrainer import TeamBattleTrainer
 import sys, traceback
 
+from util.httputil import HttpUtil
+
 
 class TeamBattleTrainerManager:
     def __init__(self, battle_id_num, gamma):
@@ -24,9 +26,11 @@ class TeamBattleTrainerManager:
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.save_batch = 20
         self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_batch, gamma)
+        self.save_dir = HttpUtil.get_save_root_path()
+
 
         for p_battle_id in range(1, battle_id_num+1):
-            battle_trainer = TeamBattleTrainer(p_battle_id, self.battle_model_util, gamma)
+            battle_trainer = TeamBattleTrainer(self.save_dir, p_battle_id, self.battle_model_util, gamma)
             self.battle_trainers[p_battle_id] = battle_trainer
 
         TeamBattleTrainerManager.One = self

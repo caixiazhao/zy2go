@@ -44,16 +44,16 @@ class TeamBattleTrainer:
     BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
 
 
-    def __init__(self, battle_id, model_util, gamma):
+    def __init__(self, save_root_path, battle_id, model_util, gamma):
         self.battle_id = battle_id
         self.model_util = model_util
-        save_dir = HttpUtil.get_save_root_path()
         self.state_cache = []
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
-        self.raw_log_file = open(save_dir + '/raw_' + str(battle_id) + '.log', 'w')
+        self.raw_log_file = open(save_root_path + '/raw_' + str(battle_id) + '.log', 'w')
         self.dead_heroes = []
         self.battle_started = False
         self.model_caches = {}
+        self.rebooting = False
         for hero in self.heros:
             self.model_caches[hero] = TEAM_PPO_CACHE(gamma)
 
@@ -90,6 +90,7 @@ class TeamBattleTrainer:
             self.dead_heroes = []
             self.dead_heroes_cache = []
             self.data_inputs = []
+            self.rebooting = False
 
         # 战斗前准备工作
         if len(self.state_cache) == 0:
@@ -120,6 +121,7 @@ class TeamBattleTrainer:
             if prev_state_info is not None:
                 dead = StateUtil.if_hero_dead(prev_state_info, state_info, hero)
                 if dead == 1 and hero not in self.dead_heroes:
+                    print("battle_id", self.battle_id, "英雄死亡", hero, "tick", state_info.tick)
                     self.dead_heroes.append(hero)
 
         # 首先要求所有英雄站到团战圈内，然后开始模型计算，这时候所有的行动都有模型来决定
@@ -150,7 +152,7 @@ class TeamBattleTrainer:
                 mov_cmd_str = StateUtil.build_command(move_action)
                 response_strs.append(mov_cmd_str)
         # 团战已经开始
-        else:
+        elif not self.rebooting:
             if not self.battle_started:
                 self.battle_started = True
             action_cmds, input_list = self.get_model_actions(state_info, heroes_in_range)
@@ -171,18 +173,24 @@ class TeamBattleTrainer:
         # 注意：因为奖励值需要看后续状态，所以这个计算会有延迟
         last_x_index = 2
         if self.battle_started and len(self.data_inputs) >= last_x_index:
-            state_index = len(self.state_cache) - last_x_index
-            win, win_team = self.remember_replay_heroes(-last_x_index, state_index)
+            if self.rebooting:
+                # 测试发现重启指令发出之后，可能下一帧还没开始重启战斗，这种情况下抛弃训练
+                print("battle_id", self.battle_id, "warn", "要求重启战斗，但是还在收到后续帧状态")
+            else:
+                state_index = len(self.state_cache) - last_x_index
+                win, win_team, left_heroes = self.remember_replay_heroes(-last_x_index, state_index)
+                print("battle_id", self.battle_id, "remember_replay_heroes", "win", win, "剩余人员", ','.join(left_heroes))
 
-            # 团战结束条件
-            # 首先战至最后一人
-            # all_in_team = TeamBattleUtil.all_in_one_team(heroes_in_range)
-            # if self.battle_started:
-            #     if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
-            if win == 1:
-                # 重启游戏
-                print('battle_id', self.battle_id, "重启游戏", "剩余人员", ','.join(heroes_in_range))
-                response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+                # 团战结束条件
+                # 首先战至最后一人
+                # all_in_team = TeamBattleUtil.all_in_one_team(heroes_in_range)
+                # if self.battle_started:
+                #     if len(self.dead_heroes) >= 9 or (len(self.dead_heroes) >= 5 and all_in_team > -1):
+                if win == 1:
+                    # 重启游戏
+                    print('battle_id', self.battle_id, "重启游戏", "剩余人员", ','.join(left_heroes))
+                    response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+                    self.rebooting = True
         # battle_heros = self.search_team_battle(state_info)
         # if len(battle_heros) > 0:
         #     print("team battle heros", ';'.join(battle_heros))
@@ -238,7 +246,7 @@ class TeamBattleTrainer:
         data_input_map = self.data_inputs[last_x_index]
 
         # 计算奖励值情况
-        state_info, win, win_team = self.model_util.cal_rewards(prev_state, state_info, next_state, battle_heroes, dead_heroes)
+        state_info, win, win_team, left_heroes = self.model_util.cal_rewards(prev_state, state_info, next_state, battle_heroes, dead_heroes)
 
         if state_info.tick >= 50028:
             debug_here = 1
@@ -261,7 +269,7 @@ class TeamBattleTrainer:
                 self.model_util.set_train_data(hero_name, self.battle_id, o4r, batchsize)
                 model_cache.clear_cache()
 
-        return win, win_team
+        return win, win_team, left_heroes
 
     # 保存训练数据，计算行为奖励，触发训练
     #TODO 在游戏重启时候需要同时训练所有的模型
@@ -433,6 +441,7 @@ class TeamBattleTrainer:
                         continue
                 avail_list[selected] = 1
             elif selected < 28:  # skill1
+                # TODO 处理持续施法
                 skillid = int((selected - 13) / 5 + 1)
                 if hero.skills[skillid].canuse != True:
                     # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
@@ -521,7 +530,7 @@ class TeamBattleTrainer:
 
             selected = action_list.index(max_q)
             avail_type = unaval_list[selected]
-            if avail_type == -1:
+            if avail_type == -1 or avail_type == 0:
                 #TODO avail_type == 0: 是否考虑技能不可用时候不接近对方
                 # 不可用行为
                 action_list[selected] = -1
@@ -559,14 +568,14 @@ class TeamBattleTrainer:
                     action = CmdAction(hero.hero_name, CmdActionEnum.CAST, skillid, tgt_hero, tgt_pos, fwd, None, selected, None)
                 return action, max_q, selected
 
-    def upgrade_skills(self, state_info, hero_name):
+    def buy_equip(self, state_info, hero_name):
         # 决定是否购买道具
         buy_action = EquipUtil.buy_equip(state_info, hero_name)
         if buy_action is not None:
             buy_str = StateUtil.build_command(buy_action)
             return buy_str
 
-    def buy_equip(self, state_info, hero_name):
+    def upgrade_skills(self, state_info, hero_name):
         # 如果有可以升级的技能，优先升级技能3
         hero = state_info.get_hero(hero_name)
         skills = StateUtil.get_skills_can_upgrade(hero)

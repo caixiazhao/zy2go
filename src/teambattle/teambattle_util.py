@@ -53,9 +53,10 @@ class TeamBattleUtil:
             return TeamBattleUtil.get_hero_team(test_heroes[0])
         return -1
 
+    # 这里为了防止模型卡住，还是需要设置一个较大的提前量
     @staticmethod
     def play_move(hero_info, fwd, time_second=0.5):
-       return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000,
+       return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 10,
                            hero_info.pos.y + time_second * fwd.y * hero_info.speed / 1000,
-                           hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000)
+                           hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000 * 10)
 
