@@ -119,7 +119,8 @@ class TeamBattleModelUtil:
         #TODO 这里的逻辑是有问题的
         all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
         win = 0
-        if all_in_team != -1:
+        # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
+        if all_in_team != -1 and len(battle_heroes) + len(left_heroes) == len(self.hero_names):
             win = 1
             for hero in left_heroes:
                 reward = state_info.get_or_insert_reward(hero)

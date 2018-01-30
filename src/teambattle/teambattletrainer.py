@@ -32,16 +32,16 @@ from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from time import gmtime, strftime
 import numpy as np
-from random import shuffle
+from random import shuffle, randint
 
 
 class TeamBattleTrainer:
 
     BATTLE_POINT_X = 0
-    BATTLE_POINT_Z = -30000
+    BATTLE_POINT_Z = -31000
     BATTLE_CIRCLE = PosStateInfo(BATTLE_POINT_X, 0, BATTLE_POINT_Z)
     BATTLE_CIRCLE_RADIUS_BATTLE_START = 8
-    BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
+    BATTLE_CIRCLE_RADIUS_BATTLE_ING = 11
 
 
     def __init__(self, save_root_path, battle_id, model_util, gamma):
@@ -76,6 +76,7 @@ class TeamBattleTrainer:
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
         state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
+        hero = state_info.get_hero("27")
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
@@ -91,6 +92,14 @@ class TeamBattleTrainer:
             self.dead_heroes_cache = []
             self.data_inputs = []
             self.rebooting = False
+        elif (prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE) or (hero is None or hero.hp is None):
+            # 不是开始帧的话直接返回重启游戏
+            # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
+            print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
+            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
+            rsp_str = JSON.dumps(rsp_obj)
+            return rsp_str
 
         # 战斗前准备工作
         if len(self.state_cache) == 0:
@@ -102,7 +111,7 @@ class TeamBattleTrainer:
                 response_strs.append(add_gold_str)
 
                 add_lv_cmd = CmdAction(hero, CmdActionEnum.ADDLV, None, None, None, None, None, None, None)
-                add_lv_cmd.lv = 5
+                add_lv_cmd.lv = 9
                 add_lv_str = StateUtil.build_command(add_lv_cmd)
                 response_strs.append(add_lv_str)
         elif len(self.state_cache) > 1:
@@ -141,7 +150,7 @@ class TeamBattleTrainer:
             if self.battle_started:
                 print('battle_id', self.battle_id, "战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range))
 
-            # 移动到两个开始战斗地点附近，添加部分随机
+            # 移动到两个开始战斗地点附近
             for hero in heroes_out_range:
                 start_point_x = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START * 1000
                 if TeamBattleUtil.get_hero_team(hero) == 0:
@@ -158,6 +167,9 @@ class TeamBattleTrainer:
             action_cmds, input_list = self.get_model_actions(state_info, heroes_in_range)
             data_input_map = {}
             for action_cmd, data_input in zip(action_cmds, input_list):
+                hero_info = state_info.get_hero(action_cmd.hero_name)
+                # 测试，蕾娜斯技能
+                # if int(hero_info.cfg_id) == 101 or int(hero_info.cfg_id) == 106:
                 action_str = StateUtil.build_command(action_cmd)
                 response_strs.append(action_str)
                 state_info.add_action(action_cmd)
@@ -179,7 +191,6 @@ class TeamBattleTrainer:
             else:
                 state_index = len(self.state_cache) - last_x_index
                 win, win_team, left_heroes = self.remember_replay_heroes(-last_x_index, state_index)
-                print("battle_id", self.battle_id, "remember_replay_heroes", "win", win, "剩余人员", ','.join(left_heroes))
 
                 # 团战结束条件
                 # 首先战至最后一人
@@ -269,6 +280,8 @@ class TeamBattleTrainer:
                 self.model_util.set_train_data(hero_name, self.battle_id, o4r, batchsize)
                 model_cache.clear_cache()
 
+        print("battle_id", self.battle_id, "remember_replay_heroes", "win", win, "剩余人员", ','.join(left_heroes),
+              "输入—战斗人员", ','.join(battle_heroes), "输入—阵亡人员", ','.join(dead_heroes))
         return win, win_team, left_heroes
 
     # 保存训练数据，计算行为奖励，触发训练
@@ -441,7 +454,7 @@ class TeamBattleTrainer:
                         continue
                 avail_list[selected] = 1
             elif selected < 28:  # skill1
-                # TODO 处理持续施法
+                # TODO 处理持续施法，目前似乎暂时还不需要
                 skillid = int((selected - 13) / 5 + 1)
                 if hero.skills[skillid].canuse != True:
                     # 被沉默，被控制住（击晕击飞冻结等）或者未学会技能
@@ -461,11 +474,10 @@ class TeamBattleTrainer:
                     continue
                 tgt_index = selected - 13 - (skillid - 1) * 5
                 skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
-                if skill_info.cast_target == SkillTargetEnum.self:
-                        # TODO
-                        cast_debug = 1
+                #TODO 这个buff逻辑还没有测试对应的英雄
                 is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
-                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
+                is_self = True if skill_info.cast_target == SkillTargetEnum.self else False
+                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff, is_self)
 
                 if tgt_hero is None:
                     avail_list[selected] = -1
@@ -558,7 +570,8 @@ class TeamBattleTrainer:
                 tgt_index = selected - 13 - (skillid - 1) * 5
                 skill_info = SkillUtil.get_skill_info(hero.cfg_id, skillid)
                 is_buff = True if skill_info.cast_target == SkillTargetEnum.buff else False
-                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff)
+                is_self = True if skill_info.cast_target == SkillTargetEnum.self else False
+                tgt_hero = TeamBattleUtil.get_target_hero(hero.hero_name, friends, opponents, tgt_index, is_buff, is_self)
                 tgt_pos = state_info.get_hero(tgt_hero).pos
                 fwd = tgt_pos.fwd(hero.pos)
                 avail_type = unaval_list[selected]
