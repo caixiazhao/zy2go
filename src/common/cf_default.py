@@ -1,6 +1,6 @@
 import os
 
-DATA_ROOT_PATH = os.path.join(os.environ['HOMEPATH'], 'data')
+DATA_ROOT_PATH = os.path.join(os.environ['HOME'], 'data')
 
 SAVE_BATCH = 10
 TRAIN_GAME_BATCH = 60
@@ -34,20 +34,19 @@ PRELOAD_MODEL2_PATH = None
 GAME_WORKERS = 20
 
 # 每个game worker为几个game.exe提供服务
-GAME_WORKER_SLOTS = 5
+GAME_WORKER_SLOTS = 8
 
 # game worker的起始端口
 GAME_BASE_PORT = 9000
 
 #训练worker的端口
-TRAINER_PORT = 8889
+TRAINER_PORT = 8999
 GATEWAY_PORT = 8780
 
 RUN_MODE_GATEWAY = 'gateway'
 RUN_MODE_PREDICT = 'predict'
 RUN_MODE_TRAIN = 'train'
 
-id1 =0
 
 # ----
 def set_worker_name(s):
@@ -71,3 +70,5 @@ def get_generation_id():
 REVISION_GAMER = 'r5'
 REVISION_GATEWAY = 'r0'
 REVISION_TRAINER = 'r2'
+
+

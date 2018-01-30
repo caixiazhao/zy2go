@@ -15,7 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
-import sys
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -33,6 +33,8 @@ from tornado.options import define, options
 from train.game_manager import GameManager
 
 define("port", default=9000, help="run on the given port", type=int)
+define("slot", default=10, help="model slots", type=int)
+define("base", default=0, help="base id", type=int)
 
 revision = C.REVISION_GAMER
 
@@ -53,9 +55,8 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     C.set_run_mode("predict")
-    base = int(sys.argv[1])*5
     tornado.options.parse_command_line()
-    manager = GameManager(base, 5)
+    manager = GameManager(options.base, options.slot)
     manager.start()
 
     application = tornado.web.Application([
@@ -67,7 +68,7 @@ def main():
 
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
-        http_server.bind(options.port+ int(sys.argv[1]))
+        http_server.bind(options.port)
         http_server.start(1)    # multi-process
 
         hn = logging.NullHandler()
