@@ -6,7 +6,7 @@
 import json as JSON
 import random
 import numpy as np
-import tensorflow as tf
+
 import time
 from time import gmtime, strftime
 
@@ -60,10 +60,8 @@ class LineTrainerPPO:
         self.model1_hp_restore = time.time()
         self.model2_hp_restore = time.time()
         self.real_hero = real_hero
-        self.server_id = 1
 
-        self.\
-            generation_id = 0
+        self.generation_id = 0
 
         # policy_ratio 表示使用策略的概率， policy_continue_acts表示连续多少个使用策略
         self.policy_ratio = policy_ratio
@@ -151,7 +149,7 @@ class LineTrainerPPO:
                 # TODO 这里清空缓存是不是不太好
                 model_process.train(
                     self.battle_id, model_name, o4r, batchsize,
-                    self.generation_id, self.server_id)
+                    self.generation_id)
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')
 
@@ -188,7 +186,7 @@ class LineTrainerPPO:
             if o4r is not None:
                 model_process.train(
                     self.battle_id, model_name,
-                    o4r, batch_size, self.generation_id, self.server_id)
+                    o4r, batch_size, self.generation_id)
                 model_cache.clear_cache()
                 LOG__('line_trainer', self.battle_id, '添加训练集')
 
@@ -217,11 +215,7 @@ class LineTrainerPPO:
                     raw_state_info.battleid,
                     self.generation_id, self.model_process.generation_id,
                     empty_tag))
-            print("_________________________________________")
-            self.model_process.\
-                update_model_from_disk(self.generation_id)
-            for i in self.model_process.model_1.pi.get_variables():
-                print(U.get_session().run(tf.reduce_sum(i)))
+            self.model_process.update_model_from_disk(self.generation_id)
             if not is_empty:
                 return self.reset_session(raw_state_info)
 
@@ -238,11 +232,7 @@ class LineTrainerPPO:
                     empty_tag))
             self.generation_id = C.get_generation_id()
             if self.generation_id > self.model_process.generation_id:
-                print("_________________________________________")
-
                 self.model_process.update_model_from_disk(self.generation_id)
-                for i in self.model_process.model_1.pi.get_variables():
-                    print(U.get_session().run(tf.reduce_sum(i)))
             if not (is_empty):
                 return self.reset_session(raw_state_info)
 
@@ -554,35 +544,21 @@ class LineTrainerPPO:
             # LOG__("策略层：因为附近没有指定兵线的敌人所以开始吃线 " + hero.hero_name)
             front_soldier = StateUtil.get_frontest_soldier_in_line(state_info, line_index, hero.team)
             first_tower = StateUtil.get_first_tower(state_info, hero)
-            if not first_tower:
-                tower_destroyed_cur = StateUtil.if_first_tower_destroyed_in_middle_line(state_info)
-                if tower_destroyed_cur is not None:
-                    LOG__(self.battle_id, hero_name, '开始回城')
-                    print("塔被摧毁,游戏即将结束")
-                    self.hero_strategy[hero.hero_name] = ActionEnum.town_ing
-                    town_action = CmdAction(hero.hero_name, CmdActionEnum.CAST, 6, hero.hero_name, None, None, None,
-                                            None, None)
-                    action_str = StateUtil.build_command(town_action)
-                    action_strs.append(action_str)
-                else:
-                    print("游戏异常，无法得到塔的位置")
+
+            if front_soldier is None or (hero.team == 0 and first_tower.pos.x > front_soldier.pos.x) or (
+                hero.team == 1 and first_tower.pos.x < front_soldier.pos.x):
+                # 跟塔，如果塔在前面的话
+                follow_tower_pos = StateUtil.get_tower_behind(first_tower, hero, line_index=1)
+                move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, follow_tower_pos, None, None,
+                    None, None)
+                action_str = StateUtil.build_command(move_action)
+                action_strs.append(action_str)
             else:
-                if front_soldier is None or (hero.team == 0 and first_tower.pos.x > front_soldier.pos.x) or (
-                                hero.team == 1 and first_tower.pos.x < front_soldier.pos.x):
-                    # 跟塔，如果塔在前面的话
-                    follow_tower_pos = StateUtil.get_tower_behind(first_tower, hero, line_index=1)
-                    move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, follow_tower_pos, None,
-                                            None,
-                                            None, None)
-                    action_str = StateUtil.build_command(move_action)
-                    action_strs.append(action_str)
-                else:
-                    # 得到最前方的兵线位置
-                    move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_soldier.pos, None,
-                                            None,
-                                            None, None)
-                    action_str = StateUtil.build_command(move_action)
-                    action_strs.append(action_str)
+                # 得到最前方的兵线位置
+                move_action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, front_soldier.pos, None, None,
+                    None, None)
+                action_str = StateUtil.build_command(move_action)
+                action_strs.append(action_str)
         else:
             if self.real_hero != hero_name:
                 # 使用模型进行决策
