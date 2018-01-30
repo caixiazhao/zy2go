@@ -4,9 +4,9 @@
 #from multiprocessing import Process, Manager, Lock
 
 import json as JSON
-
 import traceback
 import time
+
 import requests
 
 from common import cf as C
@@ -25,11 +25,14 @@ def sync_generation_id_from_trainer():
         print(ex)
         return 0
 
+
 class GameManager:
     def __init__(self, base_bid, battle_id_num):
         self.model_process = ModelProcess(battle_id_num)
-        C.set_generation_id(sync_generation_id_from_trainer())
+
         self.lastCheckGenerationId = time.time()
+        C.set_generation_id(sync_generation_id_from_trainer())
+
         # TODO: Temporarily hold the original variables
         self.lock = None
         self.request_dict = None
@@ -93,3 +96,4 @@ class GameManager:
 
     def start(self):
         print('训练器启动完毕')
+
