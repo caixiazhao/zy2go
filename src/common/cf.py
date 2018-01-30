@@ -17,19 +17,14 @@ PRELOAD_MODEL_DATA_PATH = 'battle_logs/model_20180108_223551912926'
 PRELOAD_MODEL_VERSION = '7260'
 
 if PRELOAD_MODEL_DATA:
-    PRELOAD_MODEL1_PATH = '/Users/Administrator/Desktop/wenjian/line_model_1_v400/model'
-    PRELOAD_MODEL2_PATH = '/Users/Administrator/Desktop/wenjian/line_model_2_v400/model'
-    # PRELOAD_MODEL1_PATH = os.path.join(DATA_ROOT_PATH,
-    #     PRELOAD_MODEL_DATA_PATH, 'line_model_1_v' + PRELOAD_MODEL_VERSION, 'model')
-    # PRELOAD_MODEL2_PATH = os.path.join(DATA_ROOT_PATH,
-    #     PRELOAD_MODEL_DATA_PATH, 'line_model_2_v' + PRELOAD_MODEL_VERSION, 'model')
+    PRELOAD_MODEL1_PATH = os.path.join(DATA_ROOT_PATH,
+        PRELOAD_MODEL_DATA_PATH, 'line_model_1_v' + PRELOAD_MODEL_VERSION, 'model')
+    PRELOAD_MODEL2_PATH = os.path.join(DATA_ROOT_PATH,
+        PRELOAD_MODEL_DATA_PATH, 'line_model_2_v' + PRELOAD_MODEL_VERSION, 'model')
 
-# ------q
-SAVE_BATCH = 10
-TRAIN_GAME_BATCH = 40
-
-START = 0
-END = 0
+# ------
+SAVE_BATCH = 5
+TRAIN_GAME_BATCH = 30
 
 LOG.update({
     'MANAGER__READ_PROCESS': False,
@@ -43,3 +38,6 @@ LOG.update({
     'UTIL__EQUIPUTIL': False,
     'GENERATION_UPDATE': True,
 })
+
+
+
