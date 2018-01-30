@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#from multiprocessing import Process, Manager, Lock
+
+import json as JSON
+import traceback
+import time
+
+import requests
+
+from common import cf as C
+from model.stateinfo import StateInfo
+from util.modelutil import ModelUtil
+from util.linetrainer_ppo import LineTrainerPPO
+from util.modelprocess import ModelProcess
+from util.ppocache2 import PPO_CACHE2
+
+
+def sync_generation_id_from_trainer():
+    try:
+        r = requests.get('http://127.0.0.1:%d/generation_id' % C.GATEWAY_PORT)
+        return int(r.text)
+    except Exception as ex:
+        print(ex)
+        return 0
+
+
+class GameManager:
+    def __init__(self, base_bid, battle_id_num):
+        self.model_process = ModelProcess(battle_id_num)
+
+        self.lastCheckGenerationId = time.time()
+        C.set_generation_id(sync_generation_id_from_trainer())
+
+        # TODO: Temporarily hold the original variables
+        self.lock = None
+        self.request_dict = None
+        self.result_dict = None
+
+        #model1_hero = '27'
+        #model2_hero = '28'
+
+        self.base_bid = base_bid
+        self.line_trainers = {}
+        for bid in range(1, 1 + battle_id_num):
+            self.line_trainers[base_bid + bid] = self.setup_line_trainer(base_bid + bid)
+        #self.line_trainer = self.line_trainers[1]
+
+        GameManager.One = self
+        print('训练器初始化完毕, 训练器数量', battle_id_num)
+
+    def setup_line_trainer(self, battle_id):
+        model1_cache = PPO_CACHE2()
+        model2_cache = PPO_CACHE2()
+        root_dir = self.model_process.save_dir
+        save_dir = ModelUtil.get_linetrainer_save_path(root_dir, battle_id)
+        model1_hero = '27'
+        model2_hero = '28'
+
+        return LineTrainerPPO(battle_id,
+            save_dir, self.model_process,
+            model1_hero, model1_cache,
+            model2_hero, model2_cache,
+            real_hero=None, policy_ratio=1, policy_continue_acts=3)
+
+    def read_process_(self, json_str):
+        begin_time = time.time()
+        if begin_time - self.lastCheckGenerationId > 1.5:
+            C.set_generation_id(sync_generation_id_from_trainer())
+            self.lastCheckGenerationId = begin_time
+            begin_time = time.time()
+
+        obj = JSON.loads(json_str)
+        raw_state_info = StateInfo.decode(obj)
+        p_battle_id = raw_state_info.battleid
+        response = self.line_trainers[p_battle_id].train_line_model(json_str)
+        end_time = time.time()
+
+        if C.LOG['MANAGER__READ_PROCESS']:
+            print('read_process',
+                p_battle_id, raw_state_info.tick,
+                '%.2f' % ((end_time - begin_time) * 1000),
+                'RESPONSE:%s' % response)
+
+        return response
+
+    @staticmethod
+    def read_process(json_str):
+        try:
+            return GameManager.One.read_process_(json_str)
+        except Exception as ex:
+            print("LineTrainerManager Exception")
+            traceback.print_exc()
+            return '{}'
+
+    def start(self):
+        print('训练器启动完毕')
+

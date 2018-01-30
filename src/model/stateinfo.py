@@ -52,6 +52,11 @@ class StateInfo:
                 return dmg.tgt
         return None
 
+    def if_tower_attack_hero(self, hero_name):
+        for att in self.attack_infos:
+            if int(att.atker) < 26 and str(att.defer) == hero_name:
+                return att
+
     def if_unit_attack_hero(self, unit_name, hero_name):
         for att in self.attack_infos:
             if str(att.atker) == unit_name and str(att.defer) == hero_name:
@@ -111,11 +116,30 @@ class StateInfo:
                 return hero.pos
         return None
 
+    def update_hero(self, hero_info):
+        for i in range(len(self.heros)):
+            hero = self.heros[i]
+            if hero.hero_name == hero_info.hero_name:
+                self.heros[i] == hero
+
+    def update_unit(self, unit_info):
+        for i in range(len(self.units)):
+            unit = self.units[i]
+            if unit.unit_name == unit_info.unit_name:
+                self.units[i] == unit
+
+    def update_attack_info(self, attack_info):
+        # 首先删除掉所有同样攻击发起人的（注意，偶尔会出现一个攻击发起人发起多次攻击到情况，这里忽略)
+        self.attack_infos = [att for att in self.attack_infos if att.atker != attack_info.atker]
+        self.attack_infos.append(attack_info)
+
+    def get_attack_info(self, attacker):
+        for att in self.attack_infos:
+            if att.atker == attacker:
+                return att
+        return None
+
     def merge(self, delta):
-
-        if int(delta.tick) >= 47520:
-            db = 1
-
         # 合并英雄信息
         merged_heros = []
         for hero in delta.heros:
@@ -150,7 +174,7 @@ class StateInfo:
                     merged_units.append(prev)
 
         return StateInfo(self.battleid, delta.tick, merged_heros, merged_units,
-                         delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions)
+                         delta.attack_infos, delta.hit_infos, delta.dmg_infos, delta.actions, delta.buff_infos)
 
     def add_action(self, action):
         for i, act in enumerate(self.actions):
@@ -163,11 +187,11 @@ class StateInfo:
         for action in self.actions:
             if action.hero_name == hero_name:
                 action.reward = reward
-                print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
-                     action.action, action.skillid, action.tgtid))
+                # print("rewards: %s->%s, tick: %s, action: %s, skillid: %s, tgtid: %s" % (hero_name, str(reward), self.tick,
+                #      action.action, action.skillid, action.tgtid))
                 break
 
-    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions):
+    def __init__(self, battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, buff_infos=[]):
         self.battleid = battleid
         self.tick = tick
         self.heros = heros
@@ -176,6 +200,7 @@ class StateInfo:
         self.hit_infos = hit_infos
         self.dmg_infos = dmg_infos
         self.actions = actions
+        self.buff_infos = buff_infos
 
     @staticmethod
     def decode_hero(obj, hero_id):
@@ -248,4 +273,4 @@ class StateInfo:
             for ac in obj['actions']:
                 actions.append(CmdAction.decode(ac))
 
-        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions)
+        return StateInfo(battleid, tick, heros, units, attack_infos, hit_infos, dmg_infos, actions, [])

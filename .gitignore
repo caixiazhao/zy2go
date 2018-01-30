@@ -3,6 +3,7 @@
 
 ZY2GoEnv
 *.pyc
+*.swp
 
 battle_logs
 
@@ -12,3 +13,5 @@ battle_logs
 
 docs
 data
+
+src.zip
