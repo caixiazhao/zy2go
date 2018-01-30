@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# !/usr/bin/env python
+#!/usr/bin/env python
 #
 # Copyright 2009 Facebook
 #
@@ -17,11 +17,9 @@
 import logging
 
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 from common import cf as C
-
 C.set_run_mode(C.RUN_MODE_TRAIN)
 
 import tornado.httpserver
@@ -29,15 +27,14 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 import traceback
-import pickle
+
 from tornado.options import define, options
 from train.train_manager import LineTrainerManager
 
-define("port", default=8889, help="run on the given port", type=int)
+define("port", default=8999, help="run on the given port", type=int)
 define("g", default=0, help="generation id")
 
 manager = LineTrainerManager(C.get_run_mode())
-
 
 class TrainerHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -50,14 +47,9 @@ class TrainerHandler(tornado.web.RequestHandler):
                 return
 
             if path.startswith('/data'):
+                # print('/data %d' % len(data))
                 manager.push_data(data)
-                self.finish(str(manager.get_generation_id()) + "," + str(len(manager.train_data_model2)))
-                return
-
-            if path.startswith('/model'):
-                list = manager.model()
-                self.finish(pickle.dumps(list))
-
+                self.finish(str(manager.get_generation_id()))
                 return
 
             if path.startswith('/train'):
@@ -89,7 +81,7 @@ def main():
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port)
-        http_server.start(1)  # multi-process
+        http_server.start(1)    # multi-process
 
         hn = logging.NullHandler()
         hn.setLevel(logging.DEBUG)
