@@ -1,7 +1,6 @@
-import pickle
 import sys
 import hashlib
-import time
+
 import tornado.httpserver
 import tornado.httpclient
 import tornado.httputil
@@ -33,13 +32,6 @@ def fetch_request(url, callback, **kwargs):
     client = tornado.httpclient.AsyncHTTPClient()
     client.fetch(req, callback, raise_error=False)
 
-#据时效性，和对返回值的需求程度，设置不同的timeout时间
-def fetch_request1(url, callback, **kwargs):
-    req = tornado.httpclient.HTTPRequest(url, request_timeout=200, **kwargs)
-    client = tornado.httpclient.AsyncHTTPClient()
-    client.fetch(req, callback, raise_error=False)
-
-
 
 class ForwardHandler(tornado.web.RequestHandler):
     def __init__(self, application, request, **kwargs):
@@ -51,21 +43,6 @@ class ForwardHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         info = {}
-
-        def train__id_callback(response):
-            if not response.body:
-                print(response)
-            else:
-                C.set_generation_id(int(response.body))
-        C.END = time.time()
-        #定时获取generation_id，确保id一致
-        if C.END - C.START >10:
-            fetch_request(
-                'http://127.0.0.1:%d/generation_id' %C.TRAINER_PORT,
-                train__id_callback,
-                method='GET', follow_redirects=False,
-                allow_nonstandard_methods=True)
-            C.START = time.time()
 
         if self.request.path == '/generation_id':
             self.finish(str(C.get_generation_id()))
@@ -112,45 +89,15 @@ class DataHandler(tornado.web.RequestHandler):
     def get(self):
         body = self.request.body
         path = self.request.path
-
-        def train__model_callback(response):
-            if (response.error and not isinstance(response.error, tornado.httpclient.HTTPError)):
-                self.set_status(500)
-                self.write('Internal server error:\n' + str(response.error))
-            else:
-                if response.body:
-                    self.write(response.body)
-            self.finish()
-
-
-        if path== '/data/model':
-            fetch_request1(
-                'http://127.0.0.1:%d%s' % (C.TRAINER_PORT,  path[5:]),
-                train__model_callback,
-                method='GET', body=body,
-                follow_redirects=False,
-                allow_nonstandard_methods=True)
-            return
-
-
         generation_id, battle_id, model_name = path[6:].split('/')
         print(battle_id, model_name, generation_id)
 
-        # self.finish(str(C.get_generation_id()+","+C.get_server_id()))
         self.finish(str(C.get_generation_id()))
 
         def train__data_callback(response):
-            if not response.body:
-                batches =  G['batches']
-                cur_generation_id = int(generation_id)
-                print(response)
-            else:
-                cur_generation_id = int(bytes.decode(response.body).split(",")[0])
-                batches = int(bytes.decode(response.body).split(",")[1])
-
+            cur_generation_id = int(response.body)
             if cur_generation_id == int(generation_id):
-                G['batches'] = batches
-                print("the train_dict len",batches)
+                G['batches'] += 1
 
             if cur_generation_id != C.get_generation_id():
                 G['batches'] = 0
@@ -168,15 +115,12 @@ class DataHandler(tornado.web.RequestHandler):
         def train__train_callback(response):
             G['train_lock'] = False
             G['batches'] = 0
-            if not response.body:
-                print(response)
-            else:
-                C.set_generation_id(int(response.body))
+            C.set_generation_id(int(response.body))
 
         if G['train_lock']:
             return
 
-        fetch_request1(
+        fetch_request(
             'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),
             train__data_callback,
             method='GET', body=body,
@@ -202,8 +146,9 @@ def run_gateway(port, start_ioloop=True):
 
 if __name__ == '__main__':
     port = 8780
-    if len(sys.argv) > 2:
-        port = int(sys.argv[2])
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+
     print("Starting HTTP proxy on port %d" % port)
     C.set_run_mode("gateway")
     C.set_generation_id(0)
