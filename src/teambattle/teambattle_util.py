@@ -53,7 +53,7 @@ class TeamBattleUtil:
     @staticmethod
     # 返回队伍名，不符合则返回-1
     def all_in_one_team(hero_names):
-        if len(hero_names) <= 1:
+        if len(hero_names) < 1:
             return -1
         test_heroes = list(hero_names)
         sorted(test_heroes)
@@ -61,9 +61,18 @@ class TeamBattleUtil:
             return TeamBattleUtil.get_hero_team(test_heroes[0])
         return -1
 
+    # 这里为了防止模型卡住，还是需要设置一个较大的提前量
+    @staticmethod
+    def set_move_target(hero_info, fwd, time_second=0.5):
+        # base = StateUtil.get_basement(hero_info)
+        # return base
+        return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 3,
+                            -80,
+                           hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000 * 3)
+
     @staticmethod
     def play_move(hero_info, fwd, time_second=0.5):
-        return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 1.1,
+        return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 1.2,
                             -80,
-                            hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000* 1.1)
+                            hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000* 1.2)
 

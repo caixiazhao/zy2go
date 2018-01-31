@@ -41,8 +41,8 @@ class TeamBattleTrainer:
     BATTLE_POINT_Z = -31000
     BATTLE_CIRCLE = PosStateInfo(BATTLE_POINT_X, 0, BATTLE_POINT_Z)
     BATTLE_CIRCLE_RADIUS_BATTLE_START = 8
-    BATTLE_CIRCLE_RADIUS_BATTLE_ING = 11
-
+    BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
+    SHRINK_TIME = 50
 
     def __init__(self, save_root_path, battle_id, model_util, gamma):
         self.battle_id = battle_id
@@ -51,7 +51,7 @@ class TeamBattleTrainer:
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.raw_log_file = open(save_root_path + '/raw_' + str(battle_id) + '.log', 'w')
         self.dead_heroes = []
-        self.battle_started = False
+        self.battle_started = -1
         self.model_caches = {}
         self.rebooting = False
         for hero in self.heros:
@@ -86,13 +86,14 @@ class TeamBattleTrainer:
             print("clear")
             prev_state_info = None
             self.state_cache = []
-            self.battle_started = False
+            self.battle_started = -1
             self.battle_heroes_cache = []
             self.dead_heroes = []
             self.dead_heroes_cache = []
             self.data_inputs = []
             self.rebooting = False
-        elif (prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE) or (hero is None or hero.hp is None):
+        elif (prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE) \
+                or (hero is None or hero.hp is None):
             # 不是开始帧的话直接返回重启游戏
             # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
             print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
@@ -138,32 +139,39 @@ class TeamBattleTrainer:
         #TODO 开始团战后，如果有偶尔的技能移动会离开圈，则拉回来
 
         # 这里会排除掉死亡的英雄，他们不需要再加入团战
-        battle_range = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START if not self.battle_started else TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_ING
+        # 团战范围在收缩
+        battle_range = self.cal_battle_range(len(self.state_cache) - self.battle_started)
         heroes_in_range, heroes_out_range = TeamBattleTrainer.all_in_battle_range(state_info, self.heros, self.dead_heroes, battle_range)
+        print('battle_id', self.battle_id, "battle_range", battle_range)
 
         # 缓存参战情况和死亡情况，用于后续训练
         self.battle_heroes_cache.append(list(heroes_in_range))
         self.dead_heroes_cache.append(list(self.dead_heroes))
 
+        if state_info.tick >= 142560:
+            debuginfo = True
+
         # 团战还没有开始，有英雄还在圈外
         if len(heroes_out_range) > 0:
-            if self.battle_started:
-                print('battle_id', self.battle_id, "战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range))
+            if self.battle_started > -1:
+                print('battle_id', self.battle_id, "战斗已经开始，但是为什么还有英雄在团战圈外", ','.join(heroes_out_range), "battle_range", battle_range)
 
             # 移动到两个开始战斗地点附近
+            # 如果是团战开始之后，移动到团战中心点
             for hero in heroes_out_range:
-                start_point_x = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START * 1000
+                start_point_x = 0
+                start_point_z = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START * 1000 if self.battle_started == -1 else 0
                 if TeamBattleUtil.get_hero_team(hero) == 0:
-                    start_point_x *= -1
-                start_point_z = TeamBattleTrainer.BATTLE_POINT_Z
+                    start_point_z *= -1
+                start_point_z += TeamBattleTrainer.BATTLE_POINT_Z
                 tgt_pos = PosStateInfo(start_point_x, 0, start_point_z)
                 move_action = CmdAction(hero, CmdActionEnum.MOVE, None, None, tgt_pos, None, None, None, None)
                 mov_cmd_str = StateUtil.build_command(move_action)
                 response_strs.append(mov_cmd_str)
         # 团战已经开始
         elif not self.rebooting:
-            if not self.battle_started:
-                self.battle_started = True
+            if self.battle_started == -1:
+                self.battle_started = len(self.state_cache)
             action_cmds, input_list = self.get_model_actions(state_info, heroes_in_range)
             data_input_map = {}
             for action_cmd, data_input in zip(action_cmds, input_list):
@@ -184,13 +192,13 @@ class TeamBattleTrainer:
         # 将模型行为加入训练缓存，同时计算奖励值
         # 注意：因为奖励值需要看后续状态，所以这个计算会有延迟
         last_x_index = 2
-        if self.battle_started and len(self.data_inputs) >= last_x_index:
+        if self.battle_started > -1 and len(self.data_inputs) >= last_x_index:
             if self.rebooting:
                 # 测试发现重启指令发出之后，可能下一帧还没开始重启战斗，这种情况下抛弃训练
                 print("battle_id", self.battle_id, "warn", "要求重启战斗，但是还在收到后续帧状态")
             else:
                 state_index = len(self.state_cache) - last_x_index
-                win, win_team, left_heroes = self.remember_replay_heroes(-last_x_index, state_index)
+                win, win_team, left_heroes = self.remember_replay_heroes(-last_x_index, state_index, battle_range)
 
                 # 团战结束条件
                 # 首先战至最后一人
@@ -246,9 +254,14 @@ class TeamBattleTrainer:
         print('battle_id', self.battle_id, 'response', rsp_str)
         return rsp_str
 
+    def cal_battle_range(self, action_times):
+        battle_range = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START if self.battle_started == -1 \
+            else TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_ING - int(action_times / TeamBattleTrainer.SHRINK_TIME)
+        return battle_range
+
     # last_x_index 表示这是倒数第x个状态，这里不用准确数字而是用-1、-2是因为state_cache，data_inputs长度不同
     # state_index 表示状态在帧缓存中的位置，用于计算奖励值折旧时候使用
-    def remember_replay_heroes(self, last_x_index, state_index):
+    def remember_replay_heroes(self, last_x_index, state_index, battle_range):
         prev_state = self.state_cache[last_x_index - 1]
         state_info = self.state_cache[last_x_index]
         next_state = self.state_cache[last_x_index + 1]
@@ -261,6 +274,11 @@ class TeamBattleTrainer:
 
         if state_info.tick >= 50028:
             debug_here = 1
+
+        # 设置一场战斗的最大游戏时长，到时直接重启，所有玩家最终奖励为零，没有输赢
+        if win == 0 and battle_range <= 0:
+            print('battle_id', self.battle_id, "到达游戏最大时长，直接重启，需要确认是否有异常情况")
+            win = 1
 
         for action in state_info.actions:
             # 行为有可能为空，比如英雄已经挂了，但是他最后的动作在后续几帧都可能有影响，也有可能是因为
@@ -306,12 +324,12 @@ class TeamBattleTrainer:
         for hero in all_heroes:
             if hero not in dead_heroes:
                 hero_info = state_info.get_hero(hero)
-                if not TeamBattleTrainer.in_battle_range(hero_info.pos, battle_range):
+                dis = TeamBattleTrainer.in_battle_range(hero_info.pos, battle_range)
+                if dis != -1:
                     heroes_out.append(hero)
+                    print('battle_id', state_info.battleid, "all_in_battle_range", "found hero not in circle", hero, "battle_range", battle_range, "distance", dis)
                 else:
                     heroes_in.append(hero)
-        if len(heroes_out) > 0:
-            print('battle_id', state_info.battleid, "all_in_battle_range", "found hero not in circle", ','.join(heroes_out))
         return heroes_in, heroes_out
 
     # 考察一个英雄是否在团战圈中
@@ -319,8 +337,8 @@ class TeamBattleTrainer:
     def in_battle_range(pos, battle_range):
         dis = StateUtil.cal_distance2(pos, TeamBattleTrainer.BATTLE_CIRCLE)
         if dis < battle_range * 1000 + 500:
-            return True
-        return False
+            return -1
+        return dis
 
     def search_team_battle(self, state_info):
         max_team = set()
@@ -363,6 +381,9 @@ class TeamBattleTrainer:
         random_heros = list(heros)
         shuffle(random_heros)
 
+        # 得到当前团战范围，因为会收缩
+        battle_range = self.cal_battle_range(len(self.state_cache) - self.battle_started)
+
         action_cmds = []
         input_list = []
         for hero in random_heros:
@@ -377,7 +398,7 @@ class TeamBattleTrainer:
             action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
             print("battle_id", self.battle_id, "hero", hero, "model action list", action_str)
-            unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros)
+            unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros, battle_range)
             unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
             print("battle_id", self.battle_id, "hero", hero, "model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
@@ -402,7 +423,7 @@ class TeamBattleTrainer:
     # 移动：八个方向；物理攻击：五个攻击目标；技能1：五个攻击目标；技能2：五个攻击目标；技能3：五个攻击目标
     # 技能攻击目标默认为对方英雄。如果是辅助技能，目标调整为自己人
     # 对于技能可以是自己也可以是对方的，目前无法处理
-    def list_unaval_actions(acts, state_info, hero_name, team_battle_heros, debug=False):
+    def list_unaval_actions(acts, state_info, hero_name, team_battle_heros, battle_range, debug=False):
         friends, opponents = TeamBattleUtil.get_friend_opponent_heros(team_battle_heros, hero_name)
         avail_list = acts.copy()
         for i in range(len(acts)):
@@ -413,8 +434,8 @@ class TeamBattleTrainer:
                 # 屏蔽会离开战圈的移动
                 fwd = StateUtil.mov(selected)
                 move_pos = TeamBattleUtil.play_move(hero, fwd)
-                in_range = TeamBattleTrainer.in_battle_range(move_pos, TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_ING)
-                if not in_range:
+                in_range = TeamBattleTrainer.in_battle_range(move_pos, battle_range)
+                if in_range != -1:
                     avail_list[selected] = -1
                 else:
                     avail_list[selected] = 1
@@ -542,7 +563,7 @@ class TeamBattleTrainer:
 
             selected = action_list.index(max_q)
             avail_type = unaval_list[selected]
-            if avail_type == -1 or avail_type == 0:
+            if avail_type == -1:
                 #TODO avail_type == 0: 是否考虑技能不可用时候不接近对方
                 # 不可用行为
                 action_list[selected] = -1
@@ -551,7 +572,7 @@ class TeamBattleTrainer:
             if selected < 8:  # move
                 fwd = StateUtil.mov(selected, revert)
                 # 根据我们的移动公式计算一个目的地，缺点是这样可能被障碍物阻挡，同时可能真的可以移动距离比我们计算的长
-                tgtpos = TeamBattleUtil.play_move(hero, fwd)
+                tgtpos = TeamBattleUtil.set_move_target(hero, fwd)
                 # tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
                 action = CmdAction(hero.hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
                 return action, max_q, selected
