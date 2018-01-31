@@ -217,11 +217,8 @@ class LineTrainerPPO:
                     raw_state_info.battleid,
                     self.generation_id, self.model_process.generation_id,
                     empty_tag))
-            print("_________________________________________")
             self.model_process.\
                 update_model_from_disk(self.generation_id)
-            for i in self.model_process.model_1.pi.get_variables():
-                print(U.get_session().run(tf.reduce_sum(i)))
             if not is_empty:
                 return self.reset_session(raw_state_info)
 
@@ -238,11 +235,7 @@ class LineTrainerPPO:
                     empty_tag))
             self.generation_id = C.get_generation_id()
             if self.generation_id > self.model_process.generation_id:
-                print("_________________________________________")
-
                 self.model_process.update_model_from_disk(self.generation_id)
-                for i in self.model_process.model_1.pi.get_variables():
-                    print(U.get_session().run(tf.reduce_sum(i)))
             if not (is_empty):
                 return self.reset_session(raw_state_info)
 
