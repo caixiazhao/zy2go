@@ -26,13 +26,12 @@ class TeamBattleModelUtil:
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
         if model_path is not None:
             model.load(model_path)
-        model_save_header = save_dir + '/' + model_hero
+        model_save_header = save_dir + '/' + model_hero + '_'
 
         return model, model_save_header
 
-    def __init__(self, hero_names, battle_num, save_batch, gamma):
+    def __init__(self, hero_names, battle_num, save_root, save_batch, gamma):
         # 启动所有的模型
-        save_root = HttpUtil.get_save_root_path()
         self.battle_num = battle_num
         self.save_batch = save_batch
         self.model_map = {}
@@ -64,7 +63,9 @@ class TeamBattleModelUtil:
         # 训练之后检查是否保存
         replay_time = model.iters_so_far
         if replay_time % save_batch == 0:
-            model.save(save_header + str(replay_time) + '/model')
+            save_path = save_header + str(replay_time) + '/model'
+            print("save model", save_path)
+            model.save(save_path)
 
     def set_train_data(self, hero_name, battle_id, o4r, batch_size):
         self.train_data_map[hero_name][battle_id] = o4r
@@ -140,6 +141,11 @@ class TeamBattleModelUtil:
                     # 失败的团队给予惩罚
                     else:
                         reward = state_info.get_or_insert_reward(hero)
+                        if reward is None:
+                            reward = 0
+                            hero_act = state_info.get_action(hero)
+                            print("Error", 'battle_id', 'cal_reward', state_info.battle_id, hero_act.hero_name, hero_act.action,
+                                  hero_act.skillid)
                         reward -= 10
                         state_info.add_rewards(hero, reward)
         return state_info, win, all_in_team, left_heroes
