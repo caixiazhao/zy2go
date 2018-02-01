@@ -47,11 +47,11 @@ def main():
     # sess = tf.Session()
     # print(sess.run(one_hot))
     #
-    # eps = 0.5
-    # chose_random = tf.random_uniform(tf.stack([100]), minval=0, maxval=1, dtype=tf.float32, seed=1234)
-    # result = chose_random < eps
-    # sess = tf.Session()
-    # print(sess.run([chose_random, result]))
+    eps = 0.5
+    chose_random = tf.random_uniform(tf.stack([100]), minval=0, maxval=1, dtype=tf.float32, seed=1234)
+    result = chose_random < eps
+    sess = tf.Session()
+    print(sess.run([chose_random, result]))
     #
     # norm = tf.random_normal([2, 2, 15], seed=1234)
     # normalized = tf.nn.l2_normalize(norm, 2)
@@ -69,6 +69,25 @@ def main():
     c = tf.concat([a, b], 1)
     print(rand)
     print(sess.run([a, b, c, s]))
+
+
+    var_list = np.load('/Users/sky4star/Github/zy2go/print.npy')
+    var = tf.constant(var_list[0].astype(float), dtype=tf.float32)
+    total_loss = tf.Variable(2.38313)  #tf.constant(2.38313, dtype=tf.float32) #tf.constant(2.38313, dtype=tf.float32)
+    loss_fun = total_loss
+    grad = tf.gradients(loss_fun, var)
+
+    # x = tf.Variable(2.0)
+    # y = x ** 2 + x - 1
+    #
+    # grad = tf.gradients(y, x)
+
+    init = tf.global_variables_initializer()
+
+    with tf.Session() as sess:
+        sess.run(init)
+        grad_value = sess.run(grad)
+        print(grad_value)
 
 
 if __name__ == "__main__":

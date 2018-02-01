@@ -5,17 +5,21 @@
 from model.fwdstateinfo import FwdStateInfo
 from model.posstateinfo import PosStateInfo
 class CmdAction(object):
-    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward, vpred=0):
+    def __init__(self, hero_name, action, skillid, tgtid, tgtpos, fwd, itemid, output_index, reward, vpred=0, avail_action=True):
         self.hero_name = hero_name
         self.action = action
         self.skillid = str(skillid)
         self.tgtid = str(tgtid)
-        self.tgtpos = tgtpos
+        # 这里需要确保进来的位置是整数
+        self.tgtpos = PosStateInfo(int(tgtpos.x), int(tgtpos.y), int(tgtpos.z)) if tgtpos is not None else None
         self.fwd = fwd
         self.itemid = itemid
         self.output_index = output_index
         self.reward = reward
         self.vpred = vpred  # for ppo
+        self.avail_action = avail_action
+        self.gold = 0
+        self.lv = 0
 
     @staticmethod
     def decode(obj):

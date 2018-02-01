@@ -25,11 +25,11 @@ from mpi4py import MPI
 from collections import deque
 import time
 
-class PPO_CACHE2:
+class TEAM_PPO_CACHE:
     REWARD_RIVAL_DMG = 250
 
-    def __init__(self, horizon=100):
-        self.horizon = horizon
+    def __init__(self, gamma):
+        self.gamma = gamma
 
         # Initialize history arrays
         self.obs = []
@@ -52,6 +52,7 @@ class PPO_CACHE2:
         self.timesteps_so_far = 0
         self.iters_so_far = 0
         self.tstart = time.time()
+        self.last_state_index = -1
 
     def get_prev_new(self):
         # remember中的new会变成下一条的prev_new
@@ -74,8 +75,19 @@ class PPO_CACHE2:
         self.acs = []
         self.prevacs = []
         self.nextnew = 0
+        self.last_state_index = -1
 
-    def remember(self, ob, ac, vpred, new, rew, prev_new):
+    # 一个特殊的情况是添加奖励值，但是这个奖励值没有对应的行为，这种情况下我们需要将当前奖励值折算到缓存中最后一个行为上
+    def remember(self, ob, ac, vpred, new, rew, prev_new, state_index):
+        # 如果输入为空，折算当前奖励值到缓存中最后一个行为上
+        if ob is None and rew is not None:
+            length = state_index - self.last_state_index
+            rew *= pow(self.gamma, length)
+            self.rews[-1] += rew
+            self.nextnew = new
+            print("添加最终奖励值", state_index, self.last_state_index, rew)
+            return
+
         self.obs.append(ob)
         self.vpreds.append(vpred)
         # 这里记录的new不是结果中的？
@@ -85,6 +97,7 @@ class PPO_CACHE2:
         self.prevacs.append(prev_act)
         self.rews.append(rew)
         self.nextnew = new
+        self.last_state_index = state_index
 
         self.cur_ep_ret += rew
         self.cur_ep_len += 1
@@ -96,13 +109,14 @@ class PPO_CACHE2:
             self.cur_ep_len = 0
         self.t += 1
 
-    def output4replay(self, cur_new, next_vpred):
+    # 发现这里的nextvpred永远为零
+    def output4replay(self, cur_new):
         batch_size = len(self.rews)
         if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
             print("训练数据长度 " + str(len(self.obs)))
             return {"ob": np.array(self.obs), "rew": np.array(self.rews), "vpred": np.array(self.vpreds),
                     "new": np.array(self.news),
-             "ac": np.array(self.acs), "prevac": np.array(self.prevacs), "nextvpred": next_vpred * (1 - cur_new),
+             "ac": np.array(self.acs), "prevac": np.array(self.prevacs), "nextvpred": 0,
              "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}, batch_size
         elif self.t > 0 and cur_new == 1 and len(self.obs) == 0:
             # TODO 是不是有更优雅的方式

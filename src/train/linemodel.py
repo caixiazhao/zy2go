@@ -311,19 +311,50 @@ class LineModel:
                 acts[selected] = -1
         return acts
 
+    # 如果选择了不可用的行为，则执行hold
     @staticmethod
-    def select_actions(acts, stateinformation, hero_name, rival_hero):
+    def select_action_with_hold(acts, stateinformation, hero_name, rival_hero, revert=False):
+        hero = stateinformation.get_hero(hero_name)
+        acts = list(acts)
+
+        maxQ_orig = max(acts)
+        selected_orig = acts.index(maxQ_orig)
+
+        acts = LineModel.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
+        maxQ = max(acts)
+        selected = acts.index(maxQ)
+        avail_action = True
+        final_selected = selected
+        if maxQ <= -1 or selected_orig != selected:
+            final_selected = 48
+            avail_action = False
+        print ("battle %s hero %s line model selected action, final: %s, selected: %s，ratio:%s, original selected:%s, ratio:%s, action array:%s"
+               % (stateinformation.battleid, hero_name,
+        str(final_selected), str(selected), str(acts[selected]), str(selected_orig), str(maxQ_orig), ' '.join(str(round(float(act), 4)) for act in acts)))
+        action = LineModel.get_action(final_selected, stateinformation, hero, hero_name, rival_hero, revert)
+        action.output_index = selected_orig
+        action.avail_action = avail_action
+        return action
+
+    @staticmethod
+    def select_actions(acts, stateinformation, hero_name, rival_hero, revert=False):
         #这样传stateinformation太拖慢运行速度了，后面要改
         #atcs是各种行为对应的q-值向量（模型输出），statementinformation包含了这一帧的所有详细信息
         hero = stateinformation.get_hero(hero_name)
-        acts = list(acts[0])
+        acts = list(acts)
+
+        # 得到屏蔽不可用之前模型的选择
+        maxQ_orig = max(acts)
+        selected_orig = acts.index(maxQ_orig)
+
         acts = LineModel.remove_unaval_actions(acts, stateinformation, hero_name, rival_hero)
         maxQ = max(acts)
         selected = acts.index(maxQ)
         if maxQ <= -1:
-            selected = 49
-        print ("battle %s hero %s line model selected action:%s action array:%s" % (stateinformation.battleid, hero_name,
-        str(selected), ' '.join(str(round(float(act), 4)) for act in acts)))
+            selected = 48
+        print ("battle %s hero %s line model selected action:%s，ratio:%s, original selected:%s, ratio:%s, action array:%s"
+               % (stateinformation.battleid, hero_name,
+        str(selected), str(acts[selected]), str(selected_orig), str(maxQ_orig), ' '.join(str(round(float(act), 4)) for act in acts)))
         # 每次取当前q-value最高的动作执行，若当前动作不可执行则将其q-value置为0，重新取新的最高
         # 调试阶段暂时关闭随机，方便复现所有的问题
         if random.random() < 0.0:
@@ -333,14 +364,18 @@ class LineModel:
             rdm_q = aval_actions[rdm]
             selected = acts.index(rdm_q)
             print("随机选择操作 " + str(selected))
+        return LineModel.get_action(selected, stateinformation, hero, hero_name, rival_hero, revert)
+
+    @staticmethod
+    def get_action(selected, state_info, hero, hero_name, rival_hero, revert=False):
         if selected < 8:  # move
-            fwd = StateUtil.mov(selected)
+            fwd = StateUtil.mov(selected, revert)
             tgtpos = PosStateInfo(hero.pos.x + fwd.x * 15, hero.pos.y + fwd.y * 15, hero.pos.z + fwd.z * 15)
             action = CmdAction(hero_name, CmdActionEnum.MOVE, None, None, tgtpos, None, None, selected, None)
             return action
         elif selected < 18:  # 对敌英雄，塔，敌小兵1~8使用普攻
             if selected == 8:  # 敌方塔
-                tower = StateUtil.get_nearest_enemy_tower(stateinformation, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
+                tower = StateUtil.get_nearest_enemy_tower(state_info, hero_name, StateUtil.ATTACK_UNIT_RADIUS)
                 tgtid = tower.unit_name
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
@@ -349,14 +384,14 @@ class LineModel:
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
             else:  # 小兵
-                creeps = StateUtil.get_nearby_enemy_units(stateinformation, hero_name)
+                creeps = StateUtil.get_nearby_enemy_units(state_info, hero_name)
                 n = selected - 10
                 tgtid = creeps[n].unit_name
                 action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, tgtid, None, None, None, selected, None)
                 return action
         elif selected < 48:  # skill
             skillid = int((selected - 18) / 10 + 1)
-            [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10, stateinformation, skillid,
+            [tgtid, tgtpos] = LineModel.choose_skill_target(selected - 18 - (skillid - 1) * 10, state_info, skillid,
                                                        hero_name, hero.pos, rival_hero)
             if tgtpos is None:
                 fwd = None
@@ -366,13 +401,12 @@ class LineModel:
             return action
         elif selected == 48: # hold
             # print("轮到了48号行为-hold")
-            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 49, None)
+            action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
             return action
         else:  # 撤退
-            retreat_pos = StateUtil.get_tower_behind(stateinformation, hero, line_index=1)
+            retreat_pos = StateUtil.get_retreat_pos(state_info, hero, line_index=1)
             action = CmdAction(hero_name, CmdActionEnum.RETREAT, None, None, retreat_pos, None, None, selected, None)
             return action
-
 
     @staticmethod
     def choose_skill_target(selected, stateinformation, skill, hero_name, pos, rival_hero, debug=False):
@@ -437,25 +471,25 @@ class LineModel:
                 tgtpos=creeps[n].pos
         return [tgtid,tgtpos]
 
-    def get_action(self,stateinformation,hero_name, rival_hero):
-        # 这样传stateinformation太拖慢运行速度了，后面要改
-        line_input = Line_input(stateinformation, hero_name, rival_hero)
-        state_input = line_input.gen_line_input()
-
-        # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
-        # print(input_detail)
-
-        state_input=np.array([state_input])
-        team = line_input.gen_team_input()
-        team_input = np.array([team])
-        actions=self.model.predict([state_input, team_input])
-        # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
-
-        action=self.select_actions(actions,stateinformation,hero_name, rival_hero)
-
-        # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
-        #        (str(action.output_index), input_detail, action_detail))
-        return action
+    # def get_action(self,stateinformation,hero_name, rival_hero):
+    #     # 这样传stateinformation太拖慢运行速度了，后面要改
+    #     line_input = Line_input(stateinformation, hero_name, rival_hero)
+    #     state_input = line_input.gen_line_input()
+    #
+    #     # input_detail = ' '.join(str("%f" % float(act)) for act in state_input)
+    #     # print(input_detail)
+    #
+    #     state_input=np.array([state_input])
+    #     team = line_input.gen_team_input()
+    #     team_input = np.array([team])
+    #     actions=self.model.predict([state_input, team_input])
+    #     # action_detail = ' '.join(str("%.4f" % float(act)) for act in list(actions[0]))
+    #
+    #     action=self.select_actions(actions,stateinformation,hero_name, rival_hero)
+    #
+    #     # print ("replay detail: selected: %s \n    input array:%s \n    action array:%s\n\n" %
+    #     #        (str(action.output_index), input_detail, action_detail))
+    #     return action
 
     # 当一场战斗结束之后，根据当时的状态信息，计算每一帧的奖励情况
     @staticmethod
