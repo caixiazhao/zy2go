@@ -85,6 +85,7 @@ class TEAM_PPO_CACHE:
             rew *= pow(self.gamma, length)
             self.rews[-1] += rew
             self.nextnew = new
+            print("添加最终奖励值", state_index, self.last_state_index, rew)
             return
 
         self.obs.append(ob)
@@ -96,6 +97,7 @@ class TEAM_PPO_CACHE:
         self.prevacs.append(prev_act)
         self.rews.append(rew)
         self.nextnew = new
+        self.last_state_index = state_index
 
         self.cur_ep_ret += rew
         self.cur_ep_len += 1
