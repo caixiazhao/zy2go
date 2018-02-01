@@ -296,9 +296,6 @@ class TeamBattleTrainer:
               ','.join(left_heroes),
               "输入—战斗人员", ','.join(battle_heroes), "输入—阵亡人员", ','.join(dead_heroes))
 
-        if state_info.tick >= 50028:
-            debug_here = 1
-
         # 设置一场战斗的最大游戏时长，到时直接重启，所有玩家最终奖励为零，没有输赢
         if win == 0 and battle_range <= 0:
             print('battle_id', self.battle_id, "到达游戏最大时长，直接重启，需要确认是否有异常情况")
@@ -333,6 +330,9 @@ class TeamBattleTrainer:
         model_cache = self.model_caches[hero_name]
 
         if hero_act is not None:
+            if hero_act.reward is None:
+                print("Error", 'battle_id', self.battle_id, hero_act.hero_name, hero_act.action, hero_act.skillid)
+                return
             # prev_new 简单计算，可能会有问题
             prev_new = model_cache.get_prev_new()
             ob = data_input
