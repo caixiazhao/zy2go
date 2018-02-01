@@ -10,8 +10,7 @@ class CmdAction(object):
         self.action = action
         self.skillid = str(skillid)
         self.tgtid = str(tgtid)
-        # 这里需要确保进来的位置是整数
-        self.tgtpos = PosStateInfo(int(tgtpos.x), int(tgtpos.y), int(tgtpos.z)) if tgtpos is not None else None
+        self.tgtpos = tgtpos
         self.fwd = fwd
         self.itemid = itemid
         self.output_index = output_index

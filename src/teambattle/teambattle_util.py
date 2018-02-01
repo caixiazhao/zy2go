@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from model.posstateinfo import PosStateInfo
-from util.stateutil import StateUtil
 
 
 class TeamBattleUtil:
@@ -20,14 +19,7 @@ class TeamBattleUtil:
 
     @staticmethod
     # 找到目标英雄，因为范围内的敌我英雄可能不是一个全集
-    # 对buff技能，找自己队友
-    # 对self技能，只返回自己
-    def get_target_hero(hero, friends, opponents, target_index, is_buff=False, is_self=False):
-        if is_self:
-            if target_index == 0:
-                return hero
-            else:
-                return None
+    def get_target_hero(hero, friends, opponents, target_index, is_buff=False):
         if not is_buff:
             start_hero_id = 27 if int(hero) > 31 else 32
             target_hero_id = start_hero_id + target_index
@@ -53,7 +45,7 @@ class TeamBattleUtil:
     @staticmethod
     # 返回队伍名，不符合则返回-1
     def all_in_one_team(hero_names):
-        if len(hero_names) < 1:
+        if len(hero_names) <= 1:
             return -1
         test_heroes = list(hero_names)
         sorted(test_heroes)
@@ -61,18 +53,10 @@ class TeamBattleUtil:
             return TeamBattleUtil.get_hero_team(test_heroes[0])
         return -1
 
-    # 这里为了防止模型卡住，还是需要设置一个较大的提前量
-    @staticmethod
-    def set_move_target(hero_info, fwd, time_second=0.5):
-        # base = StateUtil.get_basement(hero_info)
-        # return base
-        return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 3,
-                            -80,
-                           hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000 * 3)
-
     @staticmethod
     def play_move(hero_info, fwd, time_second=0.5):
-        return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 1.2,
-                            -80,
-                            hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000* 1.2)
+       return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000,
+                           hero_info.pos.y + time_second * fwd.y * hero_info.speed / 1000,
+                           hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000)
+
 

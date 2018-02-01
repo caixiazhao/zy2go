@@ -29,10 +29,10 @@ def read_process(battle_id, raw_log_path):
 
 if __name__ == "__main__":
     try:
-        num = 2
+        num = 1
         manager = TeamBattleTrainerManager(num, 0.99)
         print('训练器准备完毕')
 
-        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-01-29111839.838227/raw_2.log')
+        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-01-25195625.478723/raw_1.log')
     except Exception as e:
         print(e)
