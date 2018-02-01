@@ -25,16 +25,16 @@ class TeamBattlePolicy:
 
     # 技能选择时候的限制条件
     @staticmethod
-    def check_skill_condition(skill_info, state_info, hero_info, tgt_hero, friends, opponents):
+    def check_skill_condition(skill_info, state_info, hero_info, tgt_hero, friends, opponents, debug=False):
         # 针对对自身附近范围内进行的伤害，检测是否有敌方英雄
         # 目前有查尔斯3技能，洛克2技能
         if (skill_info.hero_id == 101 and skill_info.skill_id == 3) or \
            (skill_info.hero_id == 104 and skill_info.skill_id == 2):
                 heroes_in_range = TeamBattlePolicy.find_heros_in_range(state_info, hero_info.pos, opponents, skill_info.cast_distance)
                 if len(heroes_in_range) == 0:
-                    print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
+                    if debug: print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
                 else:
-                    print("battle_id", state_info.battleid, "可以释放技能", "hero_id", skill_info.hero_id, "skill_id",
+                    if debug: print("battle_id", state_info.battleid, "可以释放技能", "hero_id", skill_info.hero_id, "skill_id",
                           skill_info.skill_id, "影响敌人", ",".join(heroes_in_range))
                 return len(heroes_in_range) > 0
 
@@ -46,7 +46,7 @@ class TeamBattlePolicy:
             heroes_in_range.append(hero_info.hero_name)
             heroes_need_heal = TeamBattlePolicy.get_hero_below_hp_ratio(state_info, heroes_in_range, 0.7)
             if len(heroes_in_range) == 0:
-                print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
+                if debug: print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
             return len(heroes_need_heal) > 0
 
         # 针对自身的buff技能，确定战斗范围内有敌方英雄
@@ -55,7 +55,7 @@ class TeamBattlePolicy:
            (skill_info.hero_id == 103 and skill_info.skill_id == 3):
             heroes_in_range = TeamBattlePolicy.find_heros_in_range(state_info, hero_info.pos, opponents, TeamBattlePolicy.ENEMY_BATTLE_RANGE)
             if len(heroes_in_range) == 0:
-                print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
+                if debug: print("battle_id", state_info.battleid, "根据规则过滤技能", "hero_id", skill_info.hero_id, "skill_id", skill_info.skill_id)
             return len(heroes_in_range) > 0
         return True
 

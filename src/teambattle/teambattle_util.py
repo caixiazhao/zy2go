@@ -55,8 +55,7 @@ class TeamBattleUtil:
     def all_in_one_team(hero_names):
         if len(hero_names) < 1:
             return -1
-        test_heroes = list(hero_names)
-        sorted(test_heroes)
+        test_heroes = sorted(hero_names)
         if TeamBattleUtil.get_hero_team(test_heroes[0]) == TeamBattleUtil.get_hero_team(test_heroes[-1]):
             return TeamBattleUtil.get_hero_team(test_heroes[0])
         return -1

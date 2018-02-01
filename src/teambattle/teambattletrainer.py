@@ -34,6 +34,7 @@ from util.stateutil import StateUtil
 from time import gmtime, strftime
 import numpy as np
 from random import shuffle, randint
+import sys
 
 
 class TeamBattleTrainer:
@@ -93,7 +94,7 @@ class TeamBattleTrainer:
         elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE :
             # 不是开始帧的话直接返回重启游戏
             # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
-            print("battle_id", self.battle_id, "tick", state_info.tick, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
+            print("battle_id", self.battle_id, "tick", raw_state_info.tick, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
             action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
             rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
             rsp_str = JSON.dumps(rsp_obj)
@@ -150,10 +151,13 @@ class TeamBattleTrainer:
         # 团战范围在收缩
         battle_range = self.cal_battle_range(len(self.state_cache) - self.battle_started)
         heroes_in_range, heroes_out_range = TeamBattleTrainer.all_in_battle_range(state_info, self.heros, self.dead_heroes, battle_range)
-        print('battle_id', self.battle_id, "battle_range", battle_range)
+
+        # 存活英雄
+        battle_heros = list(heroes_in_range)
+        battle_heros.extend(heroes_out_range)
 
         # 缓存参战情况和死亡情况，用于后续训练
-        self.battle_heroes_cache.append(list(heroes_in_range))
+        self.battle_heroes_cache.append(battle_heros)
         self.dead_heroes_cache.append(list(self.dead_heroes))
 
         if state_info.tick >= 142560:
@@ -180,12 +184,18 @@ class TeamBattleTrainer:
         elif not self.rebooting:
             if self.battle_started == -1:
                 self.battle_started = len(self.state_cache)
-            action_cmds, input_list = self.get_model_actions(state_info, heroes_in_range)
+            action_cmds, input_list, model_upgrade = self.get_model_actions(state_info, heroes_in_range)
+            print("battle_id", self.battle_id, self.battle_started, len(self.state_cache))
+
+            # 如果模型已经开战，重启战斗
+            if model_upgrade and self.battle_started < len(self.state_cache) + 1:
+                print("battle_id", self.battle_id, "因为模型升级，重启战斗", self.battle_started, len(self.state_cache))
+                action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+                rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
+                rsp_str = JSON.dumps(rsp_obj)
+                return rsp_str
             data_input_map = {}
             for action_cmd, data_input in zip(action_cmds, input_list):
-                hero_info = state_info.get_hero(action_cmd.hero_name)
-                # 测试，蕾娜斯技能
-                # if int(hero_info.cfg_id) == 101 or int(hero_info.cfg_id) == 106:
                 action_str = StateUtil.build_command(action_cmd)
                 response_strs.append(action_str)
                 state_info.add_action(action_cmd)
@@ -203,7 +213,10 @@ class TeamBattleTrainer:
         if self.battle_started > -1 and len(self.data_inputs) >= last_x_index:
             if self.rebooting:
                 # 测试发现重启指令发出之后，可能下一帧还没开始重启战斗，这种情况下抛弃训练
-                print("battle_id", self.battle_id, "tick", state_info.tick, "warn", "要求重启战斗，但是还在收到后续帧状态")
+                print("battle_id", self.battle_id, "tick", state_info.tick, "warn", "要求重启战斗，但是还在收到后续帧状态, 继续重启")
+
+                # 重启游戏
+                response_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
             else:
                 state_index = len(self.state_cache) - last_x_index
                 win, win_team, left_heroes = self.remember_replay_heroes(-last_x_index, state_index, battle_range)
@@ -279,6 +292,9 @@ class TeamBattleTrainer:
 
         # 计算奖励值情况
         state_info, win, win_team, left_heroes = self.model_util.cal_rewards(prev_state, state_info, next_state, battle_heroes, dead_heroes)
+        print("battle_id", self.battle_id, "tick", state_info.tick, "remember_replay_heroes", "win", win, "剩余人员",
+              ','.join(left_heroes),
+              "输入—战斗人员", ','.join(battle_heroes), "输入—阵亡人员", ','.join(dead_heroes))
 
         if state_info.tick >= 50028:
             debug_here = 1
@@ -299,15 +315,15 @@ class TeamBattleTrainer:
             for hero_name in self.heros:
                 model_cache = self.model_caches[hero_name]
                 prev_new = model_cache.get_prev_new()
-                o4r, batchsize = model_cache.output4replay(prev_new)
+                o4r, batch_size = model_cache.output4replay(prev_new)
 
                 # 提交给训练模块
-                print('battle_id', self.battle_id, 'trainer', hero_name, '添加训练集')
-                self.model_util.set_train_data(hero_name, self.battle_id, o4r, batchsize)
-                model_cache.clear_cache()
-
-        print("battle_id", self.battle_id, "tick", state_info.tick, "remember_replay_heroes", "win", win, "剩余人员", ','.join(left_heroes),
-              "输入—战斗人员", ','.join(battle_heroes), "输入—阵亡人员", ','.join(dead_heroes))
+                print('battle_id', self.battle_id, 'trainer', hero_name, '添加训练集', batch_size)
+                if o4r is None:
+                    print('battle_id', self.battle_id, "训练数据异常")
+                else:
+                    self.model_util.set_train_data(hero_name, self.battle_id, o4r, batch_size)
+                    model_cache.clear_cache()
         return win, win_team, left_heroes
 
     # 保存训练数据，计算行为奖励，触发训练
@@ -323,7 +339,7 @@ class TeamBattleTrainer:
             ac = hero_act.output_index
             vpred = hero_act.vpred
             rew = hero_act.reward
-            model_cache.remember(ob, ac, vpred, new, rew, prev_new, state_index)
+            model_cache.remember(ob, ac, vpred, new, rew, prev_new, state_index, self.battle_id, hero_name)
 
     @staticmethod
     def all_in_battle_range(state_info, all_heroes, dead_heroes, battle_range):
@@ -377,7 +393,7 @@ class TeamBattleTrainer:
 
         return team_battle_heros
 
-    def get_model_actions(self, state_info, heros):
+    def get_model_actions(self, state_info, heros, debug=False):
         # 目前的思路是，每个英雄首先自己算行为，然后拿到每个英雄的行为之后，将状态信息+队友的选择都交给模型，重新计算自己的选择，迭代
         # 最后得到每个英雄的行为
 
@@ -394,6 +410,7 @@ class TeamBattleTrainer:
 
         action_cmds = []
         input_list = []
+        model_upgrade = False
         for hero in random_heros:
             hero_info = state_info.get_hero(hero)
             data_input = TeamBattleInput.gen_input(state_info, hero)
@@ -401,27 +418,28 @@ class TeamBattleTrainer:
 
             # 对于之前的英雄行为，加入输入
             for prev_action in action_cmds:
-                data_input = TeamBattleInput.add_other_hero_action(data_input, hero_info, prev_action)
+                data_input = TeamBattleInput.add_other_hero_action(data_input, hero_info, prev_action, debug)
 
             action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
-            print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model action list", action_str)
+            if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model action list", action_str)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros, battle_range)
             unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
-            print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model remove_unaval_actions", unaval_list_str)
+            if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model remove_unaval_actions", unaval_list_str)
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
             action_cmd, max_q, selected = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
-            print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
+            if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
 
-            # 如果模型升级了，需要清空所有缓存用作训练的行为
+            # 如果模型升级了，需要清空所有缓存用作训练的行为，并且重启游戏
             if clear_cache:
-                print('battle_id', self.battle_id, '清空训练缓存')
+                print('battle_id', self.battle_id, '模型升级，清空训练缓存')
                 for hero_name in self.heros:
                     self.model_caches[hero_name].clear_cache()
+                model_upgrade = True
 
             action_cmds.append(action_cmd)
             input_list.append(data_input)
-        return action_cmds, input_list
+        return action_cmds, input_list, model_upgrade
 
     @staticmethod
     # 过滤输出结果，删除掉不可执行的选择
