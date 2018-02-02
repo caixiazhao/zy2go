@@ -441,8 +441,11 @@ class TeamBattleTrainer:
             friends, opponents = TeamBattleUtil.get_friend_opponent_heros(heros, hero)
             action_cmd, max_q, selected, skill_id = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
             if debug: print("battle_id", self.battle_id, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
-
-            #如果模型升级了，需要清空所有缓存用作训练的行为
+            policy_action, action_name = TeamBattlePolicy.choose_action(state_info, skill_id, hero)
+            if policy_action is not None:
+                action_cmd = policy_action
+                print("英雄 " + hero + " 使用策略，策略行为是" + action_name)
+            # 如果模型升级了，需要清空所有缓存用作训练的行为
             if clear_cache:
                 print('battle_id', self.battle_id, '清空训练缓存')
                 for hero_name in self.heros:
