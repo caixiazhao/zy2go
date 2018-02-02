@@ -2,6 +2,7 @@ class CmdActionEnum:
     def __init__(self):
         pass
 
+    EMPTY = -1
     MOVE = 0
     HOLD = 1
     ATTACK = 2
@@ -11,3 +12,6 @@ class CmdActionEnum:
     SELL = 6
     AUTO = 7
     RETREAT = 8
+    ADDGOLD = 9
+    ADDLV = 10
+    RESTART = 100

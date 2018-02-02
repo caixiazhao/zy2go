@@ -32,3 +32,4 @@ class SkillTargetEnum:
         rival = 0
         self = 1
         both = 2
+        buff = 3

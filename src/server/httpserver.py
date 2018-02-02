@@ -19,7 +19,7 @@ import os
 import numpy as np
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from baselines.common import set_global_seeds
+from baselines.common import set_global_seeds, time
 from model.stateinfo import StateInfo
 from train.line_ppo_model import LinePPOModel
 from train.linemodel_dpn import LineModel_DQN
@@ -100,6 +100,7 @@ class S(BaseHTTPRequestHandler):
             self.model_2.save(self.model2_save_header + str(replay_time) + '/model')
         elif post_data == 'disable_policy':
             print('commmand: disable policy')
+            # time.sleep(1000)
             for key, trainer in self.line_trainers.items():
                 trainer.policy_ratio = -1
         elif post_data == 'enable_policy':
@@ -117,9 +118,9 @@ class S(BaseHTTPRequestHandler):
         model1_path=None,
         model2_path=None,
         schedule_timesteps=200000,
-        model1_initial_p=0.5,
+        model1_initial_p=0.05,
         model1_final_p=0.05,
-        model2_initial_p=0.5,
+        model2_initial_p=0.05,
         model2_final_p=0.05,
         )
     real_hero = None
