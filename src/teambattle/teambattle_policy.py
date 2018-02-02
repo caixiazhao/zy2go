@@ -46,7 +46,7 @@ class TeamBattlePolicy:
                     # 另外一个条件是双方应该目前有一定的距离
                     heros_distance = StateUtil.cal_distance(hero_info.pos, enemy.pos)
                     if heros_distance >= TeamBattlePolicy.KEEP_AWAY_FROM_HERO_START_DISTANCE:
-                        print('策略选择', state_info.battleid, hero_name, '差距明显情况下不要接近对方英雄')
+                        print('启动策略', state_info.battleid, hero_name, '差距明显情况下不要接近对方英雄')
                         near_friend_heroes = StateUtil.get_nearby_friend_units(state_info, hero_name)
                         if near_friend_heroes is not None:
                             for friend in near_friend_heroes:
