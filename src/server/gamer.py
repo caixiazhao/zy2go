@@ -33,7 +33,7 @@ import tornado.options
 import tornado.web
 import traceback
 
-
+from common import cf as C
 from tornado.options import define, options
 
 
@@ -60,9 +60,9 @@ class MainHandler(tornado.web.RequestHandler):
 def main():
     C.set_run_mode("predict")
     tornado.options.parse_command_line()
-    base = int(sys.argv[1]) * 5
-    trainer_num = int(sys.argv[2])
-    manager = TeamBattleTrainerManager(base, trainer_num, 0.99)
+    base = int(sys.argv[1]) * 3
+    # trainer_num = int(sys.argv[2])
+    manager = TeamBattleTrainerManager(base, 3, 0.99)
 
     application = tornado.web.Application([
         (r"/", MainHandler),
@@ -73,7 +73,7 @@ def main():
 
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
-        http_server.bind(options.port)
+        http_server.bind(options.port +int(sys.argv[1]))
         http_server.start(1)    # multi-process
 
         hn = logging.NullHandler()

@@ -52,8 +52,6 @@ class ForwardHandler(tornado.web.RequestHandler):
                 C.generation_id = int(response.body)
         C.END = time.time()
         if C.END - C.START >10:
-            print("------------------------")
-            print(C.generation_id)
             fetch_request(
                 'http://127.0.0.1:%d/generation_id' %C.TRAINER_PORT,
                 train__id_callback,
@@ -135,9 +133,14 @@ class DataHandler(tornado.web.RequestHandler):
         self.finish(str(C.generation_id))
 
         def train__data_callback(response):
-            cur_generation_id = int(bytes.decode(response.body).split(",")[0])
-            batches = int(bytes.decode(response.body).split(",")[1])
-            print(response)
+            if not response.body or bytes.decode(response.body) =='{}':
+                batches = G['batches']
+                cur_generation_id = int(generation_id)
+                print(response)
+            else:
+                print(response.body)
+                cur_generation_id = int(bytes.decode(response.body).split(",")[0])
+                batches = int(bytes.decode(response.body).split(",")[1])
             if cur_generation_id == int(generation_id):
                 G['batches'] = batches
                 print(batches)
@@ -158,7 +161,7 @@ class DataHandler(tornado.web.RequestHandler):
         def train__train_callback(response):
             G['train_lock'] = False
             G['batches'] = 0
-            if not response.body:
+            if not response.body or bytes.decode(response.body) =='{}':
                 print(response)
             else:
                 C.generation_id = int(response.body)
