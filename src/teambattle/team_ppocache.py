@@ -78,13 +78,18 @@ class TEAM_PPO_CACHE:
         self.last_state_index = -1
 
     # 一个特殊的情况是添加奖励值，但是这个奖励值没有对应的行为，这种情况下我们需要将当前奖励值折算到缓存中最后一个行为上
-    def remember(self, ob, ac, vpred, new, rew, prev_new, state_index):
+    def remember(self, ob, ac, vpred, new, rew, prev_new, state_index, battle_id, hero_name):
         # 如果输入为空，折算当前奖励值到缓存中最后一个行为上
         if ob is None and rew is not None:
+            if len(self.rews) == 0:
+                print("Error", "battle_id", battle_id, "hero_name", hero_name, "添加最终奖励异常，数组为空")
+                return
+
             length = state_index - self.last_state_index
             rew *= pow(self.gamma, length)
             self.rews[-1] += rew
             self.nextnew = new
+            print("添加最终奖励值", state_index, self.last_state_index, rew)
             return
 
         self.obs.append(ob)
@@ -96,6 +101,7 @@ class TEAM_PPO_CACHE:
         self.prevacs.append(prev_act)
         self.rews.append(rew)
         self.nextnew = new
+        self.last_state_index = state_index
 
         self.cur_ep_ret += rew
         self.cur_ep_len += 1
@@ -120,4 +126,5 @@ class TEAM_PPO_CACHE:
             # TODO 是不是有更优雅的方式
             print('真的出现了new但是训练数据为空的情况')
         else:
-            return None, batch_size
+            print('训练数据异常', self.t, cur_new)
+            return None, None

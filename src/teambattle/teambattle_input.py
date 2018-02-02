@@ -137,7 +137,7 @@ class TeamBattleInput:
     # 所以一个思路是在输入中对每一个英雄后面添加一个行为串，记录上一次的行为，缺点是太过稀疏
     # 所以缩减到英雄后面添加几个信息，技能1-4攻击对方英雄1-5或者治疗己方英雄1-5
     @staticmethod
-    def add_other_hero_action(input_data, hero_info, action_cmd):
+    def add_other_hero_action(input_data, hero_info, action_cmd, debug=False):
         # 如果是自己，则忽略
         if hero_info.hero_name == action_cmd.hero_name:
             return input_data
@@ -161,14 +161,9 @@ class TeamBattleInput:
 
         prev_value = input_data[change_index]
         if prev_value != 0:
-            print("add_other_hero_action", "must be something wrong", "prev_value not zero")
+            if debug: print("add_other_hero_action", "must be something wrong", "prev_value not zero")
         input_data[change_index] = 1
         debug_action_str = StateUtil.build_command(action_cmd)
-        print("add_other_hero_action", "add_hero_info", hero_info.hero_name, "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
+        if debug: print("add_other_hero_action", "add_hero_info", hero_info.hero_name, "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
               "action_cmd.action", action_cmd.action, "action_cmd_skill", action_cmd.skillid, "change_index", change_index, "cmd", debug_action_str)
         return input_data
-
-
-
-
-
