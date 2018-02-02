@@ -1,6 +1,6 @@
 import os
 
-DATA_ROOT_PATH = os.path.join(os.environ['HOMEPATH'], 'data')
+DATA_ROOT_PATH = os.path.join(os.environ['HOME'], 'data')
 
 
 TRAIN_CPUS = 16
@@ -33,7 +33,7 @@ PRELOAD_MODEL2_PATH = None
 GAME_WORKERS = 20
 
 # 每个game worker为几个game.exe提供服务
-GAME_WORKER_SLOTS = 2
+GAME_WORKER_SLOTS = 3
 
 # game worker的起始端口
 GAME_BASE_PORT = 9000
