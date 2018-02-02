@@ -50,7 +50,7 @@ class TrainerHandler(tornado.web.RequestHandler):
             if path.startswith('/data'):
                 # print('/data %d' % len(data))
                 manager.push_data(data)
-                self.finish(str(manager.get_generation_id())+","+str(len(manager.train_data_model['36'])))
+                self.finish(str(manager.get_generation_id())+","+str(len(manager.train_data_map['36'])))
                 return
 
             if path.startswith('/model'):
