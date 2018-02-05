@@ -31,7 +31,8 @@ class TeamBattleModelUtil:
 
         return model, model_save_header
 
-    def __init__(self, hero_names, battle_num, save_root, save_batch, gamma, model_path_pattern=None):
+    def __init__(self, hero_names, battle_num, save_root, save_batch, schedule_timesteps,
+                         model_initial_p, model_final_p, gamma, model_path_pattern=None):
         # 启动所有的模型
         self.battle_num = battle_num
         self.save_batch = save_batch
@@ -45,7 +46,7 @@ class TeamBattleModelUtil:
             if model_path_pattern is not None:
                 model_path = model_path_pattern.format(hero_name)
 
-            model, save_header = self.build_model_ppo(save_root, hero_name, model_path, model_gamma=gamma)
+            model, save_header = self.build_model_ppo(save_root, hero_name, model_path, schedule_timesteps, model_initial_p, model_final_p, gamma)
             self.model_map[hero_name] = (model, save_header)
 
             # 准备训练集的存储
@@ -89,9 +90,10 @@ class TeamBattleModelUtil:
 
     # 计算模型的奖励情况
     # 团战情况下的奖励情况非常单一
-    # 英雄杀死其它英雄，奖励
+    # 英雄杀死其它英雄，奖励，同时队友也有奖励（存活的队友）
     # 英雄被击杀，惩罚
-    # 团战胜率，奖励
+    # 己方英雄死亡，其它英雄也要受到惩罚（存活的队友）
+    # 扩大死亡奖励，缩小团战结果奖励
     #TODO 击杀的判定需要仔细审核，暂定规则为英雄死亡当帧，hit信息指向该英雄的攻击者都奖励
     def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, prev_dead_heroes):
 
@@ -108,16 +110,32 @@ class TeamBattleModelUtil:
                 # 死亡者惩罚
                 reward = state_info.get_or_insert_reward(hero_name)
                 print("battle_id", state_info.battleid, "hero_name", hero_name, "cal_rewards", "死亡者惩罚", "tick", state_info.tick)
-                reward -= 1
+                reward -= 10
                 state_info.add_rewards(hero_name, reward)
+
+                # 死亡者，存活的队友接受惩罚
+                dead_hero_teamers, dead_hero_opponents = TeamBattleUtil.get_friend_opponent_heros(battle_heroes, hero_name)
+                for team_member in dead_hero_teamers:
+                    reward = state_info.get_or_insert_reward(team_member)
+                    reward -= 2
+                    state_info.add_rewards(team_member, reward)
+                    print("battle_id", state_info.battleid, "hero_name", team_member, "cal_rewards", "死亡者队友惩罚", "tick", state_info.tick)
 
                 # 攻击者奖励
                 attackers = next_state_info.get_hero_be_attacked_info(hero_name)
                 for attacker in attackers:
                     reward = state_info.get_or_insert_reward(attacker)
-                    reward += 1
+                    reward += 10
                     state_info.add_rewards(attacker, reward)
                     print("battle_id", state_info.battleid, "hero_name", attacker, "cal_rewards", "攻击者奖励", "tick", state_info.tick, "死亡英雄", hero_name)
+
+                # 攻击者，存活的队友接受奖励
+                for opponent in dead_hero_opponents:
+                    reward = state_info.get_or_insert_reward(opponent)
+                    reward += 2
+                    state_info.add_rewards(attacker, reward)
+                    print("battle_id", state_info.battleid, "hero_name", hero_name, "cal_rewards", "死亡者队友惩罚",
+                            "tick", state_info.tick)
 
                 # 从存活英雄中删除
                 left_heroes.remove(hero_name)
@@ -127,32 +145,32 @@ class TeamBattleModelUtil:
         #TODO 这里的逻辑是有问题的
         all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
         win = 0
-        # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
-        if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
-            win = 1
-            for hero in left_heroes:
-                reward = state_info.get_or_insert_reward(hero)
-                reward += 10
-                state_info.add_rewards(hero, reward)
-
-            #TODO 要不要给赢的队伍中死亡的人团战胜利奖励，给多少
-            for hero in all_dead_heroes:
-                # 这里目前认为所有没有参战的英雄都是
-                if hero not in battle_heroes:
-                    if TeamBattleUtil.get_hero_team(hero) == all_in_team:
-                        reward = state_info.get_or_insert_reward(hero)
-                        reward += 5
-                        state_info.add_rewards(hero, reward)
-                    # 失败的团队给予惩罚
-                    else:
-                        reward = state_info.get_or_insert_reward(hero)
-                        if reward is None:
-                            reward = 0
-                            hero_act = state_info.get_action(hero)
-                            print("Error", 'battle_id', 'cal_reward', state_info.battle_id, hero_act.hero_name, hero_act.action,
-                                  hero_act.skillid)
-                        reward -= 10
-                        state_info.add_rewards(hero, reward)
+        # # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
+        # if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
+        #     win = 1
+        #     for hero in left_heroes:
+        #         reward = state_info.get_or_insert_reward(hero)
+        #         reward += 10
+        #         state_info.add_rewards(hero, reward)
+        #
+        #     #TODO 要不要给赢的队伍中死亡的人团战胜利奖励，给多少
+        #     for hero in all_dead_heroes:
+        #         # 这里目前认为所有没有参战的英雄都是
+        #         if hero not in battle_heroes:
+        #             if TeamBattleUtil.get_hero_team(hero) == all_in_team:
+        #                 reward = state_info.get_or_insert_reward(hero)
+        #                 reward += 5
+        #                 state_info.add_rewards(hero, reward)
+        #             # 失败的团队给予惩罚
+        #             else:
+        #                 reward = state_info.get_or_insert_reward(hero)
+        #                 if reward is None:
+        #                     reward = 0
+        #                     hero_act = state_info.get_action(hero)
+        #                     print("Error", 'battle_id', 'cal_reward', state_info.battle_id, hero_act.hero_name, hero_act.action,
+        #                           hero_act.skillid)
+        #                 reward -= 10
+        #                 state_info.add_rewards(hero, reward)
         return state_info, win, all_in_team, left_heroes
 
 
