@@ -26,7 +26,7 @@ class TeamBattleTrainerManager:
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.save_batch = 20
         self.save_dir = HttpUtil.get_save_root_path()
-        self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_dir, self.save_batch, gamma)
+        self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_dir, self.save_batch, gamma, '/Users/sky4star/Downloads/model_20180202/{}_2700/model')
 
 
         for p_battle_id in range(1, battle_id_num+1):

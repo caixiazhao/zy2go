@@ -25,12 +25,13 @@ class TeamBattleModelUtil:
         # 创建模型，决定有几个模型，以及是否有真人玩家
         # 模型需要指定学习的英雄，这里我们学习用该模型计算的英雄加上真人（如果存在），注意克隆数组
         if model_path is not None:
+            print("load model", model_path, "model_hero", model_hero)
             model.load(model_path)
         model_save_header = save_dir + '/' + model_hero + '_'
 
         return model, model_save_header
 
-    def __init__(self, hero_names, battle_num, save_root, save_batch, gamma):
+    def __init__(self, hero_names, battle_num, save_root, save_batch, gamma, model_path_pattern=None):
         # 启动所有的模型
         self.battle_num = battle_num
         self.save_batch = save_batch
@@ -40,7 +41,11 @@ class TeamBattleModelUtil:
         self.hero_names = hero_names
         for hero_name in hero_names:
             # 准备模型
-            model, save_header = self.build_model_ppo(save_root, hero_name, None, model_gamma=gamma)
+            model_path = None
+            if model_path_pattern is not None:
+                model_path = model_path_pattern.format(hero_name)
+
+            model, save_header = self.build_model_ppo(save_root, hero_name, model_path, model_gamma=gamma)
             self.model_map[hero_name] = (model, save_header)
 
             # 准备训练集的存储
