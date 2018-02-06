@@ -224,8 +224,11 @@ def make_session(num_cpu):
     """Returns a session that will use <num_cpu> CPU's only"""
     tf_config = tf.ConfigProto(
         # log_device_placement=True,
+        allow_soft_placement=True,
         inter_op_parallelism_threads=num_cpu,
         intra_op_parallelism_threads=num_cpu)
+    # 开始不会给tensorflow全部gpu资源 而是按需增加
+    tf_config.gpu_options.allow_growth = True
     return tf.Session(config=tf_config)
 
 
