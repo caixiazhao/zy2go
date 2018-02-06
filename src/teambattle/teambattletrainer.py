@@ -46,7 +46,8 @@ class TeamBattleTrainer:
     BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
     SHRINK_TIME = 60
 
-    def __init__(self, save_root_path, battle_id, model_util, gamma):
+    def __init__(self, act_size, save_root_path, battle_id, model_util, gamma):
+        self.act_size = act_size
         self.battle_id = battle_id
         self.model_util = model_util
         self.state_cache = []
@@ -184,18 +185,22 @@ class TeamBattleTrainer:
         elif not self.rebooting:
             if self.battle_started == -1:
                 self.battle_started = len(self.state_cache)
-            action_cmds, input_list, model_upgrade = self.get_model_actions(state_info, heroes_in_range)
-            print("battle_id", self.battle_id, self.battle_started, len(self.state_cache))
+
+            # action_cmds, input_list, model_upgrade = self.get_model_actions(state_info, heroes_in_range)
+            # 跟队伍，每个队伍得到行为
+            team_a, team_b = TeamBattleUtil.get_teams(heroes_in_range)
+            team_actions_a, input_list_a, model_upgrade_a = self.get_model_actions_team(state_info, team_a, heroes_in_range)
+            team_actions_b, input_list_b, model_upgrade_b = self.get_model_actions_team(state_info, team_b, heroes_in_range)
 
             # 如果模型已经开战，重启战斗
-            if model_upgrade and self.battle_started < len(self.state_cache) + 1:
+            if (model_upgrade_a or model_upgrade_b) and self.battle_started < len(self.state_cache) + 1:
                 print("battle_id", self.battle_id, "因为模型升级，重启战斗", self.battle_started, len(self.state_cache))
                 action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
                 rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
                 rsp_str = JSON.dumps(rsp_obj)
                 return rsp_str
             data_input_map = {}
-            for action_cmd, data_input in zip(action_cmds, input_list):
+            for action_cmd, data_input in zip(team_actions_a + team_actions_b, input_list_a + input_list_b):
                 action_str = StateUtil.build_command(action_cmd)
                 response_strs.append(action_str)
                 state_info.add_action(action_cmd)
@@ -393,11 +398,90 @@ class TeamBattleTrainer:
 
         return team_battle_heros
 
-    def get_model_actions(self, state_info, heros, debug=False):
-        # 目前的思路是，每个英雄首先自己算行为，然后拿到每个英雄的行为之后，将状态信息+队友的选择都交给模型，重新计算自己的选择，迭代
-        # 最后得到每个英雄的行为
+    def get_model_actions_team(self, state_info, team, battle_heroes, debug=True):
+        # 第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
+        # 同时可以变成按照模型给出maxq大小来决定谁先选
+        # 这样的好处是所有人选择的行为就是最后执行的行为
 
-        # TODO 另一个思路：调整为第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
+        # 暂时为随机英雄先选
+        # first_hero = heroes[0]
+
+        # 得到当前团战范围，因为会收缩
+        battle_range = self.cal_battle_range(len(self.state_cache) - self.battle_started)
+
+        # 首先得到当前情况下每个英雄的基础输入集和所有无效的选择
+        hero_input_map = {}
+        hero_unavail_list_map = {}
+        for hero in team:
+            data_input = TeamBattleInput.gen_input(state_info, hero)
+            data_input = np.array(data_input)
+            hero_input_map[hero] = data_input
+
+            unaval_list = TeamBattleTrainer.list_unaval_actions(self.act_size, state_info, hero, battle_heroes, battle_range)
+            unaval_list_str = ' '.join(str("%.4f" % float(act)) for act in unaval_list)
+            hero_unavail_list_map[hero] = unaval_list
+            if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model remove_unaval_actions", unaval_list_str)
+
+        # 得到每个英雄的推荐行为
+        hero_recommend_list_map = {}
+        for hero in team:
+            friends, opponents = TeamBattleUtil.get_friend_opponent_heros(battle_heroes, hero)
+            hero_info = state_info.get_hero(hero)
+            recommend_list = TeamBattlePolicy.select_action_by_strategy(state_info, hero_info, friends, opponents)
+            hero_recommend_list_map[hero] = recommend_list
+
+        # 开始挑选英雄行为，每次根据剩余英雄的最优选择，根据Q大小来排序
+        action_cmds = []
+        input_list = []
+        left_heroes = list(team)
+        model_upgrade = False
+        while len(left_heroes) > 0:
+            cur_max_q = -1
+            chosen_hero = left_heroes[0]
+            chosen_action_list = None
+            for hero in left_heroes:
+                # 对于之前的英雄行为，加入输入
+                hero_info = state_info.get_hero(hero)
+                data_input = hero_input_map[hero]
+                for prev_action in action_cmds:
+                    data_input = TeamBattleInput.add_other_hero_action(data_input, hero_info, prev_action, debug)
+
+                unaval_list = hero_unavail_list_map[hero]
+                recommend_list = hero_recommend_list_map[hero]
+                action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
+                action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
+                max_q = TeamBattleTrainer.get_max_q(action_list, unaval_list, recommend_list)
+                if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "本轮行为候选", "hero", hero, "max_q", max_q, "model action list",
+                                action_str)
+
+                # 允许等于是为了支持max_q等于-1的情况
+                if max_q >= cur_max_q:
+                    cur_max_q = max_q
+                    chosen_hero = hero
+                    chosen_action_list = action_list
+
+                # 如果模型升级了，需要清空所有缓存用作训练的行为，并且重启游戏
+                if clear_cache:
+                    print('battle_id', self.battle_id, '模型升级，清空训练缓存')
+                    for hero_name in self.heros:
+                        self.model_caches[hero_name].clear_cache()
+                    model_upgrade = True
+
+            # 使用最大q的英雄的行为
+            unaval_list = hero_unavail_list_map[chosen_hero]
+            recommend_list = hero_recommend_list_map[hero]
+            friends, opponents = TeamBattleUtil.get_friend_opponent_heros(battle_heroes, chosen_hero)
+            action_cmd, max_q, selected = TeamBattleTrainer.get_action_cmd(chosen_action_list, unaval_list, recommend_list, state_info, chosen_hero, friends, opponents)
+            if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", chosen_hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
+
+            # 更新各个状态集
+            action_cmds.append(action_cmd)
+            input_list.append(data_input)
+            left_heroes.remove(chosen_hero)
+        return action_cmds, input_list, model_upgrade
+
+    def get_model_actions(self, state_info, heros, debug=False):
+        # 第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
         # TODO 同时可以变成按照模型给出maxq大小来决定谁先选
         # 这样的好处是所有人选择的行为就是最后执行的行为
 
@@ -449,10 +533,10 @@ class TeamBattleTrainer:
     # 移动：八个方向；物理攻击：五个攻击目标；技能1：五个攻击目标；技能2：五个攻击目标；技能3：五个攻击目标
     # 技能攻击目标默认为对方英雄。如果是辅助技能，目标调整为自己人
     # 对于技能可以是自己也可以是对方的，目前无法处理
-    def list_unaval_actions(acts, state_info, hero_name, team_battle_heros, battle_range, debug=False):
+    def list_unaval_actions(act_size, state_info, hero_name, team_battle_heros, battle_range, debug=False):
         friends, opponents = TeamBattleUtil.get_friend_opponent_heros(team_battle_heros, hero_name)
-        avail_list = acts.copy()
-        for i in range(len(acts)):
+        avail_list = [-1] * act_size
+        for i in range(act_size):
             hero = state_info.get_hero(hero_name)
             selected = i
             if selected < 8:  # move
@@ -582,12 +666,46 @@ class TeamBattleTrainer:
         return tgtid, tgtpos
 
     @staticmethod
-    def get_action_cmd(action_list, unaval_list, state_info, hero_name, friends, opponents, revert=False):
+    def get_max_q(action_list, unaval_list, recommmend_list):
+        q_list = list(action_list)
+
+        # 如果有推荐的行为，只从中挑选
+        if len(recommmend_list) > 0:
+            for i in range(len(action_list)):
+                if i not in recommmend_list:
+                    q_list[i] = -1
+
+        while True:
+            max_q = max(q_list)
+
+            if max_q <= -1:
+                return max_q
+
+            selected = q_list.index(max_q)
+            avail_type = unaval_list[selected]
+            if avail_type == -1:
+                # TODO avail_type == 0: 是否考虑技能不可用时候不接近对方
+                # 不可用行为
+                q_list[selected] = -1
+                continue
+            return max_q
+
+    @staticmethod
+    def get_action_cmd(action_list, unaval_list, recommmend_list, state_info, hero_name, friends, opponents, revert=False):
         hero = state_info.get_hero(hero_name)
         found = False
+
+        # 如果有推荐的行为，只从中挑选
+        if len(recommmend_list) > 0:
+            for i in range(len(action_list)):
+                if i not in recommmend_list:
+                    action_list[i] = -1
+            print("battle_id", state_info.battleid, "tick", state_info.tick, "hero", hero_name, "根据推荐，只从以下行为中挑选",
+                  ",".join(str("%f" % float(act)) for act in action_list),
+                  ",".join(str("%f" % float(act)) for act in recommmend_list))
+
         while not found:
             max_q = max(action_list)
-
             if max_q <= -1:
                 action = CmdAction(hero_name, CmdActionEnum.HOLD, None, None, hero.pos, None, None, 48, None)
                 return action, max_q, -1

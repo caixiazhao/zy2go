@@ -12,10 +12,8 @@ from util.stateutil import StateUtil
 
 
 class TeamBattleModelUtil:
-    def build_model_ppo(self, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
+    def build_model_ppo(self, ob_size, act_size, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
                          model_initial_p=1.0, model_final_p=0.02, model_gamma=0.99):
-        ob_size = 890
-        act_size = 28
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
         print(model_hero)
@@ -31,7 +29,7 @@ class TeamBattleModelUtil:
 
         return model, model_save_header
 
-    def __init__(self, hero_names, battle_num, save_root, save_batch, schedule_timesteps,
+    def __init__(self, ob_size, act_size, hero_names, battle_num, save_root, save_batch, schedule_timesteps,
                          model_initial_p, model_final_p, gamma, model_path_pattern=None):
         # 启动所有的模型
         self.battle_num = battle_num
@@ -46,7 +44,7 @@ class TeamBattleModelUtil:
             if model_path_pattern is not None:
                 model_path = model_path_pattern.format(hero_name)
 
-            model, save_header = self.build_model_ppo(save_root, hero_name, model_path, schedule_timesteps, model_initial_p, model_final_p, gamma)
+            model, save_header = self.build_model_ppo(ob_size, act_size, save_root, hero_name, model_path, schedule_timesteps, model_initial_p, model_final_p, gamma)
             self.model_map[hero_name] = (model, save_header)
 
             # 准备训练集的存储
@@ -131,11 +129,12 @@ class TeamBattleModelUtil:
 
                 # 攻击者，存活的队友接受奖励
                 for opponent in dead_hero_opponents:
-                    reward = state_info.get_or_insert_reward(opponent)
-                    reward += 2
-                    state_info.add_rewards(attacker, reward)
-                    print("battle_id", state_info.battleid, "hero_name", hero_name, "cal_rewards", "死亡者队友惩罚",
-                            "tick", state_info.tick)
+                    if opponent not in attackers:
+                        reward = state_info.get_or_insert_reward(opponent)
+                        reward += 2
+                        state_info.add_rewards(opponent, reward)
+                        print("battle_id", state_info.battleid, "hero_name", opponent, "cal_rewards", "攻击者队友奖励",
+                                "tick", state_info.tick)
 
                 # 从存活英雄中删除
                 left_heroes.remove(hero_name)
@@ -145,9 +144,9 @@ class TeamBattleModelUtil:
         #TODO 这里的逻辑是有问题的
         all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
         win = 0
-        # # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
-        # if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
-        #     win = 1
+        # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
+        if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
+            win = 1
         #     for hero in left_heroes:
         #         reward = state_info.get_or_insert_reward(hero)
         #         reward += 10

@@ -6,6 +6,13 @@ from util.stateutil import StateUtil
 
 class TeamBattleUtil:
     @staticmethod
+    def get_teams(team_battle_heros):
+        first_hero = team_battle_heros[0]
+        team_a, team_b = TeamBattleUtil.get_friend_opponent_heros(team_battle_heros, first_hero)
+        team_a.append(first_hero)
+        return team_a, team_b
+
+    @staticmethod
     def get_friend_opponent_heros(team_battle_heros, hero):
         if int(hero) <= 31:
             friends = [hero for hero in team_battle_heros if int(hero) <= 31]
@@ -74,4 +81,12 @@ class TeamBattleUtil:
         return PosStateInfo(hero_info.pos.x + time_second * fwd.x * hero_info.speed / 1000 * 1.2,
                             -80,
                             hero_info.pos.z + time_second * fwd.z * hero_info.speed / 1000* 1.2)
+
+    # 得到output中对应的行动ID
+    @staticmethod
+    def get_action_index(hero_index, skill_id=0):
+        action_index = 8
+        action_index += 5 * skill_id + hero_index
+        return action_index
+
 
