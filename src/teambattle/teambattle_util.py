@@ -89,4 +89,12 @@ class TeamBattleUtil:
         action_index += 5 * skill_id + hero_index
         return action_index
 
+    @staticmethod
+    def get_hero_index(hero_name):
+        team_a = ['27', '28', '29', '30', '31']
+        team_b = ['32', '33', '34', '35', '36']
+        if hero_name in team_a:
+            return team_a.index(hero_name)
+        else:
+            return team_b.index(hero_name)
 

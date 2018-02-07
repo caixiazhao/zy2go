@@ -46,7 +46,7 @@ class TeamBattleTrainer:
     BATTLE_CIRCLE_RADIUS_BATTLE_ING = 10
     SHRINK_TIME = 60
 
-    def __init__(self, act_size, save_root_path, battle_id, model_util, gamma):
+    def __init__(self, act_size, save_root_path, battle_id, model_util, gamma, enable_policy):
         self.act_size = act_size
         self.battle_id = battle_id
         self.model_util = model_util
@@ -57,6 +57,7 @@ class TeamBattleTrainer:
         self.battle_started = -1
         self.model_caches = {}
         self.rebooting = False
+        self.enable_policy = enable_policy
         for hero in self.heros:
             self.model_caches[hero] = TEAM_PPO_CACHE(gamma)
 
@@ -316,8 +317,7 @@ class TeamBattleTrainer:
         if win == 1:
             for hero_name in self.heros:
                 model_cache = self.model_caches[hero_name]
-                prev_new = model_cache.get_prev_new()
-                o4r, batch_size = model_cache.output4replay(prev_new)
+                o4r, batch_size = model_cache.output4replay()
 
                 # 提交给训练模块
                 print('battle_id', self.battle_id, 'trainer', hero_name, '添加训练集', batch_size)
@@ -398,7 +398,7 @@ class TeamBattleTrainer:
 
         return team_battle_heros
 
-    def get_model_actions_team(self, state_info, team, battle_heroes, debug=True):
+    def get_model_actions_team(self, state_info, team, battle_heroes, debug=False):
         # 第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
         # 同时可以变成按照模型给出maxq大小来决定谁先选
         # 这样的好处是所有人选择的行为就是最后执行的行为
@@ -551,38 +551,31 @@ class TeamBattleTrainer:
                     avail_list[selected] = 1
                 continue
             elif selected < 13:  # 物理攻击：五个攻击目标
-                if hero.skills[0].canuse != True and (hero.skills[0].cd == 0 or hero.skills[0].cd == None):
-                    # 普通攻击也有冷却，冷却时canuse=false，此时其实我们可以给出攻击指令的
-                    # 所以只有当普通攻击冷却完成（cd=0或None）时，canuse仍为false我们才认为英雄被控，不能攻击
-                    # 被控制住
+                target_index = selected - 8
+                target_hero = TeamBattleUtil.get_target_hero(hero_name, friends, opponents, target_index)
+                if target_hero is None:
                     avail_list[selected] = -1
-                    if debug: print("普攻受限，放弃普攻")
+                    if debug: print("找不到对应目标英雄")
                     continue
-                else:  # 敌方英雄
-                    target_index = selected - 8
-                    target_hero = TeamBattleUtil.get_target_hero(hero_name, friends, opponents, target_index)
-                    if target_hero is None:
-                        avail_list[selected] = -1
-                        if debug: print("找不到对应目标英雄")
-                        continue
-                    rival_info = state_info.get_hero(target_hero)
-                    dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
-                    # 英雄不可见
-                    if not rival_info.is_enemy_visible():
-                        avail_list[selected] = -1
-                        if debug: print("英雄不可见")
-                        continue
-                    # 英雄太远，放弃普攻
-                    # if dist > self.att_dist:
-                    if dist > StateUtil.ATTACK_HERO_RADIUS:
-                        avail_list[selected] = 0
-                        if debug: print("英雄太远，放弃普攻")
-                        continue
-                    # 对方英雄死亡时候忽略这个目标
-                    elif rival_info.hp <= 0:
-                        avail_list[selected] = -1
-                        if debug: print("对方英雄死亡")
-                        continue
+                rival_info = state_info.get_hero(target_hero)
+                dist = StateUtil.cal_distance(hero.pos, rival_info.pos)
+                # 英雄不可见
+                if not rival_info.is_enemy_visible():
+                    avail_list[selected] = -1
+                    if debug: print("英雄不可见")
+                    continue
+                # 英雄太远，放弃普攻
+                # if dist > self.att_dist:
+                if dist > StateUtil.ATTACK_HERO_RADIUS:
+                    print("英雄太远，放弃普攻", hero_name, "target_hero", target_hero, dist)
+                    avail_list[selected] = 0
+                    if debug: print("英雄太远，放弃普攻")
+                    continue
+                # 对方英雄死亡时候忽略这个目标
+                elif rival_info.hp <= 0:
+                    avail_list[selected] = -1
+                    if debug: print("对方英雄死亡")
+                    continue
                 avail_list[selected] = 1
             elif selected < 28:  # skill1
                 # TODO 处理持续施法，目前似乎暂时还不需要

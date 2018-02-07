@@ -31,7 +31,7 @@ class TeamBattlePolicy:
     @staticmethod
     def gen_attack_cast_action_indic(hero_info, enemy_info, friends, opponents):
         recommmend_actions = []
-        tgt_idx = opponents.index(enemy_info.hero_name)
+        tgt_idx = TeamBattleUtil.get_hero_index(enemy_info.hero_name)
 
         # 添加物理攻击
         action_idx = TeamBattleUtil.get_action_index(tgt_idx, 0)
@@ -48,7 +48,7 @@ class TeamBattlePolicy:
                 # 注意，这里的合理性会由技能检查条件来覆盖
                 action_idx = TeamBattleUtil.get_action_index(0, skill_id)
                 recommmend_actions.append(action_idx)
-        return recommmend_actions
+        return recommmend_actions, tgt_idx
 
     # 在一些特定情况下，命令英雄作出不同的选择
     @staticmethod
@@ -57,21 +57,21 @@ class TeamBattlePolicy:
 
         # 在周围有残血英雄的情况下，优先攻击对方
         # 在团战前中期，只有身边小范围内有敌对英雄时候会触发这个条件，在中后期，扩大搜索残血敌人的范围
-        if TeamBattlePolicy.get_hp_ratio(hero_info) > 0.6:
+        if TeamBattlePolicy.get_hp_ratio(hero_info) >= 0.4:
             search_range = TeamBattlePolicy.ENEMY_BATTLE_RANGE_LARGE if len(friends) >= len(opponents) and len(opponents) <= 2 else TeamBattlePolicy.ENEMY_BATTLE_RANGE
             enemies_in_low_hp = TeamBattlePolicy.get_enemies_low_hp(state_info, hero_info, opponents, search_range, 0.3)
             #TODO 理想情况下，这时候应该评估自己的存活率，然后再行动，甚至血量都不需要这么悬殊
             for enemy_info in enemies_in_low_hp:
-                rcmd_actions = TeamBattlePolicy.gen_attack_cast_action_indic(hero_info, enemy_info, friends, opponents)
-                if debug: print("battle_id", state_info.battleid, "追击残血英雄", hero_info.hero_name, "推荐行为",
+                rcmd_actions, tgt_idx = TeamBattlePolicy.gen_attack_cast_action_indic(hero_info, enemy_info, friends, opponents)
+                if debug: print("battle_id", state_info.battleid, "hero", hero_info.hero_name, "追击残血英雄", enemy_info.hero_name, "tgt_idx", tgt_idx, "推荐行为",
                                 ','.join(str(act) for act in rcmd_actions))
                 recommend_action_set = recommend_action_set.union(rcmd_actions)
 
-        # 在残血的情况下，优先移动
-        if TeamBattlePolicy.get_hp_ratio(hero_info) < 0.3:
-            mov_idx = list(range(8))
-            recommend_action_set.union(mov_idx)
-            if debug: print("battle_id", state_info.battleid, "优先移动", hero_info.hero_name)
+        # # 在残血的情况下，优先移动
+        # if TeamBattlePolicy.get_hp_ratio(hero_info) < 0.2:
+        #     mov_idx = list(range(8))
+        #     recommend_action_set.union(mov_idx)
+        #     if debug: print("battle_id", state_info.battleid, "hero", hero_info.hero_name, "优先移动")
         return recommend_action_set
 
     # 技能选择时候的限制条件
