@@ -64,6 +64,8 @@ class TeamBattleInput:
         skill_input2 = TeamBattleInput.gen_input_skill(skill_info2, hero.skills[2])
         skill_input3 = TeamBattleInput.gen_input_skill(skill_info3, hero.skills[3])
 
+        #TODO 添加历史信息，之前3帧，每次的位置，动作（移动，攻击，技能1-3），hitinfo，tgtpos
+
         hero_input = hero_input + skill_input1 + skill_input2 + skill_input3
         return hero_input
 
@@ -116,7 +118,7 @@ class TeamBattleInput:
         return skill_input
 
     @staticmethod
-    def gen_input(state_info, hero_name):
+    def gen_input(state_info, hero_name, battle_heroes):
         input_data = []
 
         # 添加英雄状态， 英雄排序为ID大小排序，
@@ -125,11 +127,17 @@ class TeamBattleInput:
         input_data += TeamBattleInput.gen_input_hero(hero_info, hero_info)
         friends, opponents = TeamBattleUtil.get_friend_opponent_heros(TeamBattleInput.HERO_LIST, hero_name)
         for friend_name in friends:
-            friend_info = state_info.get_hero(friend_name)
-            input_data += TeamBattleInput.gen_input_hero(friend_info, hero_info)
+            if friend_name in battle_heroes:
+                friend_info = state_info.get_hero(friend_name)
+                input_data += TeamBattleInput.gen_input_hero(friend_info, hero_info)
+            else:
+                input_data += TeamBattleInput.gen_input_hero(None, hero_info)
         for opponent_name in opponents:
-            opponent_info = state_info.get_hero(opponent_name)
-            input_data += TeamBattleInput.gen_input_hero(opponent_info, hero_info)
+            if opponent_name in battle_heroes:
+                opponent_info = state_info.get_hero(opponent_name)
+                input_data += TeamBattleInput.gen_input_hero(opponent_info, hero_info)
+            else:
+                input_data += TeamBattleInput.gen_input_hero(None, hero_info)
         return input_data
 
     # 添加其他英雄的行为到决策中

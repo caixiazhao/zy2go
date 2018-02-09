@@ -173,8 +173,9 @@ class TeamBattleTrainer:
             # 移动到两个开始战斗地点附近
             # 如果是团战开始之后，移动到团战中心点
             for hero in heroes_out_range:
-                start_point_x = 0
+                start_point_x = randint(0, 8000)
                 start_point_z = TeamBattleTrainer.BATTLE_CIRCLE_RADIUS_BATTLE_START * 1000 if self.battle_started == -1 else 0
+                start_point_z += randint(-4000, 4000)
                 if TeamBattleUtil.get_hero_team(hero) == 0:
                     start_point_z *= -1
                 start_point_z += TeamBattleTrainer.BATTLE_POINT_Z
@@ -186,6 +187,9 @@ class TeamBattleTrainer:
         elif not self.rebooting:
             if self.battle_started == -1:
                 self.battle_started = len(self.state_cache)
+
+            # 对特殊情况。比如德古拉使用大招hp会变1，修改帧状态
+            state_info, _ = TeamBattlePolicy.modify_status_4_draculas_invincible(state_info, self.state_cache)
 
             # action_cmds, input_list, model_upgrade = self.get_model_actions(state_info, heroes_in_range)
             # 跟队伍，每个队伍得到行为
@@ -413,7 +417,7 @@ class TeamBattleTrainer:
         hero_input_map = {}
         hero_unavail_list_map = {}
         for hero in team:
-            data_input = TeamBattleInput.gen_input(state_info, hero)
+            data_input = TeamBattleInput.gen_input(state_info, hero, battle_heroes)
             data_input = np.array(data_input)
             hero_input_map[hero] = data_input
 
@@ -567,7 +571,6 @@ class TeamBattleTrainer:
                 # 英雄太远，放弃普攻
                 # if dist > self.att_dist:
                 if dist > StateUtil.ATTACK_HERO_RADIUS:
-                    print("英雄太远，放弃普攻", hero_name, "target_hero", target_hero, dist)
                     avail_list[selected] = 0
                     if debug: print("英雄太远，放弃普攻")
                     continue

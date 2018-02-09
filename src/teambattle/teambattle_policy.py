@@ -27,6 +27,33 @@ class TeamBattlePolicy:
     ENEMY_BATTLE_RANGE = 3
     ENEMY_BATTLE_RANGE_LARGE = 7
 
+    # 检测输入中的错误
+    @staticmethod
+    def modify_status_4_draculas_invincible(cal_state_info, state_cache, state_idx=-1):
+        # 修复德古拉开大血量变为1的问题
+        draculas_invincible = []
+        hero_names = []
+        for hero_info in cal_state_info.heros:
+            if int(hero_info.cfg_id) == 103:
+                hero_names.append(hero_info.hero_name)
+
+        if len(hero_names) > 0:
+            for hero_name in hero_names:
+                # 如果当前血量是1，有可能是因为释放了大招
+                hero_info = cal_state_info.get_hero(hero_name)
+                if hero_info.hp == 1:
+                    # 找到前7帧是否有释放大招
+                    for idx in range(state_idx-6, state_idx+1):
+                        state_info = state_cache[idx]
+                        action_info = state_info.get_hero_action(hero_name)
+                        if action_info is not None and action_info.skillid == '3':
+                            #需要修改血量为释放前的血量
+                            prev_state_info = state_cache[idx-1]
+                            hero_info.hp = prev_state_info.get_hero(hero_name).hp
+                            draculas_invincible.append(hero_name)
+                            print("battle_id", state_info.battleid, "hero", hero_info.hero_name, "德古拉释放大招，修改血量从1变为释放大招前血量", hero_info.hp, state_cache[state_idx].get_hero(hero_name).hp)
+        return cal_state_info, draculas_invincible
+
     # 得到推荐的英雄行动ID
     @staticmethod
     def gen_attack_cast_action_indic(hero_info, enemy_info, friends, opponents):
@@ -52,7 +79,7 @@ class TeamBattlePolicy:
 
     # 在一些特定情况下，命令英雄作出不同的选择
     @staticmethod
-    def select_action_by_strategy(state_info, hero_info, friends, opponents, debug=True):
+    def select_action_by_strategy(state_info, hero_info, friends, opponents, debug=False):
         recommend_action_set = set()
 
         # 在周围有残血英雄的情况下，优先攻击对方
@@ -66,6 +93,9 @@ class TeamBattlePolicy:
                 if debug: print("battle_id", state_info.battleid, "hero", hero_info.hero_name, "追击残血英雄", enemy_info.hero_name, "tgt_idx", tgt_idx, "推荐行为",
                                 ','.join(str(act) for act in rcmd_actions))
                 recommend_action_set = recommend_action_set.union(rcmd_actions)
+
+        #TODO 帮助残血英雄
+
 
         # # 在残血的情况下，优先移动
         # if TeamBattlePolicy.get_hp_ratio(hero_info) < 0.2:
