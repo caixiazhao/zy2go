@@ -245,9 +245,9 @@ class LineModel_PPO1:
             g_list = []
             for seg in seg_list:
 
-                self.add_vtarg_and_adv(seg, self.gamma, self.lam)
-
                 # print(seg)
+
+                self.add_vtarg_and_adv(seg, self.gamma, self.lam)
 
                 # ob, ac, atarg, ret, td1ret = map(np.concatenate, (obs, acs, atargs, rets, td1rets))
                 ob, ac, atarg, tdlamret = seg["ob"], seg["ac"], seg["adv"], seg["tdlamret"]

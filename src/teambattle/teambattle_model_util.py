@@ -4,6 +4,7 @@
 import numpy as np
 
 from teambattle.teambattle_util import TeamBattleUtil
+from teambattle.teambattle_winrate import TeamBattle_WinRate
 from teambattle.teambattletrainer import TeamBattleTrainer
 from train.line_ppo_model import LinePPOModel
 from train.linemodel_ppo1 import LineModel_PPO1
@@ -50,6 +51,8 @@ class TeamBattleModelUtil:
             # 准备训练集的存储
             battle_data_map = {}
             self.train_data_map[hero_name] = battle_data_map
+        self.win_rate_model = TeamBattle_WinRate(ob_size, 1, hero_names, update_target_period=10, scope="winrate",
+                                                 schedule_timestep=schedule_timesteps, initial_p=model_initial_p, final_p=model_final_p)
 
     def get_action_list(self, battle_id, hero_name, state_input):
         model, _ = self.model_map[hero_name]
@@ -62,6 +65,20 @@ class TeamBattleModelUtil:
             clear_cache = True
 
         return list(actions_list[0]), explor_value, vpred, clear_cache
+
+    def get_win_rate(self, state_input):
+        return self.win_rate_model.get_winrate(state_input)
+
+    def add_win_rate_train_data(self, state_input_map_list, hero_name, end_idx, reward):
+        # 暂时只添加最后n条信息作为一个英雄的有效输入
+        for idx in range(end_idx-10, end_idx):
+            if idx >= 0:
+                state_list = state_input_map_list[idx]
+                next_state_list = state_input_map_list[idx+1]
+                if hero_name in state_list and hero_name in next_state_list:
+                    cur_state_input = state_list[hero_name]
+                    next_state_input = next_state_list[hero_name]
+                    self.win_rate_model.remember(cur_state_input, next_state_input)
 
     def if_save_model(self, model, save_header, save_batch):
         # 训练之后检查是否保存

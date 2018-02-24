@@ -29,7 +29,7 @@ class TeamBattleTrainerManager:
         self.model_initial_p = 0
         self.model_final_p = 0
         self.gamma = 0.95
-        self.model_path = None
+        self.model_path = '/Users/sky4star/Downloads/model_20180210/{}_1500/model'
         self.save_dir = HttpUtil.get_save_root_path()
         self.ob_size = 890
         self.act_size = 28
