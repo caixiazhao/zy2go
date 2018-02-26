@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import time
+import pickle
 import tensorflow as tf
 import baselines.common.tf_util as U
-
+import requests
+from common import cf as C
 from teambattle.teambattle_util import TeamBattleUtil
 from teambattle.teambattletrainer import TeamBattleTrainer
 from train.line_ppo_model import LinePPOModel
@@ -12,13 +15,25 @@ from train.linemodel_ppo1 import LineModel_PPO1
 from util.httputil import HttpUtil
 from util.stateutil import StateUtil
 
+def push_data(battle_id, hero_name, generation_id, data):
+    url = 'http://127.0.0.1:8780/data/%d/%d/%s' % (
+        generation_id, battle_id, hero_name)
+    r = requests.get(url, data=data)
+    return r.text
+
+def model_data():
+    url = 'http://127.0.0.1:%d/data/model' % (C.GATEWAY_PORT)
+    r = requests.get(url)
+    list = pickle.loads(r.content)
+
+    return list
 
 class TeamBattleModelUtil:
     def build_model_ppo(self, ob_size, act_size, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
                          model_initial_p=1.0, model_final_p=0.02, model_gamma=0.99):
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
-        print(model_hero)
+        print(model_hero, "已启动")
         model = LineModel_PPO1(ob_size, act_size, model_hero, ob, ac, LinePPOModel, gamma=model_gamma,
                             scope=model_hero, schedule_timesteps=schedule_timesteps, initial_p=model_initial_p, final_p=model_final_p)
 
@@ -51,6 +66,8 @@ class TeamBattleModelUtil:
         self.train_data_map = {}
         self.clear_cache_signals = []
         self.hero_names = hero_names
+        self.generation_id = 0
+
         for hero_name in hero_names:
             # 准备模型
             model_path = None
@@ -93,10 +110,6 @@ class TeamBattleModelUtil:
             self.train_data_map[hero_name].clear()
             self.if_save_model(model, model_save_header, self.save_batch)
 
-            # 添加一个清空缓存信息给每场战斗
-            for battle_id in range(1, self.battle_num+1):
-                if battle_id not in self.clear_cache_signals:
-                    self.clear_cache_signals.append(battle_id)
 
 
     # 计算模型的奖励情况
@@ -106,7 +119,7 @@ class TeamBattleModelUtil:
     # 己方英雄死亡，其它英雄也要受到惩罚（存活的队友）
     # 扩大死亡奖励，缩小团战结果奖励
     #TODO 击杀的判定需要仔细审核，暂定规则为英雄死亡当帧，hit信息指向该英雄的攻击者都奖励
-    def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, prev_dead_heroes):
+    def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, dead_heroes):
 
         # 首先对所有参展人员，设置初始奖励值
         for hero_name in battle_heroes:
@@ -114,7 +127,6 @@ class TeamBattleModelUtil:
 
         # 更新奖励值
         left_heroes = list(battle_heroes)
-        all_dead_heroes = list(prev_dead_heroes)
         for hero_name in battle_heroes:
             dead = StateUtil.if_hero_dead(state_info, next_state_info, hero_name)
             if dead == 1:
@@ -151,14 +163,13 @@ class TeamBattleModelUtil:
 
                 # 从存活英雄中删除
                 left_heroes.remove(hero_name)
-                all_dead_heroes.append(hero_name)
 
         # 检查是否战斗结束
         #TODO 这里的逻辑是有问题的
         all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
         win = 0
         # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
-        if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
+        if all_in_team != -1 and (len(battle_heroes) + len(dead_heroes)) == len(self.hero_names):
             win = 1
         #     for hero in left_heroes:
         #         reward = state_info.get_or_insert_reward(hero)
@@ -185,9 +196,73 @@ class TeamBattleModelUtil:
         #                 state_info.add_rewards(hero, reward)
         return state_info, win, all_in_team, left_heroes
 
+    def set_train_data(self, hero_name, battle_id, o4r, generation_id, server_id):
+        o4r['battle_id'] = (server_id - 1) * 100 + battle_id
+        o4r['generation_id'] = generation_id
+        o4r['hero_name'] = hero_name
+
+        o4rdata = pickle.dumps(o4r)
+
+        print('%s push-data %d g:%d m:%s - %d' % (
+            time.strftime('%H:%M:%S'),
+            battle_id,
+            generation_id,
+            hero_name,
+            len(o4rdata)))
+
+        r = push_data(battle_id, hero_name,
+                      generation_id, o4rdata)
+
+        gateway_generation_id = int(r)
+        # 添加一个清空缓存信息给每场战斗
+        for battle_id in range(1, self.battle_num + 1):
+            if battle_id not in self.clear_cache_signals:
+                self.clear_cache_signals.append(battle_id)
+
+        if C.generation_id == gateway_generation_id:
+            return
+
+        if C.LOG['GENERATION_UPDATE']:
+            print('%s generation update P3 %d - process %d:%d' % (
+                time.strftime('%H:%M:%S'),
+                battle_id,
+                C.generation_id, gateway_generation_id))
+        C.generation_id = gateway_generation_id
+
+        return
+
+    def do_real_train(self, o4rs, hero_name):
+        if o4rs is None:
+            print('hero_name',hero_name,"训练数据异常")
+        else:
+            print('model', hero_name, 'begin to train')
+            model, model_save_header = self.model_map[hero_name]
+            model.replay(o4rs, 0)
+            self.if_save_model(model, model_save_header, self.save_batch)
 
 
+    def update_model_from_disk(self, generation_id):
+        # 确保不会因为请求超时 无法获得模型变量，更新模型
+        try:
+            while True:
+                list = model_data()
+                if len(list) == 10:
+                    n = 0
+                    for hero_name in self.hero_names:
+                        model, _ = self.model_map[hero_name]
+                        model_list = list[n]
+                        for i in range(len(model_list)):
+                            oldv1 = model.pi.get_variables()[i]
+                            newv1 = tf.placeholder(dtype=tf.float32)
+                            assign_old_eq_new = U.function([newv1], [], updates=[tf.assign(oldv1, newv1)])
+                            assign_old_eq_new(model_list[i])
+                        n = n + 1
+                    self.generation_id = generation_id
+                    break
 
+        except Exception as ex:
+            print(ex)
+            return 0
 
 
 
