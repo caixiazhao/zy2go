@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import tensorflow as tf
+import baselines.common.tf_util as U
 
 from teambattle.teambattle_util import TeamBattleUtil
 from teambattle.teambattletrainer import TeamBattleTrainer
@@ -26,6 +28,17 @@ class TeamBattleModelUtil:
             print("load model", model_path, "model_hero", model_hero)
             model.load(model_path)
         model_save_header = save_dir + '/' + model_hero + '_'
+
+        # # 使用Ray的方式来得到和赋予权重信息
+        # weight = model.variables.get_weights()
+        # print("weight", weight)
+        # model.variables.set_weights(weight)
+        #
+        # # 输出权重信息
+        # tvars = tf.trainable_variables()
+        # tvars_vals = U.get_session().run(tvars)
+        # for var, val in zip(tvars, tvars_vals):
+        #     print(var.name, val)
 
         return model, model_save_header
 
