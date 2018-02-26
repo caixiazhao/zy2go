@@ -25,7 +25,7 @@ def sync_generation_id_from_trainer():
         print(ex)
         return 0
 class TeamBattleTrainerManager:
-    def __init__(self, base, battle_id_num, gamma):
+    def __init__(self, battle_id_num):
         manager = Manager()
         self.request_dict = manager.dict()
         self.result_dict = manager.dict()
@@ -33,13 +33,24 @@ class TeamBattleTrainerManager:
         self.battle_trainers = {}
         self.heros = ['27', '28', '29', '30', '31', '32', '33', '34', '35', '36']
         self.save_batch = 20
+        self.schedule_timesteps = 200000
+        self.model_initial_p = 0
+        self.model_final_p = 0
+        self.gamma = 0.95
+        self.model_path = None
         self.save_dir = HttpUtil.get_save_root_path()
-        self.battle_model_util = TeamBattleModelUtil(self.heros, battle_id_num, self.save_dir, self.save_batch, gamma)
+        self.ob_size = 890
+        self.act_size = 28
+        self.enable_policy = True
+        self.battle_model_util = TeamBattleModelUtil(self.ob_size, self.act_size, self.heros, battle_id_num, self.save_dir, self.save_batch,
+                                                     self.schedule_timesteps, self.model_initial_p, self.model_final_p,
+                                                     self.gamma, self.model_path)
+
+        for p_battle_id in range(1, battle_id_num+1):
+            battle_trainer = TeamBattleTrainer(self.act_size, self.save_dir, p_battle_id, self.battle_model_util, self.gamma, self.enable_policy)
+            self.battle_trainers[p_battle_id] = battle_trainer
         C.generation_id =sync_generation_id_from_trainer()
         self.lastCheckGenerationId = time.time()
-        for p_battle_id in range(1, battle_id_num+1):
-            battle_trainer = TeamBattleTrainer(self.save_dir, base + p_battle_id, self.battle_model_util, 0.99)
-            self.battle_trainers[base + p_battle_id] = battle_trainer
 
         TeamBattleTrainerManager.One = self
         print('训练器初始化完毕, 训练器数量', battle_id_num)

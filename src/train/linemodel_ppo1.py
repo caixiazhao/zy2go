@@ -27,6 +27,8 @@ from collections import deque
 import time
 import random
 
+from util.tfutils import TensorFlowVariables
+
 
 class LineModel_PPO1:
     REWARD_RIVAL_DMG = 250
@@ -148,6 +150,8 @@ class LineModel_PPO1:
                                                             for (oldv, newv) in
                                                             zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
             self.compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
+
+            self.variables = TensorFlowVariables(total_loss, sess)
 
             U.initialize()
             self.adam.sync()

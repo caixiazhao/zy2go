@@ -49,7 +49,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     trainer_num = int(sys.argv[1])
-    manager = TeamBattleTrainerManager(trainer_num, 0.99)
+    manager = TeamBattleTrainerManager(trainer_num)
 
     tornado.options.parse_command_line()
     application = tornado.web.Application([

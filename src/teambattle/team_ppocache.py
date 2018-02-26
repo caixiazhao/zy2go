@@ -114,17 +114,14 @@ class TEAM_PPO_CACHE:
         self.t += 1
 
     # 发现这里的nextvpred永远为零
-    def output4replay(self, cur_new):
+    def output4replay(self):
         batch_size = len(self.rews)
-        if self.t > 0 and cur_new == 1 and len(self.obs) > 0:
+        if self.t > 0 and len(self.obs) > 0:
             print("训练数据长度 " + str(len(self.obs)))
             return {"ob": np.array(self.obs), "rew": np.array(self.rews), "vpred": np.array(self.vpreds),
                     "new": np.array(self.news),
              "ac": np.array(self.acs), "prevac": np.array(self.prevacs), "nextvpred": 0,
              "ep_rets": self.ep_rets, "ep_lens": self.ep_lens}, batch_size
-        elif self.t > 0 and cur_new == 1 and len(self.obs) == 0:
-            # TODO 是不是有更优雅的方式
-            print('真的出现了new但是训练数据为空的情况')
         else:
-            print('训练数据异常', self.t, cur_new)
+            print('训练数据异常', self.t, len(self.obs))
             return None, None
