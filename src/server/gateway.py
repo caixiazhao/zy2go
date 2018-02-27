@@ -12,10 +12,6 @@ import tornado.web
 
 from common import cf as C
 
-GAME_BASE_PORT = C.GAME_BASE_PORT
-GAME_WORKER_SLOTS = C.GAME_WORKER_SLOTS
-
-
 G = {
     'batches': 0,
     'train_lock': False,
@@ -25,8 +21,11 @@ G = {
 def battle_id_and_game_worker_port(content):
     id_str = content.partition(b'}')[0].rpartition(b':')[2]
     battle_id = int(id_str)
-    port = GAME_BASE_PORT + (battle_id - 1) // GAME_WORKER_SLOTS
-    return battle_id, port
+    host_idx = (battle_id - 1) // (C.GAME_WORKER_SLOTS * C.GAME_WORKERS)
+    host = C.GAME_WORKER_HOSTS[host_idx]
+    port_idx = (battle_id - 1) % (C.GAME_WORKER_SLOTS * C.GAME_WORKERS) % C.GAME_WORKER_SLOTS
+    port = C.GAME_BASE_PORT + port_idx
+    return battle_id, host, port
 
 
 def fetch_request(url, callback, **kwargs):
@@ -51,14 +50,13 @@ class ForwardHandler(tornado.web.RequestHandler):
             else:
                 C.generation_id = int(response.body)
         C.END = time.time()
-        if C.END - C.START >10:
+        if C.END - C.START > 10:
             fetch_request(
                 'http://127.0.0.1:%d/generation_id' %C.TRAINER_PORT,
                 train__id_callback,
                 method='GET', follow_redirects=False,
                 allow_nonstandard_methods=True)
             C.START = time.time()
-
 
         if self.request.path == '/generation_id':
             self.finish(str(C.generation_id))
@@ -88,11 +86,12 @@ class ForwardHandler(tornado.web.RequestHandler):
         if not body:
             body = None
         else:
-            battle_id, port = battle_id_and_game_worker_port(body)
+            battle_id, host, port = battle_id_and_game_worker_port(body)
             info['id'] = battle_id
+            info['host'] = host
             info['port'] = port
 
-            uri = 'http://127.0.0.1:%d/' % port
+            uri = 'http://%s:%d/' % host % port
             fetch_request(
                 uri, handle_response,
                 method=self.request.method, body=body,
@@ -116,7 +115,7 @@ class DataHandler(tornado.web.RequestHandler):
                     self.write(response.body)
 
             self.finish()
-        if path== '/data/model':
+        if path == '/data/model':
             fetch_request(
                 'http://127.0.0.1:%d%s' % (C.TRAINER_PORT,  path[5:]),
                 train__model_callback,
@@ -141,6 +140,7 @@ class DataHandler(tornado.web.RequestHandler):
                 print(response.body)
                 cur_generation_id = int(bytes.decode(response.body).split(",")[0])
                 batches = int(bytes.decode(response.body).split(",")[1])
+
             if cur_generation_id == int(generation_id):
                 G['batches'] = batches
                 print(batches)
@@ -172,7 +172,7 @@ class DataHandler(tornado.web.RequestHandler):
             return
 
         fetch_request(
-            'http://localhost:%d%s' % (C.TRAINER_PORT, self.request.path),
+            'http://127.0.0.1:%d%s' % (C.TRAINER_PORT, self.request.path),
             train__data_callback,
             method='GET', body=body,
             follow_redirects=False,

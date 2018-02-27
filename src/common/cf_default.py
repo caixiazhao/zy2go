@@ -30,7 +30,7 @@ PRELOAD_MODEL1_PATH = None
 PRELOAD_MODEL2_PATH = None
 
 # game worker 进程数量
-GAME_WORKERS = 20
+GAME_WORKERS = 8
 
 # 每个game worker为几个game.exe提供服务
 GAME_WORKER_SLOTS = 3
@@ -38,9 +38,12 @@ GAME_WORKER_SLOTS = 3
 # game worker的起始端口
 GAME_BASE_PORT = 9000
 
-#训练worker的端口
+# 训练worker的端口
 TRAINER_PORT = 8889
 GATEWAY_PORT = 8780
+
+# Gamer机器
+GAME_WORKER_HOSTS = ['127.0.0.1']
 
 RUN_MODE_GATEWAY = 'gateway'
 RUN_MODE_PREDICT = 'predict'

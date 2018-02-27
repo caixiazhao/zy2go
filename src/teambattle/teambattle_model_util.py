@@ -101,17 +101,6 @@ class TeamBattleModelUtil:
             print("save model", save_path)
             model.save(save_path)
 
-    def set_train_data(self, hero_name, battle_id, o4r, batch_size):
-        self.train_data_map[hero_name][battle_id] = o4r
-        if len(self.train_data_map[hero_name]) == self.battle_num:
-            print('model', hero_name, 'begin to train')
-            model, model_save_header = self.model_map[hero_name]
-            model.replay(self.train_data_map[hero_name].values(), batch_size)
-            self.train_data_map[hero_name].clear()
-            self.if_save_model(model, model_save_header, self.save_batch)
-
-
-
     # 计算模型的奖励情况
     # 团战情况下的奖励情况非常单一
     # 英雄杀死其它英雄，奖励，同时队友也有奖励（存活的队友）
@@ -214,6 +203,7 @@ class TeamBattleModelUtil:
                       generation_id, o4rdata)
 
         gateway_generation_id = int(r)
+
         # 添加一个清空缓存信息给每场战斗
         for battle_id in range(1, self.battle_num + 1):
             if battle_id not in self.clear_cache_signals:
@@ -239,7 +229,6 @@ class TeamBattleModelUtil:
             model, model_save_header = self.model_map[hero_name]
             model.replay(o4rs, 0)
             self.if_save_model(model, model_save_header, self.save_batch)
-
 
     def update_model_from_disk(self, generation_id):
         # 确保不会因为请求超时 无法获得模型变量，更新模型

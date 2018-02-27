@@ -60,9 +60,9 @@ class MainHandler(tornado.web.RequestHandler):
 def main():
     C.set_run_mode("predict")
     tornado.options.parse_command_line()
-    base = int(sys.argv[1]) * 3
+    base = int(sys.argv[1]) * C.GAME_WORKER_SLOTS
     # trainer_num = int(sys.argv[2])
-    manager = TeamBattleTrainerManager(base, 3, 0.99)
+    manager = TeamBattleTrainerManager(base, C.GAME_WORKER_SLOTS)
 
     application = tornado.web.Application([
         (r"/", MainHandler),
@@ -71,17 +71,17 @@ def main():
 
     C.set_worker_name("g%d%s" % (options.port - 9000, revision))
 
-    # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):
         http_server.bind(options.port +int(sys.argv[1]))
-        http_server.start(1)    # multi-process
+        http_server.start(1)    # single-process
 
         hn = logging.NullHandler()
         hn.setLevel(logging.DEBUG)
         logging.getLogger("tornado.access").addHandler(hn)
         logging.getLogger("tornado.access").propagate = False
     else:
-        http_server.listen(options.port)
+        # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
+        http_server.listen(options.port +int(sys.argv[1]))
 
     try:
         tornado.ioloop.IOLoop.current().start()

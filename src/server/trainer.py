@@ -17,6 +17,9 @@
 import logging
 
 import os
+
+from teambattle.teambattletrainer_manager import TeamBattleTrainerManager
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 from common import cf as C
@@ -29,12 +32,13 @@ import tornado.web
 import traceback
 import pickle
 from tornado.options import define, options
-from train.train_manager import LineTrainerManager
 
 define("port", default=8889, help="run on the given port", type=int)
 define("g", default=0, help="generation id")
 
-manager = LineTrainerManager(C.get_run_mode())
+C.set_run_mode(C.RUN_MODE_TRAIN)
+manager = TeamBattleTrainerManager(C.get_run_mode())
+
 
 class TrainerHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -56,7 +60,6 @@ class TrainerHandler(tornado.web.RequestHandler):
             if path.startswith('/model'):
                 list=manager.model()
                 self.finish(pickle.dumps(list))
-
                 return
 
             if path.startswith('/train'):
