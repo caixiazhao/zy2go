@@ -1,26 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# 给模型添加一些固定套路，在训练中随机选择，希望模型可以学习到这些正确的处理问题方式
+# 首先是特殊技能的正确使用方式
+# 对模型的影响分两个方面：
+#   在选择模型行动时候，可以屏蔽错误的选择
+#       大招周围没有人
+#   在出现好的时机时候，选择更好的选择
+#       敌我血量悬殊，
+import math
+
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from model.skillcfginfo import SkillTargetEnum
-from model.stateinfo import StateInfo
-from teambattle.team_ppocache import TEAM_PPO_CACHE
-from teambattle.teambattle_input import TeamBattleInput
 from teambattle.teambattle_util import TeamBattleUtil
 from train.cmdactionenum import CmdActionEnum
-from util.equiputil import EquipUtil
-from util.httputil import HttpUtil
+from train.linemodel import LineModel
+from util.replayer import Replayer
 from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
-from time import gmtime, strftime
-import numpy as np
-from random import shuffle, randint
+from random import randint
 
 
 class TeamBattlePolicy:
-    # 如果这个范围内没有英雄则会启动各种攻击小兵攻击塔策略
-    RIVAL_TOWER_NEARBY_RADIUS = 10
-    SAFE_RIVAL_HERO_DISTANCE = 11
-    SKILL_RANGE_CHAERSI_SKILL3 = 2
-    KEEP_AWAY_FROM_HERO_START_DISTANCE = 3
 
     ENEMY_BATTLE_RANGE = 3
     ENEMY_BATTLE_RANGE_LARGE = 7
@@ -138,18 +140,22 @@ class TeamBattlePolicy:
             return len(heroes_in_range) > 0
         return True
 
+    @staticmethod
+    def find_heros_in_range(state_info, pos1, heroes, range):
+        heroes_in_range = []
+        for hero in heroes:
+            hero_info = state_info.get_hero(hero)
+            dis = TeamBattlePolicy.in_skill_range(pos1, hero_info.pos, range)
+            if dis != -1:
+                heroes_in_range.append(hero)
+        return heroes_in_range
 
-
-    def get_attack_hero_action(state_info, hero_name, rival_hero, skill_id):
-        action_idx = 10 * skill_id + 9
-        if skill_id == 0:
-            action = CmdAction(hero_name, CmdActionEnum.ATTACK, 0, rival_hero.hero_name, None, None, None, action_idx, None)
-        else:
-            tgtpos = rival_hero.pos
-            hero = state_info.get_hero(hero_name)
-            fwd = tgtpos.fwd(hero.pos)
-            action = CmdAction(hero_name, CmdActionEnum.CAST, skill_id, rival_hero.hero_name, tgtpos, fwd, None, action_idx, None)
-        return action
+    @staticmethod
+    def in_skill_range(pos1, pos2, range):
+        dis = StateUtil.cal_distance(pos1, pos2)
+        if dis < range:
+            return dis
+        return -1
 
     @staticmethod
     def get_hero_below_hp_ratio(state_info, heroes, ratio):

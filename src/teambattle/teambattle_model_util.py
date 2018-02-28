@@ -108,7 +108,7 @@ class TeamBattleModelUtil:
     # 己方英雄死亡，其它英雄也要受到惩罚（存活的队友）
     # 扩大死亡奖励，缩小团战结果奖励
     #TODO 击杀的判定需要仔细审核，暂定规则为英雄死亡当帧，hit信息指向该英雄的攻击者都奖励
-    def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, dead_heroes):
+    def cal_rewards(self, prev_state_info, state_info, next_state_info, battle_heroes, prev_dead_heroes):
 
         # 首先对所有参展人员，设置初始奖励值
         for hero_name in battle_heroes:
@@ -116,6 +116,7 @@ class TeamBattleModelUtil:
 
         # 更新奖励值
         left_heroes = list(battle_heroes)
+        all_dead_heroes = list(prev_dead_heroes)
         for hero_name in battle_heroes:
             dead = StateUtil.if_hero_dead(state_info, next_state_info, hero_name)
             if dead == 1:
@@ -152,13 +153,14 @@ class TeamBattleModelUtil:
 
                 # 从存活英雄中删除
                 left_heroes.remove(hero_name)
+                all_dead_heroes.append(hero_name)
 
         # 检查是否战斗结束
         #TODO 这里的逻辑是有问题的
         all_in_team = TeamBattleUtil.all_in_one_team(left_heroes)
         win = 0
         # 胜利判断中需要确认阵亡英雄+战斗英雄应该数量是全员
-        if all_in_team != -1 and (len(battle_heroes) + len(dead_heroes)) == len(self.hero_names):
+        if all_in_team != -1 and (len(left_heroes) + len(all_dead_heroes)) == len(self.hero_names):
             win = 1
         #     for hero in left_heroes:
         #         reward = state_info.get_or_insert_reward(hero)
@@ -223,7 +225,7 @@ class TeamBattleModelUtil:
 
     def do_real_train(self, o4rs, hero_name):
         if o4rs is None:
-            print('hero_name',hero_name,"训练数据异常")
+            print('hero_name', hero_name, "训练数据异常")
         else:
             print('model', hero_name, 'begin to train')
             model, model_save_header = self.model_map[hero_name]

@@ -63,7 +63,7 @@ class TeamBattleTrainerManager:
 
         # 如果是执行模型，创建训练器
         if self.run_mode == C.RUN_MODE_PREDICT:
-            for p_battle_id in range(1, battle_id_num+1):
+            for p_battle_id in range(1, battle_id_num + 1):
                 real_battpe_id = base + p_battle_id
                 battle_trainer = TeamBattleTrainer(self.act_size, self.save_dir, real_battpe_id, self.battle_model_util, self.gamma, self.enable_policy)
                 self.battle_trainers[real_battpe_id] = battle_trainer
@@ -74,12 +74,11 @@ class TeamBattleTrainerManager:
     def read_process(self, json_str):
         begin_time = time.time()
         if begin_time - self.lastCheckGenerationId > 1.5:
-            C.generation_id =sync_generation_id_from_trainer()
+            C.generation_id = sync_generation_id_from_trainer()
             self.lastCheckGenerationId = begin_time
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
         p_battle_id = raw_state_info.battleid
-
 
         try:
             response = self.battle_trainers[p_battle_id].build_response(json_str)
@@ -101,13 +100,13 @@ class TeamBattleTrainerManager:
                 o4r['battle_id'],
                 len(data)))
         else:
-            print(o4r['hero_name'],o4r['battle_id'])
+            print(o4r['hero_name'], o4r['battle_id'])
             self.train_data_map[o4r['hero_name']][o4r['battle_id']] = o4r
 
             print("%s /data %d %d %d - %d/%d" % (
-                    time.strftime('%H:%M:%S'),
-                    o4r['battle_id'], o4r['generation_id'],
-                    len(data), len(self.train_data_map[o4r['hero_name']]), C.TRAIN_GAME_BATCH))
+                time.strftime('%H:%M:%S'),
+                o4r['battle_id'], o4r['generation_id'],
+                len(data), len(self.train_data_map[o4r['hero_name']]), C.TRAIN_GAME_BATCH))
 
     def train(self):
         C.generation_id += 1
@@ -119,7 +118,7 @@ class TeamBattleTrainerManager:
             train_data[hero_name] = dict(self.train_data_map[hero_name])
             self.train_data_map[hero_name].clear()
         for hero_name in self.heros:
-            self.battle_model_util.do_real_train(train_data[hero_name].values(),hero_name)
+            self.battle_model_util.do_real_train(train_data[hero_name].values(), hero_name)
         end_time = time.time()
         print('%s /train %d %.2f' % (
             time.strftime('%H:%M:%S'),
