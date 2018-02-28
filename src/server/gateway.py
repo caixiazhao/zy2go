@@ -91,7 +91,7 @@ class ForwardHandler(tornado.web.RequestHandler):
             info['host'] = host
             info['port'] = port
 
-            uri = 'http://%s:%d/' % host % port
+            uri = 'http://%s:%d/' % (host, port)
             fetch_request(
                 uri, handle_response,
                 method=self.request.method, body=body,

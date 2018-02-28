@@ -30,10 +30,10 @@ PRELOAD_MODEL1_PATH = None
 PRELOAD_MODEL2_PATH = None
 
 # game worker 进程数量
-GAME_WORKERS = 8
+GAME_WORKERS = 1
 
 # 每个game worker为几个game.exe提供服务
-GAME_WORKER_SLOTS = 3
+GAME_WORKER_SLOTS = 1
 
 # game worker的起始端口
 GAME_BASE_PORT = 9000

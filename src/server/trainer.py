@@ -37,8 +37,7 @@ define("port", default=8889, help="run on the given port", type=int)
 define("g", default=0, help="generation id")
 
 C.set_run_mode(C.RUN_MODE_TRAIN)
-manager = TeamBattleTrainerManager(C.get_run_mode())
-
+manager = TeamBattleTrainerManager(-1, C.GAME_WORKERS*C.GAME_WORKER_SLOTS*len(C.GAME_WORKER_HOSTS), C.get_run_mode())
 
 class TrainerHandler(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
@@ -87,6 +86,7 @@ def main():
     http_server = tornado.httpserver.HTTPServer(application)
 
     C.set_worker_name("tr%d" % options.port)
+
     manager.generation_id = options.g
     # tornado对windows的支持不完善，在windows下只能启动单进程的网络服务
     if hasattr(os, 'fork'):

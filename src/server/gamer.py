@@ -56,13 +56,12 @@ class MainHandler(tornado.web.RequestHandler):
     def post(self, *args, **kwargs):
         self.write("not implement yet")
 
-
 def main():
     C.set_run_mode("predict")
     tornado.options.parse_command_line()
     base = int(sys.argv[1]) * C.GAME_WORKER_SLOTS
     # trainer_num = int(sys.argv[2])
-    manager = TeamBattleTrainerManager(base, C.GAME_WORKER_SLOTS)
+    manager = TeamBattleTrainerManager(base, C.GAME_WORKER_SLOTS, C.get_run_mode())
 
     application = tornado.web.Application([
         (r"/", MainHandler),
