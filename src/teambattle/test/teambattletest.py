@@ -4,6 +4,7 @@ import time
 from multiprocessing import Process, Manager, Lock
 
 from teambattle.teambattletrainer_manager import TeamBattleTrainerManager
+from common import cf as C
 
 
 def read_process(battle_id, raw_log_path):
@@ -29,10 +30,10 @@ def read_process(battle_id, raw_log_path):
 
 if __name__ == "__main__":
     try:
-        num = 2
-        manager = TeamBattleTrainerManager(num, 0.99)
+        num = 1
+        manager = TeamBattleTrainerManager(0, num, C.RUN_MODE_PREDICT)
         print('训练器准备完毕')
 
-        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-01-29111839.838227/raw_2.log')
+        read_process(1, '/Users/sky4star/Github/zy2go/battle_logs/model_2018-02-28111835.446603/raw_1.log')
     except Exception as e:
         print(e)

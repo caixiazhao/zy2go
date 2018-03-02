@@ -2,7 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-
+import time
+import pickle
+import tensorflow as tf
+import baselines.common.tf_util as U
+import requests
+from common import cf as C
 from teambattle.teambattle_util import TeamBattleUtil
 from teambattle.teambattletrainer import TeamBattleTrainer
 from train.line_ppo_model import LinePPOModel
@@ -10,13 +15,25 @@ from train.linemodel_ppo1 import LineModel_PPO1
 from util.httputil import HttpUtil
 from util.stateutil import StateUtil
 
+def push_data(battle_id, hero_name, generation_id, data):
+    url = 'http://127.0.0.1:8780/data/%d/%d/%s' % (
+        generation_id, battle_id, hero_name)
+    r = requests.get(url, data=data)
+    return r.text
+
+def model_data():
+    url = 'http://127.0.0.1:%d/data/model' % (C.GATEWAY_PORT)
+    r = requests.get(url)
+    list = pickle.loads(r.content)
+
+    return list
 
 class TeamBattleModelUtil:
     def build_model_ppo(self, ob_size, act_size, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
                          model_initial_p=1.0, model_final_p=0.02, model_gamma=0.99):
         ob = np.zeros(ob_size, dtype=float).tolist()
         ac = np.zeros(act_size, dtype=float).tolist()
-        print(model_hero)
+        print(model_hero, "已启动")
         model = LineModel_PPO1(ob_size, act_size, model_hero, ob, ac, LinePPOModel, gamma=model_gamma,
                             scope=model_hero, schedule_timesteps=schedule_timesteps, initial_p=model_initial_p, final_p=model_final_p)
 
@@ -26,6 +43,17 @@ class TeamBattleModelUtil:
             print("load model", model_path, "model_hero", model_hero)
             model.load(model_path)
         model_save_header = save_dir + '/' + model_hero + '_'
+
+        # # 使用Ray的方式来得到和赋予权重信息
+        # weight = model.variables.get_weights()
+        # print("weight", weight)
+        # model.variables.set_weights(weight)
+        #
+        # # 输出权重信息
+        # tvars = tf.trainable_variables()
+        # tvars_vals = U.get_session().run(tvars)
+        # for var, val in zip(tvars, tvars_vals):
+        #     print(var.name, val)
 
         return model, model_save_header
 
@@ -38,6 +66,8 @@ class TeamBattleModelUtil:
         self.train_data_map = {}
         self.clear_cache_signals = []
         self.hero_names = hero_names
+        self.generation_id = 0
+
         for hero_name in hero_names:
             # 准备模型
             model_path = None
@@ -70,21 +100,6 @@ class TeamBattleModelUtil:
             save_path = save_header + str(replay_time) + '/model'
             print("save model", save_path)
             model.save(save_path)
-
-    def set_train_data(self, hero_name, battle_id, o4r, batch_size):
-        self.train_data_map[hero_name][battle_id] = o4r
-        if len(self.train_data_map[hero_name]) == self.battle_num:
-            print('model', hero_name, 'begin to train')
-            model, model_save_header = self.model_map[hero_name]
-            model.replay(self.train_data_map[hero_name].values(), batch_size)
-            self.train_data_map[hero_name].clear()
-            self.if_save_model(model, model_save_header, self.save_batch)
-
-            # 添加一个清空缓存信息给每场战斗
-            for battle_id in range(1, self.battle_num+1):
-                if battle_id not in self.clear_cache_signals:
-                    self.clear_cache_signals.append(battle_id)
-
 
     # 计算模型的奖励情况
     # 团战情况下的奖励情况非常单一
@@ -172,9 +187,74 @@ class TeamBattleModelUtil:
         #                 state_info.add_rewards(hero, reward)
         return state_info, win, all_in_team, left_heroes
 
+    def set_train_data(self, hero_name, battle_id, o4r, generation_id):
+        # o4r['battle_id'] = (server_id - 1) * 100 + battle_id
+        o4r['battle_id'] = battle_id
+        o4r['generation_id'] = generation_id
+        o4r['hero_name'] = hero_name
 
+        o4rdata = pickle.dumps(o4r)
 
+        print('%s push-data %d g:%d m:%s - %d' % (
+            time.strftime('%H:%M:%S'),
+            battle_id,
+            generation_id,
+            hero_name,
+            len(o4rdata)))
 
+        r = push_data(battle_id, hero_name,
+                      generation_id, o4rdata)
+
+        gateway_generation_id = int(r)
+
+        # 添加一个清空缓存信息给每场战斗
+        for battle_id in range(1, self.battle_num + 1):
+            if battle_id not in self.clear_cache_signals:
+                self.clear_cache_signals.append(battle_id)
+
+        if C.generation_id == gateway_generation_id:
+            return
+
+        if C.LOG['GENERATION_UPDATE']:
+            print('%s generation update P3 %d - process %d:%d' % (
+                time.strftime('%H:%M:%S'),
+                battle_id,
+                C.generation_id, gateway_generation_id))
+        C.generation_id = gateway_generation_id
+
+        return
+
+    def do_real_train(self, o4rs, hero_name):
+        if o4rs is None:
+            print('hero_name', hero_name, "训练数据异常")
+        else:
+            print('model', hero_name, 'begin to train')
+            model, model_save_header = self.model_map[hero_name]
+            model.replay(o4rs, 0)
+            self.if_save_model(model, model_save_header, self.save_batch)
+
+    def update_model_from_disk(self, generation_id):
+        # 确保不会因为请求超时 无法获得模型变量，更新模型
+        try:
+            while True:
+                list = model_data()
+                if len(list) == 10:
+                    n = 0
+                    for hero_name in self.hero_names:
+                        model, _ = self.model_map[hero_name]
+                        model_list = list[n]
+                        for i in range(len(model_list)):
+                            oldv1 = model.pi.get_variables()[i]
+                            newv1 = tf.placeholder(dtype=tf.float32)
+                            assign_old_eq_new = U.function([newv1], [], updates=[tf.assign(oldv1, newv1)])
+                            assign_old_eq_new(model_list[i])
+                        n = n + 1
+                    self.generation_id = generation_id
+                    break
+
+        except Exception as ex:
+            print(ex)
+            return 0
 
 
 

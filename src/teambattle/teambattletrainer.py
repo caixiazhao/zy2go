@@ -18,6 +18,7 @@ import json as JSON
 
 #   首先尝试的方案：
 #   输入考虑添加其它人的行为
+import time
 from model.cmdaction import CmdAction
 from model.posstateinfo import PosStateInfo
 from model.skillcfginfo import SkillTargetEnum
@@ -33,9 +34,11 @@ from util.skillutil import SkillUtil
 from util.stateutil import StateUtil
 from time import gmtime, strftime
 import numpy as np
+import baselines.common.tf_util as U
 from random import shuffle, randint
 import sys
-
+from common import cf as C
+import tensorflow as tf
 
 class TeamBattleTrainer:
 
@@ -58,6 +61,7 @@ class TeamBattleTrainer:
         self.model_caches = {}
         self.rebooting = False
         self.enable_policy = enable_policy
+        self.server_id = 1
         for hero in self.heros:
             self.model_caches[hero] = TEAM_PPO_CACHE(gamma)
 
@@ -78,6 +82,27 @@ class TeamBattleTrainer:
         # 解析客户端发送的请求
         obj = JSON.loads(raw_state_str)
         raw_state_info = StateInfo.decode(obj)
+        state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
+        hero = state_info.get_hero("27")
+
+        # 更新
+        if C.generation_id > self.model_util.generation_id:
+
+            if C.LOG['GENERATION_UPDATE']:
+                print('%s generation update P1 %d - trainer:%d to process:%d' % (
+                    time.strftime('%H:%M:%S'),
+                    raw_state_info.battleid,
+                    C.generation_id, self.model_util.generation_id))
+            print("_________________________________________")
+            self.model_util.update_model_from_disk(C.generation_id)
+            model, _ = self.model_util.model_map["27"]
+            for i in model.pi.get_variables():
+                print(U.get_session().run(tf.reduce_sum(i)))
+            print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
+            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
+            rsp_str = JSON.dumps(rsp_obj)
+            return rsp_str
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
@@ -93,7 +118,7 @@ class TeamBattleTrainer:
             self.dead_heroes_cache = []
             self.data_inputs = []
             self.rebooting = False
-        elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE :
+        elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE:
             # 不是开始帧的话直接返回重启游戏
             # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
             print("battle_id", self.battle_id, "tick", raw_state_info.tick, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
@@ -142,7 +167,7 @@ class TeamBattleTrainer:
             if prev_state_info is not None:
                 dead = StateUtil.if_hero_dead(prev_state_info, state_info, hero)
                 if dead == 1 and hero not in self.dead_heroes:
-                    print("battle_id", self.battle_id, "tick", state_info.tick, "英雄死亡", hero, "tick", state_info.tick)
+                    print("battle_id", self.battle_id, "英雄死亡", hero, "tick", state_info.tick)
                     self.dead_heroes.append(hero)
 
         # 首先要求所有英雄站到团战圈内，然后开始模型计算，这时候所有的行动都有模型来决定
@@ -328,7 +353,7 @@ class TeamBattleTrainer:
                 if o4r is None:
                     print('battle_id', self.battle_id, "训练数据异常")
                 else:
-                    self.model_util.set_train_data(hero_name, self.battle_id, o4r, batch_size)
+                    self.model_util.set_train_data(hero_name, self.battle_id, o4r, C.generation_id)
                     model_cache.clear_cache()
         return win, win_team, left_heroes
 

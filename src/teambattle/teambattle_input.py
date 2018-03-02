@@ -175,8 +175,3 @@ class TeamBattleInput:
         if debug: print("add_other_hero_action", "add_hero_info", hero_info.hero_name, "hero_index", hero_index, "tgt_hero_index", tgt_hero_index,
               "action_cmd.action", action_cmd.action, "action_cmd_skill", action_cmd.skillid, "change_index", change_index, "cmd", debug_action_str)
         return input_data
-
-
-
-
-
