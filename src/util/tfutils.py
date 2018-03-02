@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 from collections import deque, OrderedDict
+import tensorflow as tf
 
 
 def unflatten(vector, shapes):
@@ -26,7 +27,7 @@ class TensorFlowVariables(object):
         placeholders (Dict[str, tf.placeholders]): Placeholders for weights.
         assignment_nodes (Dict[str, tf.Tensor]): Nodes that assign weights.
     """
-    def __init__(self, loss, sess=None, input_variables=None):
+    def __init__(self, loss, sess=None, input_variables=None, model=None):
         """Creates TensorFlowVariables containing extracted variables.
         The variables are extracted by performing a BFS search on the
         dependency graph with loss as the root node. After the tree is
@@ -71,7 +72,10 @@ class TensorFlowVariables(object):
             if "Variable" in tf_obj.node_def.op:
                 variable_names.append(tf_obj.node_def.name)
         self.variables = OrderedDict()
+
         variable_list = [v for v in tf.global_variables()
+                         if v.op.node_def.name in variable_names] if model is None else \
+                        [v for v in model.get_variables()
                          if v.op.node_def.name in variable_names]
         if input_variables is not None:
             variable_list += input_variables

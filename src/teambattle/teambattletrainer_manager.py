@@ -72,6 +72,9 @@ class TeamBattleTrainerManager:
                 self.battle_trainers[real_battpe_id] = battle_trainer
             C.generation_id = sync_generation_id_from_trainer()
             self.lastCheckGenerationId = time.time()
+
+            # 更新模型
+            self.battle_model_util.set_model_weights(C.generation_id)
             print('训练器初始化完毕, 训练器数量', battle_id_num)
 
     def read_process(self, json_str):
@@ -128,15 +131,6 @@ class TeamBattleTrainerManager:
             C.generation_id,
             (end_time - begin_time) * 1000
         ))
-
-    def model(self):
-        alllist = []
-        # 把变量转成list类型
-        for hero_name in self.heros:
-            model, _ = self.battle_model_util.model_map[hero_name]
-            model_list = tensor_to_list(model)
-            alllist.append(model_list)
-        return alllist
 
     def get_generation_id(self):
         return C.generation_id

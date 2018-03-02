@@ -74,6 +74,13 @@ class TeamBattleTrainer:
         self.raw_log_file.write(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + " -- " + raw_log_str + "\n")
         self.raw_log_file.flush()
 
+    def build_restart_response(self, battle_id, battle_tick):
+        print(self.battle_id, '不是开始帧的话直接返回重启游戏', battle_tick)
+        action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
+        rsp_obj = {"ID": battle_id, "tick": battle_tick, "cmd": action_strs}
+        rsp_str = JSON.dumps(rsp_obj)
+        return rsp_str
+
     def build_response(self, raw_state_str):
         self.save_raw_log(raw_state_str)
         prev_state_info = self.state_cache[-1] if len(self.state_cache) > 0 else None
@@ -98,11 +105,9 @@ class TeamBattleTrainer:
             model, _ = self.model_util.model_map["27"]
             for i in model.pi.get_variables():
                 print(U.get_session().run(tf.reduce_sum(i)))
-            print(self.battle_id, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
-            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
-            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
-            rsp_str = JSON.dumps(rsp_obj)
-            return rsp_str
+
+            # 重启游戏
+            return self.build_restart_response(raw_state_info.battleid, raw_state_info.tick)
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
@@ -121,11 +126,7 @@ class TeamBattleTrainer:
         elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE:
             # 不是开始帧的话直接返回重启游戏
             # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
-            print("battle_id", self.battle_id, "tick", raw_state_info.tick, '不是开始帧的话直接返回重启游戏', raw_state_info.tick)
-            action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
-            rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
-            rsp_str = JSON.dumps(rsp_obj)
-            return rsp_str
+            return self.build_restart_response(raw_state_info.battleid, raw_state_info.tick)
 
         state_info = StateUtil.update_state_log(prev_state_info, raw_state_info)
         hero = state_info.get_hero("27")

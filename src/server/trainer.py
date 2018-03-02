@@ -57,8 +57,9 @@ class TrainerHandler(tornado.web.RequestHandler):
                 return
 
             if path.startswith('/model'):
-                list=manager.model()
-                self.finish(pickle.dumps(list))
+                generation_id, model_weights = manager.battle_model_util.get_model_weights()
+                content = {generation_id: model_weights}
+                self.finish(pickle.dumps(content))
                 return
 
             if path.startswith('/train'):

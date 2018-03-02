@@ -21,12 +21,16 @@ def push_data(battle_id, hero_name, generation_id, data):
     r = requests.get(url, data=data)
     return r.text
 
-def model_data():
+def fetch_model_weights():
     url = 'http://127.0.0.1:%d/data/model' % (C.GATEWAY_PORT)
     r = requests.get(url)
-    list = pickle.loads(r.content)
 
-    return list
+    # 读取结果应该是generation_id, weight_maps
+    print(r.content)
+    content = pickle.loads(r.content)
+    generation_id = list(content.keys())[0]
+    weight_maps = list(content.values())[0]
+    return generation_id, weight_maps
 
 class TeamBattleModelUtil:
     def build_model_ppo(self, ob_size, act_size, save_dir, model_hero, model_path=None, schedule_timesteps=10000,
@@ -47,7 +51,12 @@ class TeamBattleModelUtil:
         # # 使用Ray的方式来得到和赋予权重信息
         # weight = model.variables.get_weights()
         # print("weight", weight)
-        # model.variables.set_weights(weight)
+        # # model.variables.set_weights(weight)
+        #
+        # import pickle
+        # bytes = pickle.dumps(weight)
+        # new_weight = pickle.loads(bytes)
+        # model.variables.set_weights(new_weight)
         #
         # # 输出权重信息
         # tvars = tf.trainable_variables()
@@ -233,25 +242,30 @@ class TeamBattleModelUtil:
             model.replay(o4rs, 0)
             self.if_save_model(model, model_save_header, self.save_batch)
 
-    def update_model_from_disk(self, generation_id):
+    def get_model_weights(self):
+        model_weights = {}
+        # 把变量转成list类型
+        for hero_name in self.hero_names:
+            model, _ = self.model_map[hero_name]
+            weight = model.variables.get_weights()
+            model_weights[hero_name] = weight
+        return self.generation_id, model_weights
+
+    def set_model_weights(self, generation_id):
         # 确保不会因为请求超时 无法获得模型变量，更新模型
         try:
-            while True:
-                list = model_data()
-                if len(list) == 10:
-                    n = 0
-                    for hero_name in self.hero_names:
-                        model, _ = self.model_map[hero_name]
-                        model_list = list[n]
-                        for i in range(len(model_list)):
-                            oldv1 = model.pi.get_variables()[i]
-                            newv1 = tf.placeholder(dtype=tf.float32)
-                            assign_old_eq_new = U.function([newv1], [], updates=[tf.assign(oldv1, newv1)])
-                            assign_old_eq_new(model_list[i])
-                        n = n + 1
-                    self.generation_id = generation_id
-                    break
-
+            new_generation_id, model_weights = fetch_model_weights()
+            if int(new_generation_id) != generation_id:
+                print('set_model_weights', 'found generation id not same', generation_id, new_generation_id)
+            if len(model_weights.values()) == len(self.hero_names):
+                for hero_name in self.hero_names:
+                    model, _ = self.model_map[hero_name]
+                    model_weight = model_weights[hero_name]
+                    model.variables.set_weights(model_weight)
+                self.generation_id = generation_id
+                print('set_model_weights', 'set new model weights')
+            else:
+                print('set_model_weights', 'found model weight size not match', len(model_weights.values()))
         except Exception as ex:
             print(ex)
             return 0

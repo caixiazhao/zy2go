@@ -151,7 +151,9 @@ class LineModel_PPO1:
                                                             zipsame(self.oldpi.get_variables(), self.pi.get_variables())])
             self.compute_losses = U.function([ob, ac, atarg, ret, lrmult], losses)
 
-            self.variables = TensorFlowVariables(total_loss, sess)
+            # 拷贝权重时候需要的模型信息，需要依赖于loss
+            # 同时指定了只拷贝pi模型的参数，oldpi只有在训练时候需要，不需要传递出去
+            self.variables = TensorFlowVariables(total_loss, sess, model=self.pi)
 
             U.initialize()
             self.adam.sync()
