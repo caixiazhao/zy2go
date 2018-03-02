@@ -93,21 +93,17 @@ class TeamBattleTrainer:
         hero = state_info.get_hero("27")
 
         # 更新
-        if C.generation_id > self.model_util.generation_id:
-
+        if C.generation_id != self.model_util.generation_id:
             if C.LOG['GENERATION_UPDATE']:
                 print('%s generation update P1 %d - trainer:%d to process:%d' % (
                     time.strftime('%H:%M:%S'),
                     raw_state_info.battleid,
                     C.generation_id, self.model_util.generation_id))
-            print("_________________________________________")
-            self.model_util.update_model_from_disk(C.generation_id)
-            model, _ = self.model_util.model_map["27"]
-            for i in model.pi.get_variables():
-                print(U.get_session().run(tf.reduce_sum(i)))
+            self.model_util.set_model_weights(C.generation_id)
 
-            # 重启游戏
-            return self.build_restart_response(raw_state_info.battleid, raw_state_info.tick)
+            # 如果发现战斗已经开始，则需要重启游戏
+            if self.battle_started > -1:
+                return self.build_restart_response(raw_state_info.battleid, raw_state_info.tick)
 
         # 重开时候会有以下报文  {"wldstatic":{"ID":9051},"wldruntime":{"State":0}}
         if raw_state_info.tick == -1:
@@ -123,6 +119,8 @@ class TeamBattleTrainer:
             self.dead_heroes_cache = []
             self.data_inputs = []
             self.rebooting = False
+            for hero_name in self.heros:
+                self.model_caches[hero_name].clear_cache()
         elif prev_state_info is None and raw_state_info.tick > StateUtil.TICK_PER_STATE:
             # 不是开始帧的话直接返回重启游戏
             # 还有偶然情况下首帧没有tick（即-1）的情况，这种情况下只能重启本场战斗
@@ -220,16 +218,8 @@ class TeamBattleTrainer:
             # action_cmds, input_list, model_upgrade = self.get_model_actions(state_info, heroes_in_range)
             # 跟队伍，每个队伍得到行为
             team_a, team_b = TeamBattleUtil.get_teams(heroes_in_range)
-            team_actions_a, input_list_a, model_upgrade_a = self.get_model_actions_team(state_info, team_a, heroes_in_range)
-            team_actions_b, input_list_b, model_upgrade_b = self.get_model_actions_team(state_info, team_b, heroes_in_range)
-
-            # 如果模型已经开战，重启战斗
-            if (model_upgrade_a or model_upgrade_b) and self.battle_started < len(self.state_cache) + 1:
-                print("battle_id", self.battle_id, "因为模型升级，重启战斗", self.battle_started, len(self.state_cache))
-                action_strs = [StateUtil.build_action_command('27', 'RESTART', None)]
-                rsp_obj = {"ID": raw_state_info.battleid, "tick": raw_state_info.tick, "cmd": action_strs}
-                rsp_str = JSON.dumps(rsp_obj)
-                return rsp_str
+            team_actions_a, input_list_a = self.get_model_actions_team(state_info, team_a, heroes_in_range)
+            team_actions_b, input_list_b = self.get_model_actions_team(state_info, team_b, heroes_in_range)
             data_input_map = {}
             for action_cmd, data_input in zip(team_actions_a + team_actions_b, input_list_a + input_list_b):
                 action_str = StateUtil.build_command(action_cmd)
@@ -464,7 +454,6 @@ class TeamBattleTrainer:
         action_cmds = []
         input_list = []
         left_heroes = list(team)
-        model_upgrade = False
         while len(left_heroes) > 0:
             cur_max_q = -1
             chosen_hero = left_heroes[0]
@@ -478,7 +467,7 @@ class TeamBattleTrainer:
 
                 unaval_list = hero_unavail_list_map[hero]
                 recommend_list = hero_recommend_list_map[hero]
-                action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
+                action_list, explor_value, vpreds = self.model_util.get_action_list(self.battle_id, hero, data_input)
                 action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
                 max_q = TeamBattleTrainer.get_max_q(action_list, unaval_list, recommend_list)
                 if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "本轮行为候选", "hero", hero, "max_q", max_q, "model action list",
@@ -489,13 +478,6 @@ class TeamBattleTrainer:
                     cur_max_q = max_q
                     chosen_hero = hero
                     chosen_action_list = action_list
-
-                # 如果模型升级了，需要清空所有缓存用作训练的行为，并且重启游戏
-                if clear_cache:
-                    print('battle_id', self.battle_id, '模型升级，清空训练缓存')
-                    for hero_name in self.heros:
-                        self.model_caches[hero_name].clear_cache()
-                    model_upgrade = True
 
             # 使用最大q的英雄的行为
             unaval_list = hero_unavail_list_map[chosen_hero]
@@ -508,7 +490,7 @@ class TeamBattleTrainer:
             action_cmds.append(action_cmd)
             input_list.append(data_input)
             left_heroes.remove(chosen_hero)
-        return action_cmds, input_list, model_upgrade
+        return action_cmds, input_list
 
     def get_model_actions(self, state_info, heros, debug=False):
         # 第一个人先选，然后第二个人，一直往后，后面的人会在参数中添加上之前人的行为
@@ -524,7 +506,6 @@ class TeamBattleTrainer:
 
         action_cmds = []
         input_list = []
-        model_upgrade = False
         for hero in random_heros:
             hero_info = state_info.get_hero(hero)
             data_input = TeamBattleInput.gen_input(state_info, hero)
@@ -534,7 +515,7 @@ class TeamBattleTrainer:
             for prev_action in action_cmds:
                 data_input = TeamBattleInput.add_other_hero_action(data_input, hero_info, prev_action, debug)
 
-            action_list, explor_value, vpreds, clear_cache = self.model_util.get_action_list(self.battle_id, hero, data_input)
+            action_list, explor_value, vpreds = self.model_util.get_action_list(self.battle_id, hero, data_input)
             action_str = ' '.join(str("%.4f" % float(act)) for act in action_list)
             if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model action list", action_str)
             unaval_list = TeamBattleTrainer.list_unaval_actions(action_list, state_info, hero, heros, battle_range)
@@ -544,16 +525,9 @@ class TeamBattleTrainer:
             action_cmd, max_q, selected = TeamBattleTrainer.get_action_cmd(action_list, unaval_list, state_info, hero, friends, opponents)
             if debug: print("battle_id", self.battle_id, "tick", state_info.tick, "hero", hero, "model get_action", StateUtil.build_command(action_cmd), "max_q", max_q, "selected", selected)
 
-            # 如果模型升级了，需要清空所有缓存用作训练的行为，并且重启游戏
-            if clear_cache:
-                print('battle_id', self.battle_id, '模型升级，清空训练缓存')
-                for hero_name in self.heros:
-                    self.model_caches[hero_name].clear_cache()
-                model_upgrade = True
-
             action_cmds.append(action_cmd)
             input_list.append(data_input)
-        return action_cmds, input_list, model_upgrade
+        return action_cmds, input_list
 
     @staticmethod
     # 过滤输出结果，删除掉不可执行的选择

@@ -64,7 +64,8 @@ def get_run_mode():
     return GLOBAL['run_mode']
 
 
-
+def get_total_battle_num():
+    return len(GAME_WORKER_HOSTS) * GAME_WORKERS * GAME_WORKER_SLOTS
 
 
 # ----

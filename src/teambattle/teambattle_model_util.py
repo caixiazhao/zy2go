@@ -73,7 +73,6 @@ class TeamBattleModelUtil:
         self.save_batch = save_batch
         self.model_map = {}
         self.train_data_map = {}
-        self.clear_cache_signals = []
         self.hero_names = hero_names
         self.generation_id = 0
 
@@ -93,14 +92,7 @@ class TeamBattleModelUtil:
     def get_action_list(self, battle_id, hero_name, state_input):
         model, _ = self.model_map[hero_name]
         actions_list, explor_value, vpred = model.get_action(state_input)
-
-        # 判断是否已经切换了模型版本，应该清空之前的行为缓存
-        clear_cache = False
-        if battle_id in self.clear_cache_signals:
-            self.clear_cache_signals.remove(battle_id)
-            clear_cache = True
-
-        return list(actions_list[0]), explor_value, vpred, clear_cache
+        return list(actions_list[0]), explor_value, vpred
 
     def if_save_model(self, model, save_header, save_batch):
         # 训练之后检查是否保存
@@ -201,36 +193,14 @@ class TeamBattleModelUtil:
         o4r['battle_id'] = battle_id
         o4r['generation_id'] = generation_id
         o4r['hero_name'] = hero_name
-
         o4rdata = pickle.dumps(o4r)
-
-        print('%s push-data %d g:%d m:%s - %d' % (
-            time.strftime('%H:%M:%S'),
-            battle_id,
-            generation_id,
-            hero_name,
-            len(o4rdata)))
-
-        r = push_data(battle_id, hero_name,
-                      generation_id, o4rdata)
-
+        print('set_train_data', 'push data', battle_id, generation_id, hero_name, len(o4rdata))
+        r = push_data(battle_id, hero_name, generation_id, o4rdata)
         gateway_generation_id = int(r)
-
-        # 添加一个清空缓存信息给每场战斗
-        for battle_id in range(1, self.battle_num + 1):
-            if battle_id not in self.clear_cache_signals:
-                self.clear_cache_signals.append(battle_id)
-
         if C.generation_id == gateway_generation_id:
             return
-
         if C.LOG['GENERATION_UPDATE']:
-            print('%s generation update P3 %d - process %d:%d' % (
-                time.strftime('%H:%M:%S'),
-                battle_id,
-                C.generation_id, gateway_generation_id))
-        C.generation_id = gateway_generation_id
-
+            print('set_train_date', 'found model generation not match', generation_id, gateway_generation_id)
         return
 
     def do_real_train(self, o4rs, hero_name):
@@ -262,7 +232,7 @@ class TeamBattleModelUtil:
                     model, _ = self.model_map[hero_name]
                     model_weight = model_weights[hero_name]
                     model.variables.set_weights(model_weight)
-                self.generation_id = generation_id
+                self.generation_id = new_generation_id
                 print('set_model_weights', 'set new model weights')
             else:
                 print('set_model_weights', 'found model weight size not match', len(model_weights.values()))

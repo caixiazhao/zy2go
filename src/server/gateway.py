@@ -143,13 +143,13 @@ class DataHandler(tornado.web.RequestHandler):
 
             if cur_generation_id == int(generation_id):
                 G['batches'] = batches
-                print(batches)
+                print('train__data_callback', 'model data size', batches)
 
             if cur_generation_id != C.generation_id:
                 G['batches'] = 0
                 C.generation_id = cur_generation_id
 
-            if G['batches'] >= C.TRAIN_GAME_BATCH:
+            if G['batches'] >= C.get_total_battle_num():
                 G['train_lock'] = True
                 fetch_request(
                     'http://127.0.0.1:%d/train' % (C.TRAINER_PORT),

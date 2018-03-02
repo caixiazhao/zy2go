@@ -52,8 +52,10 @@ class TrainerHandler(tornado.web.RequestHandler):
 
             if path.startswith('/data'):
                 # print('/data %d' % len(data))
-                manager.push_data(data)
-                self.finish(str(manager.get_generation_id())+","+str(len(manager.train_data_map['36'])))
+                min_train_size = manager.push_data(data)
+
+                # 返回训练集大小，这里的方法不够严谨，目前只是检查最后一个训练集
+                self.finish(str(manager.get_generation_id())+","+str(min_train_size))
                 return
 
             if path.startswith('/model'):

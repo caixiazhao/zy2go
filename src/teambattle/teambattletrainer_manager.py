@@ -80,7 +80,10 @@ class TeamBattleTrainerManager:
     def read_process(self, json_str):
         begin_time = time.time()
         if begin_time - self.lastCheckGenerationId > 1.5:
-            C.generation_id = sync_generation_id_from_trainer()
+            new_generation_id = sync_generation_id_from_trainer()
+            if new_generation_id != C.generation_id:
+                print('update generation id')
+                C.generation_id = new_generation_id
             self.lastCheckGenerationId = begin_time
         obj = JSON.loads(json_str)
         raw_state_info = StateInfo.decode(obj)
@@ -99,20 +102,31 @@ class TeamBattleTrainerManager:
 
     def push_data(self, data):
         o4r = pickle.loads(data)
+        battle_id = o4r['battle_id']
+        generation_id = o4r['generation_id']
+        hero_name = o4r['hero_name']
 
-        if o4r['generation_id'] != C.generation_id:
+        if generation_id != C.generation_id:
             print("%s /data %d %d  skip" % (
                 time.strftime('%H:%M:%S'),
-                o4r['battle_id'],
+                battle_id,
                 len(data)))
         else:
-            print(o4r['hero_name'], o4r['battle_id'])
-            self.train_data_map[o4r['hero_name']][o4r['battle_id']] = o4r
+            print(hero_name, battle_id)
+            self.train_data_map[hero_name][battle_id] = o4r
 
             print("%s /data %d %d %d - %d/%d" % (
                 time.strftime('%H:%M:%S'),
-                o4r['battle_id'], o4r['generation_id'],
-                len(data), len(self.train_data_map[o4r['hero_name']]), C.TRAIN_GAME_BATCH))
+                battle_id, generation_id,
+                len(data), len(self.train_data_map[hero_name]), C.get_total_battle_num()))
+
+        # 返回数据最少的训练集的大小
+        min_size = -1
+        for hero_name in self.heros:
+            train_size = self.train_data_map[hero_name]
+            if min_size == -1 or min_size < len(train_size):
+                min_size = len(train_size)
+        return min_size
 
     def train(self):
         C.generation_id += 1
